@@ -1,0 +1,15 @@
+# mykbostats /stats/top/sv  player|team|SV|G|IP
+Kim Jae-yoon|Samsung Lions|34|62|62
+Son Ju-young|LG Twins|30|42|46
+Park Yeong-hyun|KT Wiz|27|51|56⅔
+Lee Young-ha|Doosan Bears|23|54|62⅓
+Jo Byeong-hyeon|SSG Landers|20|52|50⅓
+Choi Jun-yong|Lotte Giants|15|55|53⅔
+Kanakubo Yuto|Kiwoom Heroes|14|57|48⅔
+Sung Yeong-tak|Kia Tigers|12|53|51⅔
+You Young-chan|LG Twins|11|13|12
+Chun Sa-min|NC Dinos|10|65|59⅓
+Won Jong-hyan|Kiwoom Heroes|7|50|46
+Lee Min-woo|Hanwha Eagles|7|57|55
+Lee Eui-lee|Kia Tigers|6|33|58⅔
+Lim Ji-min|NC Dinos|6|49|46⅔

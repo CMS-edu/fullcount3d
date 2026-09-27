@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1535">
+<meta name="description" content="풀카운트 3D — 한국 프로야구 스타일의 3D 야구 게임. 직접 치고, 던지고, 작전을 지시하세요.">
+<title>풀카운트 3D — 한국 프로야구 스타일 3D 야구</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --led: #ffb627; --led-dim: #6b4a10; --ball-c: #37d67a; --strike-c: #ffc93c; --out-c: #ff4b4b;
+  --bug: #0b1535; --bug-2: #121d44; --bug-line: #2c3a78; --bug-text: #eef1ff; --bug-muted: #9ba7d9;
+  --bg: #e9eef9; --panel: rgba(250, 251, 255, 0.94); --panel-2: #eef1fa; --ink: #0f1a3d; --ink-2: #4b5683; --border: #d3daf0;
+  --accent: #1f3d8f; --accent-ink: #ffffff; --cta: #ffb627; --cta-ink: #1c1405; --scrim: rgba(12, 20, 48, 0.35);
+  --display: "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  --r: 14px;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1535; --panel: rgba(18, 29, 68, 0.94); --panel-2: #1a2656; --ink: #eef1ff; --ink-2: #9ba7d9; --border: #2c3a78;
+    --accent: #ffb627; --accent-ink: #1c1405; --scrim: rgba(3, 6, 18, 0.55); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1535; --panel: rgba(18, 29, 68, 0.94); --panel-2: #1a2656; --ink: #eef1ff; --ink-2: #9ba7d9; --border: #2c3a78;
+  --accent: #ffb627; --accent-ink: #1c1405; --scrim: rgba(3, 6, 18, 0.55); color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { height: 100%; margin: 0; background: var(--bg); color: var(--ink); font-family: var(--ui); overflow: hidden;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; background: #0b1535; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; touch-action: manipulation; }
+button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* ---------- 타이틀 ---------- */
+#title { position: fixed; inset: 0; display: grid; place-items: center; overflow-y: auto; z-index: 20;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 14px);
+  background: radial-gradient(120% 80% at 50% 110%, transparent 40%, var(--scrim) 100%); }
+.card { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 16px;
+  box-shadow: 0 24px 60px rgba(5, 10, 30, 0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.plate { position: relative; background: linear-gradient(180deg, #0a0f22, #070a17); border-radius: 14px; padding: 16px 14px 12px; text-align: center;
+  border: 2px solid #1d2748; box-shadow: inset 0 0 0 1px #000, inset 0 -18px 30px rgba(255, 182, 39, 0.05); overflow: hidden; }
+.plate::before, .plate::after { content: ""; position: absolute; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: #2a3458; box-shadow: 0 calc(100% + 0px) 0 #2a3458; }
+.plate::before { left: 8px; } .plate::after { right: 8px; }
+.led { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(46px, 15vw, 76px); line-height: 1.02; letter-spacing: 0.03em;
+  color: transparent; background: radial-gradient(circle, var(--led) 44%, transparent 50%) 0 0 / 4px 4px;
+  -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 7px rgba(255, 182, 39, 0.55)); }
+.led-sub { margin-top: 4px; font-family: var(--display); font-size: 15px; letter-spacing: 0.18em; color: #7fe3ff; text-shadow: 0 0 8px rgba(127, 227, 255, 0.5); }
+.led-sub b { color: var(--led); font-weight: 400; }
+@media (prefers-reduced-motion: no-preference) { .led { animation: flick 6s infinite steps(1); } }
+@keyframes flick { 0%, 96%, 100% { opacity: 1; } 97% { opacity: 0.75; } 98% { opacity: 1; } 99% { opacity: 0.85; } }
+
+.matchup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; margin: 14px 0 6px; }
+.side { text-align: center; }
+.side .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--ink-2); margin-bottom: 4px; }
+.picker { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.arrow { width: 44px; height: 44px; border-radius: 12px; font-size: 18px; color: var(--ink-2); display: grid; place-items: center; }
+.arrow:hover { background: var(--panel-2); color: var(--ink); }
+.badge { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-family: var(--display); font-size: 22px;
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.18), 0 6px 14px rgba(0, 0, 0, 0.2); transition: transform 0.15s; }
+.tname { margin-top: 6px; font-weight: 700; font-size: 15px; }
+.rec { font-size: 12px; color: var(--ink-2); margin-top: 1px; font-variant-numeric: tabular-nums; }
+.vs { font-family: var(--display); font-size: 22px; color: var(--ink-2); padding-top: 18px; }
+.opts { display: grid; gap: 8px; margin-top: 10px; }
+.opt { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 8px; }
+.opt > span { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.seg { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 3px; }
+.seg button { flex: 1; min-height: 40px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
+.cta { width: 100%; margin-top: 14px; min-height: 56px; border-radius: 16px; background: var(--cta); color: var(--cta-ink); font-family: var(--display);
+  font-size: 24px; letter-spacing: 0.06em; box-shadow: 0 6px 0 #b77a00, 0 10px 24px rgba(255, 182, 39, 0.35); transition: transform 0.08s, box-shadow 0.08s; }
+.cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #b77a00; }
+.foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13px; color: var(--ink-2); gap: 8px; }
+.linkbtn { min-height: 44px; padding: 0 6px; font-weight: 700; color: var(--accent); }
+.howto { margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--ink-2); background: var(--panel-2); border-radius: 12px; padding: 10px 12px; }
+.howto b { color: var(--ink); }
+.howto p { margin: 0 0 6px; }
+.fine { margin-top: 10px; font-size: 11px; color: var(--ink-2); text-align: center; line-height: 1.5; opacity: 0.85; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; font-family: var(--ui); color: var(--bug-text); }
+#hud .pe { pointer-events: auto; }
+.topbar { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 8px) 0 calc(env(safe-area-inset-left, 0px) + 8px); }
+.bug { display: flex; align-items: stretch; background: var(--bug); border: 1px solid var(--bug-line); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); font-variant-numeric: tabular-nums; }
+.bug-teams { display: grid; grid-template-rows: 1fr 1fr; min-width: 96px; }
+.trow { display: grid; grid-template-columns: 6px 1fr auto; align-items: center; gap: 7px; padding: 0 8px 0 0; height: 26px; }
+.trow + .trow { border-top: 1px solid var(--bug-line); }
+.trow i { align-self: stretch; }
+.trow b { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: 0.02em; }
+.trow .sc { font-family: var(--display); font-size: 19px; min-width: 18px; text-align: right; }
+.trow.bat b::after { content: "●"; font-size: 8px; color: var(--led); margin-left: 4px; vertical-align: middle; }
+.bug-inn { display: grid; place-items: center; align-content: center; padding: 0 8px; background: var(--bug-2); border-left: 1px solid var(--bug-line); font-family: var(--display); line-height: 1; }
+.bug-inn .ar { font-size: 11px; color: var(--led); }
+.bug-inn .n { font-size: 20px; }
+.bug-bases { position: relative; width: 44px; border-left: 1px solid var(--bug-line); }
+.bug-bases i { position: absolute; width: 12px; height: 12px; border: 1.5px solid #5d6aa3; transform: rotate(45deg); background: transparent; transition: background 0.2s; }
+.bug-bases i.on { background: var(--led); border-color: var(--led); box-shadow: 0 0 6px rgba(255, 182, 39, 0.7); }
+.bug-bases .b1 { right: 6px; top: 22px; } .bug-bases .b2 { left: 16px; top: 9px; } .bug-bases .b3 { left: 6px; top: 22px; }
+.bug-count { display: grid; align-content: center; gap: 3px; padding: 4px 9px; border-left: 1px solid var(--bug-line); font-size: 11px; font-weight: 700; }
+.bug-count div { display: flex; align-items: center; gap: 4px; }
+.bug-count span { width: 9px; color: var(--bug-muted); }
+.bug-count i { width: 9px; height: 9px; border-radius: 50%; background: #243063; }
+.bug-count .bb i.on { background: var(--ball-c); box-shadow: 0 0 5px var(--ball-c); }
+.bug-count .ss i.on { background: var(--strike-c); box-shadow: 0 0 5px var(--strike-c); }
+.bug-count .oo i.on { background: var(--out-c); box-shadow: 0 0 5px var(--out-c); }
+.icon-btn { width: 44px; height: 44px; border-radius: 12px; background: rgba(11, 21, 53, 0.82); border: 1px solid var(--bug-line); display: grid; place-items: center; color: var(--bug-text); }
+.icon-btn svg { width: 22px; height: 22px; }
+.lines { position: absolute; left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 66px); display: grid; gap: 4px; max-width: min(78vw, 360px); }
+.line { display: flex; align-items: center; gap: 6px; background: rgba(11, 21, 53, 0.78); border: 1px solid rgba(44, 58, 120, 0.8); border-radius: 8px; padding: 3px 8px; font-size: 12px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.line .k { font-size: 10px; font-weight: 700; color: var(--bug-muted); letter-spacing: 0.06em; }
+.line b { font-weight: 700; }
+.line .m { color: var(--bug-muted); }
+.line .hot { color: var(--led); font-weight: 700; }
+#tracker { position: absolute; right: calc(env(safe-area-inset-right, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 60px); width: 74px; height: 92px; border-radius: 8px;
+  background: rgba(11, 21, 53, 0.72); border: 1px solid rgba(44, 58, 120, 0.8); }
+.speed { position: absolute; right: calc(env(safe-area-inset-right, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 158px); background: rgba(11, 21, 53, 0.82); border: 1px solid var(--bug-line);
+  border-radius: 8px; padding: 3px 8px; text-align: right; min-width: 74px; }
+.speed b { display: block; font-family: var(--display); font-size: 20px; color: var(--led); line-height: 1.1; font-weight: 400; }
+.speed span { font-size: 11px; color: var(--bug-muted); }
+
+#call { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(34px, 11vw, 58px); letter-spacing: 0.04em;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 22px rgba(0, 0, 0, 0.5); white-space: nowrap; opacity: 0; transition: opacity 0.12s; text-align: center; }
+#call.show { opacity: 1; }
+#call small { display: block; font-family: var(--ui); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; color: #dfe6ff; margin-top: 4px; }
+.abs { display: inline-block; font-family: var(--ui); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 1px 6px; border-radius: 5px; background: #1a2656; color: #7fe3ff; border: 1px solid #2c3a78; vertical-align: middle; margin-left: 6px; }
+#banner { position: absolute; left: 0; right: 0; top: 30%; display: grid; place-items: center; opacity: 0; transform: scaleY(0.6); transition: opacity 0.18s, transform 0.18s; }
+#banner.show { opacity: 1; transform: none; }
+#banner .band { width: 100%; padding: 14px 16px; text-align: center; background: linear-gradient(90deg, transparent, rgba(11, 21, 53, 0.92) 18%, rgba(11, 21, 53, 0.92) 82%, transparent); border-top: 2px solid var(--led); border-bottom: 2px solid var(--led); }
+#banner .big { font-family: var(--display); font-size: clamp(30px, 10vw, 56px); color: var(--led); letter-spacing: 0.05em; line-height: 1.05; text-shadow: 0 0 18px rgba(255, 182, 39, 0.45); }
+#banner .small { margin-top: 4px; font-size: 14px; font-weight: 500; color: #dfe6ff; }
+#feedback { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 0); display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+#feedback.show { opacity: 1; }
+#feedback span { padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 14px; background: rgba(11, 21, 53, 0.85); border: 1px solid var(--bug-line); }
+#feedback .good { color: var(--ball-c); border-color: var(--ball-c); } #feedback .ok { color: var(--strike-c); } #feedback .bad { color: #ff8a8a; }
+#playText { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); transform: translateX(-50%); max-width: 92vw; text-align: center; padding: 8px 14px; border-radius: 12px;
+  background: rgba(11, 21, 53, 0.88); border: 1px solid var(--bug-line); font-weight: 700; font-size: 15px; opacity: 0; transition: opacity 0.2s; }
+#playText.show { opacity: 1; }
+.skip { position: absolute; right: calc(env(safe-area-inset-right, 0px) + 10px); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); min-height: 44px; padding: 0 16px; border-radius: 12px;
+  background: rgba(11, 21, 53, 0.82); border: 1px solid var(--bug-line); color: var(--bug-text); font-weight: 700; font-size: 14px; }
+
+/* 도크 */
+.dock { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 calc(env(safe-area-inset-right, 0px) + 10px) calc(env(safe-area-inset-bottom, 0px) + 10px) calc(env(safe-area-inset-left, 0px) + 10px);
+  display: grid; gap: 8px; }
+.hint { justify-self: center; font-size: 13px; font-weight: 500; color: #eef1ff; background: rgba(11, 21, 53, 0.72); padding: 6px 12px; border-radius: 999px; text-align: center; }
+.row { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.chip { min-height: 44px; padding: 0 16px; border-radius: 12px; background: rgba(11, 21, 53, 0.86); border: 1px solid var(--bug-line); color: var(--bug-text); font-weight: 700; font-size: 14px;
+  display: inline-flex; align-items: center; gap: 6px; }
+.chip[aria-pressed="true"] { background: var(--led); color: #1c1405; border-color: var(--led); }
+.chip:disabled { opacity: 0.4; cursor: default; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.pitches { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.pbtn { min-width: 70px; min-height: 48px; padding: 4px 10px; border-radius: 12px; background: rgba(11, 21, 53, 0.88); border: 1px solid var(--bug-line); color: var(--bug-text); text-align: center; line-height: 1.15; }
+.pbtn b { display: block; font-size: 14px; } .pbtn span { font-size: 11px; color: var(--bug-muted); font-variant-numeric: tabular-nums; }
+.pbtn[aria-pressed="true"] { background: #1f3d8f; border-color: var(--led); box-shadow: inset 0 0 0 1px var(--led); }
+.stam { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--bug-muted); background: rgba(11, 21, 53, 0.86); border: 1px solid var(--bug-line); border-radius: 12px; min-height: 44px; padding: 0 12px; }
+.stam .bar { width: 64px; height: 8px; border-radius: 4px; background: #243063; overflow: hidden; }
+.pclock b { font-family: var(--display); font-size: 18px; font-weight: 400; color: var(--bug-text); min-width: 22px; text-align: right; }
+.pclock.warn b { color: var(--strike-c); } .pclock.bad b { color: var(--out-c); }
+.stam .bar i { display: block; height: 100%; background: var(--ball-c); transition: width 0.3s; }
+
+#pad { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); width: 176px; height: 206px; border-radius: 16px;
+  background: rgba(11, 21, 53, 0.55); border: 1px solid rgba(255, 255, 255, 0.18); touch-action: none; }
+#pad canvas { width: 100%; height: 100%; display: block; }
+#pad .cap { position: absolute; top: -22px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; color: #eef1ff; text-shadow: 0 1px 3px #000; }
+#meter { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); width: min(320px, 84vw); text-align: center; }
+#meter .track { position: relative; height: 26px; border-radius: 13px; background: linear-gradient(90deg, #ff4b4b 0%, #ffc93c 30%, #37d67a 45%, #37d67a 55%, #ffc93c 70%, #ff4b4b 100%); border: 2px solid #0b1535; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+#meter .needle { position: absolute; top: -6px; width: 4px; height: 34px; margin-left: -2px; background: #fff; border-radius: 2px; box-shadow: 0 0 0 2px #0b1535; left: 0; }
+#meter p { margin: 6px 0 0; font-weight: 700; font-size: 14px; text-shadow: 0 1px 3px #000; }
+
+/* 모달 */
+.modal { position: fixed; inset: 0; z-index: 30; display: grid; align-items: end; justify-items: center; background: var(--scrim); }
+@media (min-width: 640px) and (min-height: 520px) { .modal { align-items: center; } }
+.sheet { width: min(520px, 100%); max-height: 88%; overflow-y: auto; background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35); }
+@media (min-width: 640px) and (min-height: 520px) { .sheet { border-radius: 20px; padding-bottom: 16px; } }
+.sheet h2 { margin: 0 0 10px; font-family: var(--display); font-weight: 400; font-size: 24px; letter-spacing: 0.02em; }
+.sheet .sub { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; }
+.mbtn { width: 100%; min-height: 50px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; font-size: 16px; margin-top: 8px; color: var(--ink); }
+.mbtn.primary { background: var(--cta); color: var(--cta-ink); border-color: transparent; }
+.mbtn.danger { color: #d33; }
+.plist { display: grid; gap: 8px; }
+.pcard { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; text-align: left; padding: 10px 12px; min-height: 56px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink); }
+.pcard b { font-size: 15px; } .pcard .r { font-size: 12px; color: var(--ink-2); grid-column: 1 / -1; font-variant-numeric: tabular-nums; }
+.pcard .role { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); align-self: start; }
+.pcard:disabled { opacity: 0.45; }
+.lscore { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+.lswrap { overflow-x: auto; background: #0b1535; color: #eef1ff; border-radius: 12px; padding: 8px; margin: 6px 0 12px; }
+.lscore th, .lscore td { padding: 5px 4px; text-align: center; min-width: 20px; }
+.lscore th { color: #9ba7d9; font-weight: 500; font-size: 11px; }
+.lscore td.t { text-align: left; font-family: var(--display); font-size: 15px; white-space: nowrap; padding-right: 8px; }
+.lscore td.R { color: var(--led); font-family: var(--display); font-size: 17px; }
+.lscore .sep { border-left: 1px solid #2c3a78; }
+.result { font-family: var(--display); font-size: 38px; text-align: center; margin: 2px 0 4px; }
+.result.win { color: #1c9a55; } .result.lose { color: #c43b3b; } .result.draw { color: var(--ink-2); }
+:root[data-theme="dark"] .result.win { color: var(--ball-c); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .result.win { color: var(--ball-c); } }
+.mvp { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); font-size: 14px; }
+.mvp .tagm { font-family: var(--display); color: #1c1405; background: var(--led); border-radius: 8px; padding: 4px 8px; font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.stats div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 8px; text-align: center; font-size: 12px; color: var(--ink-2); }
+.stats b { display: block; font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.toggle-row { display: flex; justify-content: space-between; align-items: center; min-height: 50px; padding: 0 4px; border-bottom: 1px solid var(--border); font-weight: 500; }
+.switch { width: 54px; height: 32px; border-radius: 16px; background: var(--border); position: relative; transition: background 0.2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); }
+.switch[aria-checked="true"] { background: #1c9a55; } .switch[aria-checked="true"]::after { transform: translateX(22px); }
+#toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); transform: translate(-50%, -140%); z-index: 40; background: #0b1535; color: #eef1ff; border: 1px solid var(--led);
+  border-radius: 12px; padding: 10px 14px; font-weight: 700; font-size: 14px; transition: transform 0.25s; max-width: 90vw; text-align: center; pointer-events: none; }
+#toast.show { transform: translate(-50%, 0); }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 50; background: #0b1535; color: #ffb627; font-family: var(--display); font-size: 22px; letter-spacing: 0.1em; transition: opacity 0.4s; }
+#loading.gone { opacity: 0; pointer-events: none; }
+.nogl { position: fixed; inset: 0; display: none; place-items: center; padding: 24px; text-align: center; background: #0b1535; color: #eef1ff; z-index: 60; }
+body.no-webgl .nogl { display: grid; }
+
+.rteam { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.rteam .arrow { min-width: 44px; min-height: 44px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); }
+.rtabs { display: flex; gap: 6px; margin: 4px 0 10px; }
+.rtabs button { flex: 1; min-height: 42px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; }
+.rtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.rhead { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 12px 2px 6px; letter-spacing: 0.04em; }
+.rrow { display: grid; grid-template-columns: 30px 58px 1fr 44px; gap: 6px; align-items: center; padding: 5px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); margin-bottom: 6px; }
+.rrow.sel { outline: 3px solid var(--accent); outline-offset: -1px; }
+.rrow .no { font-family: var(--display); font-size: 19px; text-align: center; }
+.rrow .pos { min-height: 44px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border); font-weight: 700; font-size: 13px; }
+.rrow .pos.sel { background: var(--accent); color: var(--accent-ink); }
+.rrow .pos:disabled { opacity: 0.55; cursor: default; }
+.rrow .nm { text-align: left; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 2px 4px; }
+.rrow .nm b { font-size: 15px; } .rrow .nm span { font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.rrow .ed { min-height: 44px; border-radius: 8px; font-size: 16px; background: var(--panel); border: 1px solid var(--border); }
+.rrow input { font: inherit; font-weight: 700; width: 100%; padding: 8px; border-radius: 8px; border: 2px solid var(--accent); background: var(--panel); color: var(--ink); }
+.rrow .sp { min-height: 44px; border-radius: 8px; font-size: 12px; font-weight: 700; background: var(--panel); border: 1px solid var(--border); }
+.rrow .sp[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.box { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.box th, .box td { padding: 4px 3px; text-align: center; border-bottom: 1px solid var(--border); }
+.box td.n { text-align: left; white-space: nowrap; }
+#title .mbtn { margin-top: 10px; font-size: 14px; min-height: 46px; }
+
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.modes .mbtn { margin: 0; font-size: 13px; padding: 6px 4px; min-height: 48px; }
+.stbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.stbl th, .stbl td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--border); }
+.stbl th { font-size: 11.5px; color: var(--ink-2); font-weight: 700; }
+.stbl td.t { text-align: left; white-space: nowrap; font-weight: 700; }
+.stbl tr.me td { background: rgba(255, 182, 39, 0.2); }
+.card2 { border: 1px solid var(--border); background: var(--panel-2); border-radius: 14px; padding: 12px; margin: 8px 0; }
+.card2 .big2 { font-family: var(--display); font-size: 22px; margin: 2px 0 6px; }
+.row2 { display: flex; gap: 6px; } .row2 .mbtn { flex: 1; margin: 0; }
+.auth { display: grid; gap: 10px; }
+.auth label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.auth input { font: inherit; font-size: 16px; font-weight: 500; width: 100%; min-height: 48px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); color: var(--ink); }
+.auth input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.auth .row2 .mbtn { margin-top: 4px; }
+.auth .err { color: #d33; font-size: 13px; font-weight: 700; margin: 0; }
+.acct { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); margin: -4px 0 8px; padding: 2px 4px 2px 12px; border-radius: 12px; background: var(--panel-2); }
+.acct b { color: var(--ink); }
+.popt { margin: 10px 0; } .popt > span { display: block; font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 4px; }
+.popt .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.popt .seg button { flex: 1 1 auto; min-height: 42px; padding: 4px 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; font-size: 13px; }
+.popt .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+/* 가로 화면 */
+@media (orientation: landscape) and (max-height: 520px) {
+  .lines { top: calc(env(safe-area-inset-top, 0px) + 64px); max-width: 44vw; }
+  #pad { left: auto; right: calc(env(safe-area-inset-right, 0px) + 14px); transform: none; bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); width: 150px; height: 176px; }
+  #meter { bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
+  #call { top: 32%; }
+  #playText { bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }
+  .dock .hint { display: none; }
+  #tracker { top: calc(env(safe-area-inset-top, 0px) + 60px); }
+  .card { width: min(720px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+  .card .plate { grid-column: 1; } .card .matchup { grid-column: 1; } .card .opts { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+  .card .cta, .card .foot, .card .howto, .card .fine { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="3D 야구장"></canvas>
+<div id="loading">경기장 조명 켜는 중…</div>
+<div class="nogl"><div><p style="font-size:20px;font-weight:700">이 브라우저에서는 3D(WebGL)를 쓸 수 없어요</p><p>최신 Chrome, Safari, Edge에서 다시 열어 주세요.</p></div></div>
+
+<section id="title" aria-label="시작 화면">
+  <div class="card">
+    <div class="plate"><h1 class="led">풀카운트</h1><div class="led-sub"><b>3D</b> · 한국 프로야구 스타일</div></div>
+    <div class="matchup">
+      <div class="side" id="sideMe">
+        <span class="tag">내 팀</span>
+        <div class="picker"><button class="arrow" data-pick="me" data-d="-1" aria-label="이전 팀">◀</button><div class="badge" id="badgeMe"></div><button class="arrow" data-pick="me" data-d="1" aria-label="다음 팀">▶</button></div>
+        <div class="tname" id="nameMe"></div><div class="rec" id="recMe"></div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="side" id="sideOpp">
+        <span class="tag">상대</span>
+        <div class="picker"><button class="arrow" data-pick="opp" data-d="-1" aria-label="이전 상대">◀</button><div class="badge" id="badgeOpp"></div><button class="arrow" data-pick="opp" data-d="1" aria-label="다음 상대">▶</button></div>
+        <div class="tname" id="nameOpp"></div><div class="rec" id="recOpp">&nbsp;</div>
+      </div>
+    </div>
+    <div class="opts">
+      <div class="opt"><span>내 위치</span><div class="seg" data-opt="home"><button data-v="0">원정 (선공)</button><button data-v="1">홈 (후공)</button></div></div>
+      <div class="opt"><span>이닝</span><div class="seg" data-opt="inn"><button data-v="3">3회</button><button data-v="5">5회</button><button data-v="9">9회</button></div></div>
+      <div class="opt"><span>난이도</span><div class="seg" data-opt="diff"><button data-v="rookie">루키</button><button data-v="pro">프로</button><button data-v="legend">레전드</button></div></div>
+      <div class="opt"><span>경기</span><div class="seg" data-opt="time"><button data-v="night">야간</button><button data-v="day">주간</button></div></div>
+    </div>
+    <button class="cta" id="playBtn">플레이볼!</button>
+    <div class="modes"><button class="mbtn" id="seasonBtn">🏆 시즌 · 리그</button><button class="mbtn" id="batPrBtn">🏏 타격 훈련</button><button class="mbtn" id="pitPrBtn">🎯 투구 훈련</button></div>
+    <button class="mbtn" id="onlineBtn" style="margin-top:6px;width:100%">🌐 친구와 온라인 1:1</button>
+    <button class="mbtn" id="rosterBtn">⚙ 구단 관리 · 타순 / 수비 / 선발 / 선수 이름</button>
+    <div class="foot"><span id="recAll"></span><button class="linkbtn" id="howBtn" aria-expanded="false">조작법 보기</button></div>
+    <div class="howto" id="howto" hidden>
+      <p><b>타격</b> — 공이 날아오면 공이 지나갈 곳을 <b>탭</b>(PC는 클릭 / 마우스로 조준 후 스페이스). 타이밍이 빠르면 당겨치고, 늦으면 밀어쳐요. 공보다 위를 치면 땅볼, 아래를 치면 뜬공이 돼요.</p>
+      <p><b>투구</b> — 구종 선택 → 존 패드에서 코스 탭 → 움직이는 바늘을 <b>가운데 초록색</b>에서 탭하면 제구가 정확해져요.</p>
+      <p><b>감독 작전</b> — 경기 전 <b>구단 관리</b>에서 타순·수비 위치·선발투수·선수 이름을 정하고, 경기 중엔 공격 때 번트·도루·대타·대주자, 수비 때 투수 교체·수비 교체·고의4구. 파울 플라이 아웃, 실책(포구·악송구), 폭투·포일, 스트라이크 낫아웃, 인필드 플라이, 직선타 병살, 보크도 나와요. 내가 던질 땐 <b>피치클락</b>(주자 없음 18초·있음 23초)이 적용돼서 시간이 넘으면 자동 볼이에요 (메뉴에서 끌 수 있음). 연장은 규정대로 최대 <b>11회</b>, 그래도 같으면 무승부예요.</p>
+    </div>
+    <p class="fine">구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
+  </div>
+</section>
+
+<div id="hud" hidden>
+  <div class="topbar">
+    <div class="bug" aria-live="polite">
+      <div class="bug-teams">
+        <div class="trow" id="rowA"><i></i><b></b><span class="sc">0</span></div>
+        <div class="trow" id="rowH"><i></i><b></b><span class="sc">0</span></div>
+      </div>
+      <div class="bug-inn"><span class="ar" id="innAr">▲</span><span class="n" id="innN">1</span></div>
+      <div class="bug-bases"><i class="b2"></i><i class="b3"></i><i class="b1"></i></div>
+      <div class="bug-count">
+        <div class="bb"><span>B</span><i></i><i></i><i></i></div>
+        <div class="ss"><span>S</span><i></i><i></i></div>
+        <div class="oo"><span>O</span><i></i><i></i></div>
+      </div>
+    </div>
+    <button class="icon-btn pe" id="menuBtn" aria-label="메뉴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+  <div class="lines"><div class="line" id="batLine"></div><div class="line" id="pitLine"></div>
+      <div class="line pe" id="pracLine" hidden><span class="k" id="pracK">훈련</span><span id="pracTxt" style="overflow:hidden;text-overflow:ellipsis"></span><button class="chip" id="pracSet" style="min-height:30px;padding:2px 10px;margin-left:auto">설정</button></div></div>
+  <canvas id="tracker" width="148" height="184" aria-hidden="true"></canvas>
+  <div class="speed" id="speedBox" hidden><b id="speedV">—</b><span id="speedT">구속</span></div>
+  <div id="call"></div>
+  <div id="banner"><div class="band"><div class="big"></div><div class="small"></div></div></div>
+  <div id="feedback"></div>
+  <div id="playText"></div>
+  <button class="skip pe" id="skipBtn" hidden>건너뛰기 ▸▸</button>
+  <div id="pad" class="pe" hidden><div class="cap">코스를 탭하세요</div><canvas width="352" height="412"></canvas></div>
+  <div id="meter" hidden><div class="track"><i class="needle"></i></div><p>가운데에서 탭!</p></div>
+  <div class="dock" id="dockBat" hidden>
+    <div class="hint" id="batHint">공이 오면 칠 곳을 탭!</div>
+    <div class="row">
+      <button class="chip pe" id="buntBtn" aria-pressed="false"><span class="dot"></span>번트</button>
+      <button class="chip pe" id="stealBtn" aria-pressed="false"><span class="dot"></span>도루</button>
+      <button class="chip pe" id="phBtn">대타</button>
+      <button class="chip pe" id="prBtn">대주자</button>
+    </div>
+  </div>
+  <div class="dock" id="dockPit" hidden>
+    <div class="pitches pe" id="pitchBtns"></div>
+    <div class="row">
+      <span class="stam pe">체력 <span class="bar"><i id="stamBar"></i></span></span>
+      <span class="stam pclock" id="pclock" hidden aria-live="off">⏱ <b>18</b></span>
+      <button class="chip pe" id="bullpenBtn">투수 교체</button>
+      <button class="chip pe" id="ibbBtn">고의4구</button>
+      <button class="chip pe" id="defBtn">수비 교체</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="menuModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="menuH">
+    <h2 id="menuH">일시정지</h2>
+    <div class="toggle-row"><span>효과음·응원</span><button class="switch" id="sndSw" role="switch" aria-checked="true" aria-label="효과음"></button></div>
+    <div class="toggle-row"><span>피치클락 <small style="opacity:.7">(주자 없음 18초 · 있음 23초, 넘기면 자동 볼)</small></span><button class="switch" id="pcSw" role="switch" aria-checked="true" aria-label="피치클락"></button></div>
+    <div class="toggle-row"><span>스트라이크존 가이드</span><button class="switch" id="zoneSw" role="switch" aria-checked="true" aria-label="존 가이드"></button></div>
+    <div id="boxNow"></div>
+    <button class="mbtn primary" id="resumeBtn">계속하기</button>
+    <button class="mbtn danger" id="quitBtn">경기 포기하고 나가기</button>
+  </div>
+</div>
+<div class="modal" id="penModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="penH">
+    <h2 id="penH">불펜</h2>
+    <p class="sub" id="penSub"></p>
+    <div class="plist" id="penList"></div>
+    <button class="mbtn" id="penClose">그대로 간다</button>
+  </div>
+</div>
+<div class="modal" id="overModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="overH">
+    <h2 id="overH">경기 종료</h2>
+    <div class="result" id="overRes"></div>
+    <div class="lswrap"><table class="lscore" id="overLS"></table></div>
+    <div class="mvp" id="overMvp"></div>
+    <div class="stats" id="overStats"></div>
+    <button class="mbtn primary" id="againBtn">같은 매치업 다시</button>
+    <button class="mbtn" id="homeBtn">메인으로</button>
+  </div>
+</div>
+<div class="modal" id="rosterModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rosterH">
+    <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
+    <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
+    <p class="sub" id="rosterHint"></p>
+    <div id="rosterList"></div>
+    <button class="mbtn primary" id="rosterSave">저장</button>
+    <button class="mbtn" id="rosterReset">기본값으로 되돌리기</button>
+    <button class="mbtn" id="rosterClose">닫기</button>
+  </div>
+</div>
+<div class="modal" id="subModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="subH">
+    <h2 id="subH">교체</h2>
+    <p class="sub" id="subSub"></p>
+    <div class="plist" id="subList"></div>
+    <button class="mbtn" id="subClose">취소</button>
+  </div>
+</div>
+<div class="modal" id="seasonModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="seasonH">
+    <h2 id="seasonH">시즌</h2>
+    <p class="sub" id="seasonSub"></p>
+    <div id="seasonBody"></div>
+    <button class="mbtn" id="seasonClose">닫기</button>
+  </div>
+</div>
+<div class="modal" id="pracModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pracH">
+    <h2 id="pracH">훈련 설정</h2>
+    <div id="pracBody"></div>
+    <button class="mbtn primary" id="pracGo">적용</button>
+    <button class="mbtn" id="pracQuit">훈련 끝내기</button>
+  </div>
+</div>
+<div class="modal" id="onModal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="onH">
+    <h2 id="onH">온라인 1:1</h2>
+    <div id="onBody" class="plist"></div>
+    <button class="mbtn" id="onClose">닫기</button>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+window.__err=function(m){var l=document.getElementById('loading');if(!l)return;l.classList.remove('gone');l.style.cssText+=';font-size:15px;padding:24px;text-align:center;line-height:1.6;letter-spacing:0';l.textContent='문제가 생겼어요: '+m+' — 새로고침해 보고, 그래도 안 되면 이 문구를 알려줘!';};
+window.addEventListener('error',function(e){if(!window.__done)window.__err(e.message||'스크립트 오류');});
+setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},25000);
+</script>
+<!--THREE-->
+<script>/*SIM*/</script>
+<script>/*GAME*/</script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+/* ===================== UI ===================== */
+const UI = {
+  title: $('#title'), hud: $('#hud'), call: $('#call'), banner: $('#banner'), feedback: $('#feedback'), playText: $('#playText'), toast: $('#toast'),
+  dockBat: $('#dockBat'), dockPit: $('#dockPit'), pad: $('#pad'), padCanvas: $('#pad canvas'), meter: $('#meter'), needle: $('#meter .needle'),
+  tracker: $('#tracker'), batLine: $('#batLine'), pitLine: $('#pitLine'), speedBox: $('#speedBox'), speedV: $('#speedV'), speedT: $('#speedT'),
+  skip: $('#skipBtn'), bunt: $('#buntBtn'), steal: $('#stealBtn'), pitchBtns: $('#pitchBtns'), stam: $('#stamBar'),
+};
+const timersUI = {};
+function flashEl(el, cls, ms, key) {
+  clearTimeout(timersUI[key]); el.classList.add(cls);
+  if (ms) timersUI[key] = setTimeout(() => el.classList.remove(cls), ms);
+}
+function showCall(html, color, ms = 1100) { UI.call.innerHTML = html; UI.call.style.color = color || '#fff'; flashEl(UI.call, 'show', ms, 'call'); }
+function showBanner(big, small, ms = 1800) {
+  UI.banner.querySelector('.big').textContent = big; UI.banner.querySelector('.small').textContent = small || '';
+  flashEl(UI.banner, 'show', ms, 'banner');
+}
+function hideBanner() { UI.banner.classList.remove('show'); }
+function showFeedback(parts, ms = 1300) {
+  UI.feedback.innerHTML = parts.map((p) => `<span class="${p[1]}">${p[0]}</span>`).join('');
+  flashEl(UI.feedback, 'show', ms, 'fb');
+}
+function showPlayText(t, ms = 2400) { UI.playText.textContent = t; flashEl(UI.playText, 'show', ms, 'pt'); }
+function toast(t, ms = 2200) { UI.toast.textContent = t; flashEl(UI.toast, 'show', ms, 'toast'); }
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+const fmtAvg = (v) => (v >= 1 ? v.toFixed(3) : v.toFixed(3).slice(1));
+
+/* ---------- 스코어 버그 ---------- */
+function updateBug() {
+  if (!G.T) return;
+  const rows = [$('#rowA'), $('#rowH')];
+  G.T.forEach((tm, i) => {
+    const r = rows[i];
+    r.querySelector('i').style.background = tm.t.c1;
+    r.querySelector('b').textContent = tm.t.city;
+    r.querySelector('.sc').textContent = tm.runs;
+    r.classList.toggle('bat', G.half === i && G.phase !== 'over');
+  });
+  $('#innAr').textContent = G.half === 0 ? '▲' : '▼';
+  $('#innN').textContent = G.inning;
+  const bs = $$('.bug-bases i');
+  bs[0].classList.toggle('on', !!G.bases[1]); bs[1].classList.toggle('on', !!G.bases[2]); bs[2].classList.toggle('on', !!G.bases[0]);
+  const on = (sel, n) => $$(sel).forEach((el, k) => el.classList.toggle('on', k < n));
+  on('.bug-count .bb i', G.b); on('.bug-count .ss i', G.s); on('.bug-count .oo i', G.outs);
+}
+function updateLines() {
+  const bt = batTeam(), ft = fieldTeam(), b = curBatter(), p = ft.pitcher;
+  if (!b || !p) return;
+  const today = b.g.pa ? `${b.g.ab}타수 ${b.g.h}안타${b.g.hr ? ` ${b.g.hr}홈런` : ''}` : '첫 타석';
+  UI.batLine.innerHTML = `<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
+  const fat = S.fatigueOf(p, p.g.pc);
+  UI.pitLine.innerHTML = `<span class="k">투수</span><b>${esc(p.name)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
+  if (UI.stam) UI.stam.style.width = Math.round((1 - fat) * 100) + '%';
+  UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
+}
+
+/* ---------- 투구 트래커 ---------- */
+function drawTracker() {
+  const c = UI.tracker, g = c.getContext('2d'), W = c.width, H = c.height;
+  g.clearRect(0, 0, W, H);
+  const b = curBatter(); if (!b) return;
+  const z = S.zoneOf(b.height);
+  // 월드 → 캔버스: 포수 시점(x 그대로), 사용자가 투수면 투수 시점(x 반전)
+  const flip = userPitching() ? -1 : 1;
+  const sx = (x) => W / 2 + flip * x * (W / 1.0), sy = (y) => H - 14 - (y - 0.25) * ((H - 26) / 1.2);
+  g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 2;
+  g.strokeRect(sx(-z.half * flip), sy(z.top), (z.half * 2 * W) / 1.0, sy(z.bot) - sy(z.top));
+  g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1;
+  for (let k = 1; k < 3; k++) {
+    const xx = sx(-z.half * flip) + (k * z.half * 2 * W) / 3; g.beginPath(); g.moveTo(xx, sy(z.top)); g.lineTo(xx, sy(z.bot)); g.stroke();
+    const yy = sy(z.top) + (k * (sy(z.bot) - sy(z.top))) / 3; g.beginPath(); g.moveTo(sx(-z.half * flip), yy); g.lineTo(sx(z.half * flip), yy); g.stroke();
+  }
+  // 홈플레이트
+  g.fillStyle = 'rgba(255,255,255,0.8)'; g.fillRect(sx(-0.216) - (flip < 0 ? 0.432 * W : 0), H - 8, 0.432 * W, 4);
+  G.pitchLog.forEach((p, i) => {
+    const col = p.res === 'ball' ? '#37d67a' : p.res === 'play' ? '#5aa9ff' : '#ffc93c';
+    g.fillStyle = col; g.beginPath(); g.arc(sx(p.x), sy(p.y), 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#0b1535'; g.font = `bold 11px ${FONT_UI}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(i + 1), sx(p.x), sy(p.y) + 0.5);
+  });
+}
+
+/* ---------- 전광판 ---------- */
+function drawBoard() {
+  const g = board.small.getContext('2d'), W = 256, H = 96;
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  if (!G.T) { g.fillStyle = '#ffb627'; g.font = `bold 26px ${FONT_DISP}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('풀카운트 3D', W / 2, 40); g.font = `bold 11px ${FONT_UI}`; g.fillStyle = '#7fe3ff'; g.fillText('오늘도 야구장으로!', W / 2, 68); blitBoard(); return; }
+  if (board.flash > 0 && board.msg) {
+    const on = Math.floor(board.flash * 4) % 2 === 0;
+    g.fillStyle = on ? '#ffb627' : '#ff4b4b'; g.font = `bold 40px ${FONT_DISP}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(board.msg, W / 2, 40);
+    g.font = `bold 12px ${FONT_UI}`; g.fillStyle = '#fff'; g.fillText(board.sub || '', W / 2, 76);
+    blitBoard(); return;
+  }
+  const cols = G.limitInn, x0 = 50, cw = Math.min(13, (W - x0 - 52) / cols);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `bold 9px ${FONT_UI}`; g.fillStyle = '#9ba7d9';
+  for (let i = 0; i < cols; i++) g.fillText(String(i + 1), x0 + cw * i + cw / 2, 7);
+  const rx = x0 + cw * cols + 4;
+  ['R', 'H', 'E', 'B'].forEach((k, j) => g.fillText(k, rx + j * 12 + 6, 7));
+  G.T.forEach((tm, r) => {
+    const y = 19 + r * 13;
+    g.fillStyle = tm.t.c1; g.fillRect(2, y - 5, 4, 10);
+    g.fillStyle = '#fff'; g.font = `bold 11px ${FONT_UI}`; g.textAlign = 'left'; g.fillText(tm.t.city, 9, y + 0.5); g.textAlign = 'center';
+    g.font = `bold 10px ${FONT_UI}`;
+    for (let i = 0; i < cols; i++) {
+      const v = tm.line[i];
+      g.fillStyle = v == null ? '#333' : '#ffb627';
+      if (v != null) g.fillText(String(v), x0 + cw * i + cw / 2, y + 0.5);
+    }
+    g.fillStyle = '#ffffff'; g.fillText(String(tm.runs), rx + 6, y + 0.5); g.fillStyle = '#ffb627'; g.fillText(String(tm.hits), rx + 18, y + 0.5); g.fillText(String(tm.err || 0), rx + 30, y + 0.5); g.fillText(String(tm.bb), rx + 42, y + 0.5);
+  });
+  g.fillStyle = '#2a2a2a'; g.fillRect(0, 40, W, 1);
+  const b = curBatter(), p = fieldTeam().pitcher;
+  if (b && p) {
+    g.textAlign = 'left'; g.font = `bold 11px ${FONT_UI}`;
+    g.fillStyle = '#7fe3ff'; g.fillText('타자', 4, 51); g.fillStyle = '#fff'; g.fillText(`${batTeam().order + 1} ${b.name}`, 30, 51);
+    g.fillStyle = '#ffb627'; g.fillText(`${fmtAvg(b.avg)}  ${b.hr}HR`, 150, 51);
+    g.fillStyle = '#7fe3ff'; g.fillText('투수', 4, 65); g.fillStyle = '#fff'; g.fillText(p.name, 30, 65);
+    g.fillStyle = '#ffb627'; g.fillText(`${p.g.pc}구`, 150, 65);
+  }
+  const dots = (lbl, n, max, col, x) => {
+    g.fillStyle = '#9ba7d9'; g.font = `bold 10px ${FONT_UI}`; g.fillText(lbl, x, 84);
+    for (let i = 0; i < max; i++) { g.fillStyle = i < n ? col : '#262626'; g.beginPath(); g.arc(x + 12 + i * 9, 84, 3.4, 0, Math.PI * 2); g.fill(); }
+  };
+  dots('B', G.b, 3, '#37d67a', 4); dots('S', G.s, 2, '#ffc93c', 50); dots('O', G.outs, 2, '#ff4b4b', 88);
+  if (G.lastSpeed) { g.fillStyle = '#fff'; g.font = `bold 14px ${FONT_DISP}`; g.textAlign = 'right'; g.fillText(`${Math.round(G.lastSpeed)} km/h`, W - 6, 84); }
+  blitBoard();
+}
+function boardFlash(msg, sub, sec = 4) { board.msg = msg; board.sub = sub; board.flash = sec; }
+
+/* ---------- 투구 버튼 ---------- */
+function buildPitchButtons() {
+  const p = fieldTeam().pitcher;
+  UI.pitchBtns.innerHTML = '';
+  p.pitches.forEach((k, i) => {
+    const b = document.createElement('button'); b.className = 'pbtn'; b.dataset.k = k;
+    b.innerHTML = `<b>${S.PITCHES[k].name}</b><span>${Math.round(p.vel * S.PITCHES[k].ratio)}km/h</span>`;
+    b.setAttribute('aria-pressed', String(k === G.selType)); b.setAttribute('aria-label', `${S.PITCHES[k].name} 선택 (단축키 ${i + 1})`);
+    b.addEventListener('click', () => { selectPitchType(k); AU.click(); });
+    UI.pitchBtns.appendChild(b);
+  });
+}
+function selectPitchType(k) { G.selType = k; $$('.pbtn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k))); drawPad(); }
+
+/* ---------- 존 패드 (투수 시점: 화면 오른쪽 = 월드 -x) ---------- */
+const PAD = { wM: 0.95, yTop: 0, yBot: 0 };
+function padMap() {
+  const z = S.zoneOf(curBatter().height);
+  PAD.yTop = z.top + 0.34; PAD.yBot = z.bot - 0.34; PAD.z = z;
+  return z;
+}
+function drawPad(sel) {
+  const c = UI.padCanvas, g = c.getContext('2d'), W = c.width, H = c.height;
+  const z = padMap();
+  const X = (x) => W / 2 - (x / PAD.wM) * W, Y = (y) => ((PAD.yTop - y) / (PAD.yTop - PAD.yBot)) * H;
+  g.clearRect(0, 0, W, H);
+  // 타자 실루엣 쪽 표시
+  const b = curBatter(), bx = b.hand === 'R' ? -1 : 1; // 타자 위치(월드 x 부호)
+  g.fillStyle = 'rgba(255,255,255,0.08)'; const sxp = X(bx * 0.72); g.fillRect(Math.min(sxp, X(bx * 0.47)), 0, Math.abs(X(bx * 0.72) - X(bx * 0.47)) + 20, H);
+  g.fillStyle = 'rgba(255,255,255,0.55)'; g.font = `bold 20px ${FONT_UI}`; g.textAlign = 'center'; g.fillText(b.hand === 'R' ? '우타' : '좌타', X(bx * 0.62), 24);
+  // 존
+  const x0 = X(z.half), x1 = X(-z.half), y0 = Y(z.top), y1 = Y(z.bot);
+  g.fillStyle = 'rgba(255,201,60,0.12)'; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+  g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 3; g.strokeRect(x0, y0, x1 - x0, y1 - y0);
+  g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 1.5;
+  for (let k = 1; k < 3; k++) {
+    g.beginPath(); g.moveTo(x0 + ((x1 - x0) * k) / 3, y0); g.lineTo(x0 + ((x1 - x0) * k) / 3, y1); g.stroke();
+    g.beginPath(); g.moveTo(x0, y0 + ((y1 - y0) * k) / 3); g.lineTo(x1, y0 + ((y1 - y0) * k) / 3); g.stroke();
+  }
+  // 구종 브레이크 힌트
+  const pk = S.PITCHES[G.selType || 'FB'], p = fieldTeam().pitcher, arm = p.hand === 'R' ? -1 : 1;
+  g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = `bold 18px ${FONT_UI}`; g.textAlign = 'center';
+  g.fillText(`${pk.name} · ${pk.drop > 0.2 ? '떨어짐' : pk.arm * arm < -0.1 ? '휘어짐' : '빠름'}`, W / 2, H - 12);
+  const t = sel || G.aimTarget;
+  if (t) {
+    g.strokeStyle = '#37d67a'; g.lineWidth = 4; g.beginPath(); g.arc(X(t.x), Y(t.y), 16, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = '#37d67a'; g.beginPath(); g.arc(X(t.x), Y(t.y), 4, 0, Math.PI * 2); g.fill();
+  }
+}
+function padToWorld(ev) {
+  const r = UI.padCanvas.getBoundingClientRect();
+  const fx = clamp((ev.clientX - r.left) / r.width, 0, 1), fy = clamp((ev.clientY - r.top) / r.height, 0, 1);
+  return { x: (0.5 - fx) * PAD.wM, y: PAD.yTop - fy * (PAD.yTop - PAD.yBot) };
+}
+
+/* ---------- 타이틀 ---------- */
+const OPTS = Object.assign({ me: 0, opp: 1, home: 1, inn: 3, diff: 'rookie', time: matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day' }, store.get('opts', {}));
+function recOf(i) { const r = store.get('rec', {})[S.TEAMS[i].id]; return r || { w: 0, l: 0, d: 0 }; }
+function badgeStyle(el, t) { el.style.background = t.c1; el.style.color = lum(t.c1) > 0.6 && lum(t.c2) > 0.6 ? '#111' : t.c2; el.textContent = t.city; }
+function renderTitle() {
+  if (OPTS.opp === OPTS.me) OPTS.opp = (OPTS.me + 1) % 10;
+  const tm = S.TEAMS[OPTS.me], to = S.TEAMS[OPTS.opp];
+  badgeStyle($('#badgeMe'), tm); badgeStyle($('#badgeOpp'), to);
+  $('#nameMe').textContent = `${tm.city} ${tm.name}`; $('#nameOpp').textContent = `${to.city} ${to.name}`;
+  const r = recOf(OPTS.me); $('#recMe').textContent = `${r.w}승 ${r.l}패 ${r.d}무`;
+  $$('.seg').forEach((sg) => { const k = sg.dataset.opt; sg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(OPTS[k]) === b.dataset.v))); });
+  const all = store.get('rec', {}); let w = 0, l = 0, d = 0; Object.values(all).forEach((x) => { w += x.w; l += x.l; d += x.d; });
+  $('#recAll').textContent = w + l + d ? `통산 ${w}승 ${l}패 ${d}무` : '첫 경기를 시작해 보세요';
+  applyTime(OPTS.time === 'night');
+  paintCrowd(OPTS.home ? tm : to, OPTS.home ? to : tm); paintLed(OPTS.home ? tm : to, OPTS.home ? to : tm);
+}
+$$('.arrow').forEach((b) => b.addEventListener('click', () => {
+  const k = b.dataset.pick, d = +b.dataset.d;
+  let v = OPTS[k];
+  do { v = (v + d + 10) % 10; } while (v === (k === 'me' ? OPTS.opp : OPTS.me));
+  OPTS[k] = v; renderTitle(); AU.click();
+  const el = k === 'me' ? $('#badgeMe') : $('#badgeOpp'); el.style.transform = 'scale(1.08)'; setTimeout(() => (el.style.transform = ''), 140);
+}));
+$$('.seg').forEach((sg) => sg.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = sg.dataset.opt, v = b.dataset.v;
+  OPTS[k] = k === 'inn' || k === 'home' ? +v : v; renderTitle(); AU.click();
+}));
+$('#howBtn').addEventListener('click', () => { const h = $('#howto'); h.hidden = !h.hidden; $('#howBtn').setAttribute('aria-expanded', String(!h.hidden)); $('#howBtn').textContent = h.hidden ? '조작법 보기' : '조작법 닫기'; });
+
