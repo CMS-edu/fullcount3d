@@ -40,7 +40,7 @@ function updateAdvance(dt) {
     else if (s >= 1) { idleTo(c, POSE.catchLow, dt, 10); if (t >= 1.75) { c.root.updateMatrixWorld(true); gloveOf(c, _gv); ball.set(_gv.x, _gv.y, _gv.z, 1.4); } }
   } else if (A.adv.thrownOut) {
     // 원바운드 공을 앞에 떨어뜨림 → 주워서 1루 송구 → 아웃
-    const b1 = S.basePos(1), f1 = FIG.field[2], h = S.FIELD_HOME[2], s1 = clamp(t / 0.8, 0, 1);
+    const b1 = S.basePos(1), f1 = FIG.field[2], h = defHome(2), s1 = clamp(t / 0.8, 0, 1);
     placeFig(f1, lerp(h.x, b1.x - 0.4, s1), lerp(h.z, b1.z + 0.5, s1));
     if (s1 < 1) runPose(f1, 5, dt); else { idleTo(f1, POSE.catchHigh, dt, 10); turnTo(f1, Math.atan2(0 - f1.root.position.x, 0 - f1.root.position.z), 10, dt); }
     if (t < 0.45) { const k = t / 0.45; ball.set(A.bto.x, 0.05 + 0.3 * (1 - k) * Math.abs(Math.sin(k * 6)), lerp(0.9, A.bto.z, k), 1.4); idleTo(c, POSE.catchLow, dt, 10); }
@@ -91,6 +91,75 @@ function balk() {
   G.pitch = null; G.meter = null; UI.meter.hidden = true;
   const gen = G.gen;
   startAdvance({ kind: '보크', batter: false, text: '보크! 모든 주자가 한 베이스씩 진루해요' }, () => later(0.5, () => { if (gen === G.gen && G.phase === 'adv') nextPitch(); }));
+}
+
+/* ---------- 견제 ---------- */
+// 평소엔 잘 안 잡히지만(1루 5% · 좌투수 +4%) 주자가 도루하려던 참이면(도루 요청) 절반쯤 잡힘 → 도루 읽기 싸움.
+// 견제할 때마다 주자 리드가 줄어서 이번 타석 도루 성공률 −3%p씩. 한 타석 3번째 견제가 실패하면 보크 (KBO 투수판 이탈 3회 제한)
+const PK_MAX = 3;
+function pickoffBase() { const s = stealBase(); if (s >= 0) return s; for (let k = 2; k >= 0; k--) if (G.bases[k]) return k; return -1; }
+function canPickoff() { return !G.prac && userPitching() && (G.phase === 'aim' || G.phase === 'meter') && pickoffBase() >= 0; }
+function pickoff(remote) {
+  const k = pickoffBase(); if (k < 0 || !G.T) return;
+  if (G.online && !remote) { flushSubsIn(); sendAct({ k: 'pko' }); } // 받은 도루 요청을 먼저 반영하고 신호 → 두 기기가 같은 조건으로 판정
+  G.pk = (G.pk || 0) + 1;
+  const r = G.bases[k], p = fieldTeam().pitcher, going = !!G.stealReq;
+  const lf = [0.3, 1, 2.2][(G.leadT || 0) + 1]; // 주자 리드 작전: 짧게면 거의 안 걸리고, 크게면 2배 넘게
+  let pr = going ? 0.5 + (G.leadT || 0) * 0.1 : [0.05, 0.03, 0.02][k] * lf;
+  if (k === 0 && p.hand === 'L') pr += going ? 0.1 : 0.04 * lf;
+  pr -= (r.spd - 60) * (going ? 0.004 : 0.0008);
+  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.01, 0.8);
+  G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false'); // 뛰려던 주자는 타이밍을 뺏김
+  if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false;
+  G.pclock = null; UI.pclock.hidden = true; G.meter = null; hideDocks();
+  const f = G.runFig[k];
+  G.pko = { k, out, who: r, fig: f, cover: [2, 5, 4][k], t: 0, lead: f ? f.lead || 2 : 2, balk: !out && G.pk >= PK_MAX };
+  if (f) f.mode = 'pko';
+  G.phase = 'pko';
+  // 카메라: 투수 어깨 너머로 베이스를 보는 화면으로 바로 전환 (투수 → 베이스 송구가 화면 안쪽으로 날아감)
+  const b = S.basePos(k + 1), dx = -b.x, dz = -18.44 - b.z, L = Math.hypot(dx, dz) || 1;
+  CAM.mode = 'adv'; camTo([(dx / L) * 8, 4.2, -18.44 + (dz / L) * 8], [b.x, 0.6, b.z], innerWidth < innerHeight ? 44 : 32, 3, 3, true);
+  showCall('견제!', '#ffb627', 700);
+}
+function updatePickoff(dt) {
+  const K = G.pko; if (!K) return;
+  K.t += dt; const t = K.t;
+  const b = S.basePos(K.k + 1), P = FIG.P, cf = FIG.field[K.cover], f = K.fig;
+  const fx = b.x * 0.97, fz = b.z + (-18.44 - b.z) * 0.03; // 베이스 바로 앞(투수 쪽)
+  // 투수: 베이스 쪽으로 돌아서 던짐
+  turnTo(P, Math.atan2(b.x - P.root.position.x, b.z - P.root.position.z), 12, dt);
+  idleTo(P, t < 0.3 ? POSE.throwBack : POSE.throwFwd, dt, 14);
+  // 커버 야수
+  const h = defHome(K.cover), cs = clamp(t / 0.4, 0, 1);
+  placeFig(cf, lerp(h.x, fx, cs), lerp(h.z, fz, cs));
+  if (cs < 1) runPose(cf, 5, dt); else { idleTo(cf, POSE.catchLow, dt, 10); turnTo(cf, Math.atan2(0 - fx, -18.44 - fz), 10, dt); }
+  // 공
+  if (t >= 0.3 && t < 0.62) { const u = (t - 0.3) / 0.32; ball.set(lerp(P.root.position.x, fx, u), lerp(1.7, 0.9, u) + Math.sin(u * Math.PI) * 0.4, lerp(P.root.position.z, fz, u), 1.5); ball.pushTrail(true); }
+  else if (t >= 0.62) { if (!K.caught) { K.caught = true; AU.glove(); } cf.root.updateMatrixWorld(true); gloveOf(cf, _gv); ball.set(_gv.x, _gv.y, _gv.z, 1.4); ball.pushTrail(false); }
+  // 주자: 베이스로 귀루 (잡히는 경우는 한발 늦음)
+  if (f) {
+    const arrive = K.out ? 0.85 : 0.55, s = clamp((t - 0.1) / (arrive - 0.1), 0, 1);
+    const p = runnerSpot(K.k, lerp(0.6 + K.lead, 0.15, s)); placeFig(f, p.x, p.z);
+    if (s < 1) { turnTo(f, Math.atan2(b.x - p.x, b.z - p.z), 14, dt); runPose(f, 7.5, dt); } else idleTo(f, K.out ? POSE.dejected : POSE.stand, dt, 6);
+  }
+  if (t >= 0.72 && !K.called) { K.called = true; showCall(K.out ? '아웃!' : '세이프', K.out ? '#ff4b4b' : '#37d67a', 900); if (K.out) umpCall(); }
+  if (t >= 1.45) finishPickoff();
+}
+function finishPickoff() {
+  const K = G.pko; if (!K) return;
+  G.pko = null;
+  if (K.fig) K.fig.mode = 'idle';
+  ball.hide();
+  if (K.out) {
+    G.bases[K.k] = null; G.outs++; fieldTeam().pitcher.g.outs++;
+    showPlayText(`견제사! ${K.who.name} 아웃`, 1700); AU.cheer(userPitching() ? 0.8 : 0.3, 1.2);
+  } else if (!K.balk && G.pk === PK_MAX - 1 && userPitching()) toast('다음 견제가 실패하면 보크예요 (타석당 3번까지)', 2400);
+  resetField(); placeRunners(); updateBug(); drawBoard(); updateLines();
+  camForPA(true);
+  if (K.balk) { showPlayText('세 번째 견제 실패 — 보크', 1700); balk(); return; }
+  if (G.outs >= 3) { afterPA(0.4, true); return; }
+  const gen = G.gen;
+  later(0.3, () => { if (gen === G.gen) nextPitch(); });
 }
 
 /* ---------- 피치클락 (2026 KBO: 주자 없음 18초 · 주자 있음 23초) ---------- */

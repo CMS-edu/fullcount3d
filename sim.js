@@ -155,8 +155,8 @@
   ];
   const FT = { ofS: 5.9, infS: 4.3, ofT: 0.75, infT: 0.44, ofR: 1.04, infR: 0.91 };
   const US = { e0: 72, e1: 108, ep: 0.75, la0: 12, laK: 18, laN: 9 };
-  function makeFielders(defSpd) {
-    return FIELD_HOME.map((p, i) => {
+  function makeFielders(defSpd, homes) { // homes: 수비 작전(전진·장타 방지 등)으로 옮긴 위치, 없으면 기본 위치
+    return (homes || FIELD_HOME).map((p, i) => {
       const s = defSpd ? defSpd[i] : 60;
       const of = i >= 6, inf = i >= 2 && i <= 5;
       return {
@@ -291,7 +291,7 @@
         // 빠른 직선타: 가장 가까운 루의 주자가 귀루하지 못하면 더블 아웃
         let bk = -1, bd = 1e9;
         for (let k = 0; k < 3; k++) if (nb[k] && nb[k] === B[k]) { const d = dist2(ic, basePos(k + 1)); if (d < bd) { bd = d; bk = k; } }
-        if (bk >= 0 && R() < 0.3) {
+        if (bk >= 0 && R() < 0.3 + (ctx.lead || 0) * 0.15) { // 리드가 크면 귀루가 더 어려움
           const tb = basePos(bk + 1), tThrow = ic.t + 0.35 + bd / 30;
           res.runners.push({ who: B[bk], from: bk + 1, to: bk + 1, out: true, t0: 0.1, t1: tThrow, doubled: true });
           nb[bk] = null; res.outs = 2; res.kind = 'LDP';
@@ -319,11 +319,12 @@
       let outsMade = 0; const nb = [null, null, null];
       const tB1 = thr(1);
       let plan = null;
-      if (!ctx.bunt && forced[0] && out0 < 2) {
+      // 번트 대비 수비면 번트 타구도 선행 주자(2루) 포스아웃을 노림 (병살은 없음)
+      if ((!ctx.bunt || ctx.def === 'bunt') && forced[0] && out0 < 2) {
         const t2 = thr(2, ic, ic.t + xfer - 0.15);
-        if (t2 < runT(0)) {
+        if (t2 + (ctx.bunt ? 0.45 : 0) < runT(0)) { // 번트 때 1루 주자는 타구가 굴러가자마자 스타트
           const relay = t2 + 0.4 + BASE * Math.SQRT2 / 32; // 2루→1루 (피벗)
-          plan = relay < bT1 ? 'DP' : 'FC2';
+          plan = relay < bT1 && !ctx.bunt ? 'DP' : 'FC2';
           res.throws.push({ t0: ic.t + xfer - 0.15, t1: t2, from: { x: ic.x, z: ic.z }, to: basePos(2) });
           addCover(2, t2);
           if (plan === 'DP') { res.throws.push({ t0: t2 + 0.4, t1: relay, from: basePos(2), to: basePos(1) }); addCover(1, relay); }
@@ -345,7 +346,7 @@
         addCover(1, tB1);
       }
       // 주자 처리 (선행 주자부터)
-      const scoreOnGround = (ic.f === 3 || ic.f === 5 || d0 > 36);
+      const scoreOnGround = ctx.def !== 'in' && (ic.f === 3 || ic.f === 5 || d0 > 36); // 전진 수비면 3루 주자는 땅볼에 못 들어옴
       const adv = (b, to, out, t1) => res.runners.push({ who: B[b], from: b + 1, to, out, t0: 0.15, t1 });
       if (plan === 'DP' || plan === 'FC2') {
         adv(0, 2, true, runT(0));
@@ -354,7 +355,7 @@
         if (plan === 'FC2') nb[0] = bat;
         if (B[1]) { if (forced[1]) { adv(1, 3, false, runT(1) + 0.3); nb[2] = B[1]; } else { nb[1] = B[1]; } }
         if (B[2]) { if (forced[2] || scoreOnGround) { adv(2, 4, false, runT(2)); res.runs++; } else nb[2] = nb[2] || B[2]; }
-        res.kind = plan; res.text = plan === 'DP' ? `${pos} 땅볼, 병살타!` : `${pos} 땅볼, 선행 주자 포스아웃`;
+        res.kind = plan; res.text = plan === 'DP' ? `${pos} 땅볼, 병살타!` : ctx.bunt ? '번트 수비 성공! 선행 주자 2루 포스아웃' : `${pos} 땅볼, 선행 주자 포스아웃`;
       } else if (plan === 'FORCE') {
         const k = res._forceK; outsMade = 1;
         res.runners.push({ who: bat, from: 0, to: 1, out: false, t0: 0.65, t1: bT1 });
@@ -419,7 +420,7 @@
       if (!B[b]) continue;
       const from = b + 1;
       let to = Math.min(from + k, 4);
-      const lead = from === 2 ? 4.5 : from === 1 ? 3.5 : 3;
+      const lead = (from === 2 ? 4.5 : from === 1 ? 3.5 : 3) + (ctx.lead || 0) * 0.8; // 주자 리드 작전
       const tRun = (tt) => delay + ((tt - from) * BASE - lead) / runV(B[b].spd) + (tt - from - 1) * 0.25;
       if (to < 4 && to + 1 < limit) {
         const nt = to + 1;

@@ -4,7 +4,7 @@
 const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [],
   cfg: Object.assign({ inn: 3, side: 1, night: 1, diff: 'pro' }, store.get('oncfg', {})) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
-const PROTO = 2; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
+const PROTO = 4; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
 const LOST_WAIT = 90; // 상대 연결이 끊겼을 때 기다리는 시간(초) — 메신저 잠깐 다녀오는 정도는 버팀
 function hashSeed(a, b, c) { let h = (a ^ 0x9e3779b9) >>> 0; h = Math.imul(h ^ (b + 0x7f4a7c15), 2654435761) >>> 0; h = Math.imul(h ^ (c * 40503 + 17), 2246822519) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
 function onSeed(pi, tag) { return S.mulberry32(hashSeed(G.online.seed, pi, tag)); }
@@ -325,7 +325,9 @@ function subBusy(t) {
   return false;
 }
 function applySub(s) {
-  if (!G.T || s.pa !== G.paId) return false;
+  if (!G.T) return false;
+  if (s.t === 'ld') { if (s.hi !== G.inning * 2 + G.half) return false; G.leadT = s.v; return true; } // 주자 리드: 같은 반 이닝이면 적용
+  if (s.pa !== G.paId) return false;
   const tm = batTeam();
   if (s.t === 'ph') { const sub = tm.bench.find((p) => p.key === s.key); if (!sub || s.slot !== tm.order) return false; pinchHit(sub, true); return true; }
   if (s.t === 'pr') { const sub = tm.bench.find((p) => p.key === s.key), old = G.bases[s.base]; if (!sub || !old || tm.lineup.indexOf(old) < 0) return false; pinchRun(s.base, sub, true); return true; }
@@ -338,7 +340,7 @@ function flushSubsIn() { // 투수 쪽: 공과 공 사이, 또는 던지기 직�
 function subOk(id) { // 타자 쪽: 상대 기기가 적용했다는 신호 → 나도 여기서 적용
   const i = ON.subOut.findIndex((s) => s.id === id); if (i < 0) return;
   const s = ON.subOut.splice(i, 1)[0];
-  if (!applySub(s) && s.t !== 'st' && s.hi === G.inning * 2 + G.half) toast(s.pa !== G.paId ? '교체 요청이 늦어서 적용되지 않았어요 (타석이 이미 끝남)' : '교체를 적용하지 못했어요 (그 사이 주자·타자가 바뀜)', 2600);
+  if (!applySub(s) && s.t !== 'st' && s.t !== 'ld' && s.hi === G.inning * 2 + G.half) toast(s.pa !== G.paId ? '교체 요청이 늦어서 적용되지 않았어요 (타석이 이미 끝남)' : '교체를 적용하지 못했어요 (그 사이 주자·타자가 바뀜)', 2600);
 }
 function sendAct(a) {
   if (!G.online) return;
@@ -384,6 +386,8 @@ function onlineTick() {
   ON.q.shift();
   if (a.k === 'p') windup(a.t, { x: a.x, y: a.y }, a.m == null ? null : a.m);
   else if (a.k === 'subok') subOk(a.id);
+  else if (a.k === 'pko') pickoff(true);
+  else if (a.k === 'dt') setDefT(a.v, true);
   else if (a.k === 'def') {
     const tm = fieldTeam(), sub = tm.bench.find((x) => x.key === a.key);
     if (sub && tm.lineup[a.slot]) defSub(tm, a.slot, sub, true);

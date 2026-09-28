@@ -40,8 +40,8 @@ function pathPos(from, dist, out) {
 function startPlay(tr, sw) {
   const bt = batTeam(), ft = fieldTeam(), b = curBatter();
   const fl = fieldersOf(ft);
-  const F = S.makeFielders(fl.map((pl, i) => (i === 0 ? 50 : pl ? pl.spd : 55)));
-  const res = S.resolvePlay(tr, { bases: G.bases.slice(), outs: G.outs, batter: b, fielders: F, bunt: !!sw.bunt });
+  const F = S.makeFielders(fl.map((pl, i) => (i === 0 ? 50 : pl ? pl.spd : 55)), defHomes()); // 수비 작전 위치
+  const res = S.resolvePlay(tr, { bases: G.bases.slice(), outs: G.outs, batter: b, fielders: F, bunt: !!sw.bunt, def: G.defT, lead: G.leadT || 0 });
   const hr = res.kind === 'HR';
   const sc = hr ? 0.42 : 1;
   if (hr) res.runners.forEach((r) => { r.t0 = 1.6 + (r.t0 - 0.6) * sc; r.t1 = 1.6 + (r.t1 - 0.6) * sc; });

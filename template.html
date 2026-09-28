@@ -704,6 +704,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
       <button class="chip pe" id="stealBtn" aria-pressed="false"><span class="dot"></span>도루</button>
       <button class="chip pe" id="phBtn">대타</button>
       <button class="chip pe" id="prBtn">대주자</button>
+      <button class="chip pe" id="leadBtn" aria-pressed="false" hidden>리드: 보통</button>
     </div>
   </div>
   <div class="dock" id="dockPit" hidden>
@@ -711,6 +712,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <div class="row">
       <span class="stam pe">체력 <span class="bar"><i id="stamBar"></i></span></span>
       <span class="stam pclock" id="pclock" hidden aria-live="off">⏱ <b>18</b></span>
+      <button class="chip pe" id="pkBtn" hidden>견제</button>
+      <button class="chip pe" id="defTBtn" aria-pressed="false">수비: 기본</button>
       <button class="chip pe" id="bullpenBtn">투수 교체</button>
       <button class="chip pe" id="ibbBtn">고의4구</button>
       <button class="chip pe" id="defBtn">수비 교체</button>

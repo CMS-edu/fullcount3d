@@ -52,7 +52,7 @@ function updateIdle(dt) {
   const pitching = ph === 'windup' || ph === 'flight';
   const u = G.pitch ? G.pitch.w / WIND : 0;
   // 투수
-  if (!pitching && !playing) {
+  if (!pitching && !playing && ph !== 'pko') {
     if (ph === 'call' || ph === 'after') idleTo(FIG.P, POSE.stand, dt, 3);
     else pitcherPose(FIG.P, 0, G.T ? fieldTeam().pitcher.hand : 'R', G.T && fieldTeam().pitcher.slot);
   }
@@ -62,6 +62,7 @@ function updateIdle(dt) {
       const f = FIG.field[i];
       if (G.adv && G.adv.adv.thrownOut && i === 2) continue;
       if (G.steal && G.steal.coverF === i && clock > G.steal.throwT - 0.9) continue;
+      if (G.pko && G.pko.cover === i) continue;
       idleTo(f, pitching && u > 0.55 ? POSE.ready : f.tp, dt, 5);
     }
     // 포수
@@ -74,7 +75,8 @@ function updateIdle(dt) {
       else _ct.set(0, 0.72, 0.95);
       _ctW.lerp(_ct, 1 - Math.exp(-(ph === 'flight' ? 22 : 6) * dt));
       idleTo(c, POSE.catcher, dt, 10); applyPose(c, 'L'); c.root.updateMatrixWorld(true); armIK(c.lA, _ctW);
-      if (ph === 'call' && ball.m.visible) { gloveOf(c, _gv); ball.set(_gv.x, _gv.y, _gv.z + 0.03, 1); ball.pushTrail(false); }
+      // 포수가 숨은 타격 시점에선 잡힌 공이 허공에 떠 보이므로(특히 높은 공) 그냥 숨김 (도루 송구는 updateSteal이 다시 보여 줌)
+      if (ph === 'call' && ball.m.visible) { if (!c.root.visible) ball.hide(); else { gloveOf(c, _gv); ball.set(_gv.x, _gv.y, _gv.z + 0.03, 1); ball.pushTrail(false); } }
     } else idleTo(c, c.tp, dt, 10);
   }
   // 심판
@@ -87,8 +89,11 @@ function updateIdle(dt) {
   // 주자 리드
   if (!playing && !G.adv) {
     G.runFig.forEach((f, k) => {
-      if (!f || f.mode === 'steal') return;
-      const want = pitching ? (k === 0 ? 3.2 : k === 1 ? 4.2 : 2.6) : 0;
+      if (!f || f.mode === 'steal' || f.mode === 'pko') return;
+      // 투구 전(조준 중)에도 짧게 리드 → 견제할 거리가 생김. 투구 동작에 들어가면 더 크게
+      const pre = ph === 'aim' || ph === 'meter' || ph === 'ready';
+      const lt = G.leadT || 0; // 주자 리드 작전
+      const want = pitching ? (k === 0 ? 3.2 : k === 1 ? 4.2 : 2.6) + lt * 0.6 : pre ? (k === 0 ? 2.3 : k === 1 ? 3.0 : 1.4) + lt * 0.7 : 0;
       f.lead = damp(f.lead || 0, want, 2.6, dt);
       const s = runnerSpot(k, 0.6 + f.lead); placeFig(f, s.x, s.z);
       turnTo(f, Math.atan2(0 - s.x, -18.4 - s.z), 6, dt);
@@ -167,6 +172,7 @@ UI.steal.addEventListener('click', () => {
 $('#bullpenBtn').addEventListener('click', () => { AU.click(); openPen(); });
 $('#penClose').addEventListener('click', () => closeModal('#penModal'));
 $('#ibbBtn').addEventListener('click', () => { AU.click(); ibb(); });
+$('#pkBtn').addEventListener('click', () => { AU.click(); if (canPickoff()) pickoff(); });
 function skipPlay() { if (G.play && G.play.t > 0.25) finishPlay(); }
 UI.skip.addEventListener('click', skipPlay);
 $('#playBtn').addEventListener('click', () => { AU.init(); AU.click(); startGame(); });
@@ -248,6 +254,7 @@ function frame(now) {
     if (G.pclock) tickPitchClock(dt);
     updateIdle(dt);
     if (G.steal) updateSteal(dt);
+    if (G.pko) updatePickoff(dt);
     updateBatter(dt);
     if (AUTO) autoPlay();
     if (G.online) onlineTick();

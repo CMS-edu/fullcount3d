@@ -89,7 +89,7 @@ const POS_IDX = { C: 1, '1B': 2, '2B': 3, '3B': 4, SS: 5, LF: 6, CF: 7, RF: 8 };
 const G = {
   phase: 'title', T: null, inning: 1, half: 0, outs: 0, b: 0, s: 0, bases: [null, null, null],
   maxInn: 9, limitInn: 11, userSide: 1, pitchLog: [], selType: 'FB', aimTarget: null, lastSpeed: 0,
-  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), bunt: false, stealReq: false, steal: null, pitch: null, play: null,
+  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), defT: 'base', leadT: 0, leadUI: 0, bunt: false, stealReq: false, steal: null, pitch: null, play: null,
   runFig: [null, null, null], batFig: null, bs: null, meter: null, gen: 0, cpuBunt: false,
 };
 function batTeam() { return G.T ? G.T[G.half] : null; }
@@ -187,7 +187,7 @@ function dressField() {
 }
 function resetField() {
   for (let i = 1; i < 9; i++) {
-    const f = FIG.field[i], h = S.FIELD_HOME[i];
+    const f = FIG.field[i], h = G.T ? defHome(i) : S.FIELD_HOME[i]; // 수비 작전 위치 (g5t_tactics.js)
     showFigure(f, true); placeFig(f, h.x, h.z);
     if (i === 1) { f.root.rotation.y = Math.PI; f.tp = POSE.catcher; } else { faceTo(f, 0, -2); f.tp = POSE.stand; }
     f.mode = 'idle'; Object.assign(f.P, f.tp); applyPose(f);
@@ -313,6 +313,7 @@ function startHalf() {
   G.outs = 0; G.b = 0; G.s = 0; G.bases = [null, null, null];
   const bt = batTeam();
   if (bt.line[G.inning - 1] == null) bt.line[G.inning - 1] = 0;
+  resetTactics(); // 수비 위치·주자 리드는 반 이닝마다 기본으로
   dressField(); resetField(); placeRunners();
   [FIG.batR, FIG.batL].forEach((f) => showFigure(f, false));
   ball.hide(); hideDocks();
@@ -332,13 +333,14 @@ function startPA() {
   if (G.prac) return pracPA();
   G.paId = (G.paId || 0) + 1;
   G.awaitPitch = false;
-  G.b = 0; G.s = 0; G.pitchLog = []; G.bunt = false; G.stealReq = false; G.cpuBunt = false; G.steal = null;
+  G.b = 0; G.s = 0; G.pitchLog = []; G.bunt = false; G.stealReq = false; G.cpuBunt = false; G.steal = null; G.pk = 0;
   UI.bunt.setAttribute('aria-pressed', 'false'); UI.steal.setAttribute('aria-pressed', 'false');
   const ft = fieldTeam(), bt = batTeam();
   if (G.online) { /* 사람 대 사람: CPU 작전 없음 */ }
   else if (userBatting()) cpuManagerPitch(ft, bt);
   else { cpuPinchHit(bt); cpuBuntDecision(bt); }
   { const sb0 = curBatter(); if (sb0.sw) sb0.hand = ft.pitcher.hand === 'R' ? 'L' : 'R'; } // 스위치히터: 투수 반대편 타석
+  cpuTactics();
   setupBatter();
   resetField(); placeRunners();
   const b = curBatter();
@@ -409,7 +411,13 @@ function nextPitch() {
     if (G.online) return;
     const b = curBatter(), plan = G.prac ? pracPlan(p, b) : S.cpuPitchPlan(p, { b: G.b, s: G.s }, S.zoneOf(b.height));
     const gen = G.gen;
-    later(0.8 + R() * 0.7, () => { if (gen === G.gen && G.phase === 'ready') windup(plan.type, plan.target, null); });
+    later(0.8 + R() * 0.7, () => {
+      if (gen !== G.gen || G.phase !== 'ready') return;
+      // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
+      const pb = pickoffBase();
+      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.28 : 0.1) * [0.5, 1, 1.6][(G.leadT || 0) + 1]) { pickoff(); return; }
+      windup(plan.type, plan.target, null);
+    });
   }
 }
 function padPick(ev) {
@@ -477,7 +485,7 @@ function startSteal(k) {
   // 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
   // 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움
   const P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : false;
-  const pSucc = clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0), 0.1, 0.85);
+  const pSucc = clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
   G.steal = { k, who: r, fig: G.runFig[k], ok: (G.online && G.pitch ? onSeed(G.pitch.pi, 5)() : R()) < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
 }
 function handPos(f, left, out) { return (left ? f.lA : f.rA).hand.localToWorld(out.set(0, -0.3, 0)); }
@@ -733,7 +741,7 @@ function updateSteal(dt) {
   if (s < 1) runPose(f, 7.5, dt); else { f.P = f.P || {}; blendPose(f.P, f.P, POSE.stand, 0.2); applyPose(f); }
   // 커버 야수
   const cf = FIG.field[st.coverF], cs = clamp((clock - (st.throwT - 0.9)) / 0.9, 0, 1);
-  if (cs > 0 && cs <= 1) { const h = S.FIELD_HOME[st.coverF]; placeFig(cf, lerp(h.x, b.x + 0.6, cs), lerp(h.z, b.z + 0.6, cs)); faceTo(cf, 0, 0); if (cs < 1) runPose(cf, 5, dt); }
+  if (cs > 0 && cs <= 1) { const h = defHome(st.coverF); placeFig(cf, lerp(h.x, b.x + 0.6, cs), lerp(h.z, b.z + 0.6, cs)); faceTo(cf, 0, 0); if (cs < 1) runPose(cf, 5, dt); }
   // 송구
   if (clock >= st.throwT && clock < st.throwArr) {
     const k = (clock - st.throwT) / (st.throwArr - st.throwT), d = Math.hypot(b.x, b.z - 1);
@@ -879,9 +887,14 @@ function changePitcher(tm, p, remote) {
 /* ---------- 도크 / HUD ---------- */
 function showDocks() {
   if (G.phase === 'adv') { hideDocks(); return; }
-  const bat = userBatting(); pracChips();
+  const bat = userBatting(); pracChips(); updateTacBtns();
   UI.dockBat.hidden = !bat; UI.dockPit.hidden = bat;
-  if (!bat) syncDockH();
+  if (!bat) {
+    const pk = $('#pkBtn');
+    pk.hidden = !!G.prac || pickoffBase() < 0; pk.disabled = G.phase !== 'aim' && G.phase !== 'meter';
+    pk.textContent = (G.pk ? `견제 ${G.pk}/${PK_MAX}` : '견제') + (G.leadT === 1 ? ' · 리드 큼' : G.leadT === -1 ? ' · 리드 짧음' : ''); // 주자 리드는 투수 눈에도 보이는 정보
+    syncDockH();
+  }
   UI.pad.hidden = bat || G.phase !== 'aim';
   UI.meter.hidden = G.phase !== 'meter';
   if (bat) {
