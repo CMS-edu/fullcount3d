@@ -33,12 +33,24 @@ function ratePitcher(r) {
     sta: r.role === 'SP' ? Math.round(88 + Math.min(18, r.ip / 9)) : r.role === 'CL' ? 30 : (r.ip > 50 ? 30 : 24),
   };
 }
+// 실제 구종 (tools/pitch_mix.js로 모은 문자중계 투구 기록): 구종 목록·구사율·구종별 평균 구속. 기록이 없으면 기존 추정 구종 그대로
+function applyPitchMix(p) {
+  const mx = p.kbo && PITCH_MIX[p.kbo];
+  if (!mx) return;
+  p.mix = mx[1].map(([t, sh]) => [t, sh]);
+  p.pitches = mx[1].map((x) => x[0]);
+  p.spd = {}; mx[1].forEach(([t, , v]) => { if (v) p.spd[t] = v; });
+  const fb = p.spd.FB || p.spd.TS || (p.spd.CT && p.spd.CT / 0.955);
+  if (fb) p.vel = Math.round(fb * 10) / 10;
+  p.mixN = mx[0];
+}
 const LEAGUE = REAL.map((t, ti) => {
   const r = { lineup: t.lineup.map(rateHitter), bench: t.bench.map(rateHitter), rotation: t.rotation.map(ratePitcher), bullpen: t.bullpen.map(ratePitcher), date: t.date };
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
   r.rotation.concat(r.bullpen).forEach((p, i) => (p.key = 'P' + i));
   // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
   r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.kbo = KBO_PH[ti + '|' + p.name] || null; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
+  r.rotation.concat(r.bullpen).forEach(applyPitchMix);
   return r;
 });
 
@@ -358,7 +370,7 @@ function nextPitch() {
   if (userPitching()) {
     G.phase = 'aim'; G.aimTarget = null;
     startPitchClock();
-    if (!p.pitches.includes(G.selType)) G.selType = 'FB';
+    if (!p.pitches.includes(G.selType)) G.selType = p.pitches[0];
     buildPitchButtons(); drawPad(); showDocks();
     const fat = S.fatigueOf(p, p.g.pc);
     if (fat > 0.55 && fieldTeam().warned !== p) { fieldTeam().warned = p; toast(`${p.name} 체력이 떨어졌어요 — 투수 교체를 고려해 보세요`, 3000); }
@@ -822,7 +834,7 @@ function changePitcher(tm, p, remote) {
   if (G.online && !remote) sendAct({ k: 'pc', key: p.key });
   tm.pitcher = p; tm.used.push(p);
   dressField(); pitcherPose(FIG.P, 0, p.hand);
-  G.selType = 'FB'; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
+  G.selType = p.pitches[0]; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
   toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);
   if (G.phase === 'meter') { G.phase = 'aim'; G.meter = null; UI.meter.hidden = true; G.aimTarget = null; }
   if (!remote && G.phase === 'aim') { showDocks(); drawPad(); } // 존 패드 다시 표시 (미터 중 교체 시 패드가 숨겨진 채 멈추던 버그)

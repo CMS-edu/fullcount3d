@@ -142,7 +142,7 @@ document.addEventListener('keydown', (ev) => {
     else if (G.phase === 'play') skipPlay();
     return;
   }
-  if (userPitching() && /^[1-4]$/.test(ev.key)) { const k = fieldTeam().pitcher.pitches[+ev.key - 1]; if (k) { selectPitchType(k); AU.click(); } }
+  if (userPitching() && /^[1-6]$/.test(ev.key)) { const k = fieldTeam().pitcher.pitches[+ev.key - 1]; if (k) { selectPitchType(k); AU.click(); } }
   if (userBatting() && (ev.key === 'b' || ev.key === 'B')) UI.bunt.click();
   if (userBatting() && (ev.key === 's' || ev.key === 'S')) UI.steal.click();
 });

@@ -121,7 +121,7 @@ function openPracSet() {
   const P = G.prac, B = $('#pracBody'), me = G.T[G.userSide];
   if (P.kind === 'bat') {
     $('#pracH').textContent = '타격 훈련 설정';
-    const types = [['ANY', '랜덤'], ['FB', '직구'], ['TS', '투심'], ['SL', '슬라이더'], ['CB', '커브'], ['CH', '체인지업'], ['FK', '포크']];
+    const types = [['ANY', '랜덤'], ['FB', '직구'], ['TS', '투심'], ['CT', '커터'], ['SL', '슬라이더'], ['ST', '스위퍼'], ['CB', '커브'], ['CH', '체인지업'], ['FK', '포크']];
     B.innerHTML = `<div class="popt"><span>구종</span>${segHTML('type', types, P.type)}</div>
       <div class="popt"><span>코스</span>${segHTML('course', [['rand', '실전처럼'], ['zone', '스트라이크만'], ['mid', '한가운데']], P.course)}</div>
       <div class="popt"><span>구속</span>${segHTML('spd', [[0.82, '느리게'], [1, '보통'], [1.06, '빠르게']], P.spd)}</div>

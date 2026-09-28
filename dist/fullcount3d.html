@@ -340,6 +340,7 @@ body.no-webgl .nogl { display: grid; }
 #pcard b { font-family: var(--display); font-weight: 400; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; }
 #pcard span { font-size: 12.5px; font-variant-numeric: tabular-nums; }
 #pcard .hot { color: var(--led); font-weight: 700; }
+#pcard .mixl { font-size: 11.5px; color: #bcd6ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pcard em { font-style: normal; font-size: 9.5px; color: var(--bug-muted); opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pcard em a { color: inherit; text-decoration: none; }
 @media (orientation: landscape) and (max-height: 520px) { #pcard { top: calc(env(safe-area-inset-top, 0px) + 116px); } #pcard .ava.md { width: 50px; height: 50px; } #pcard b { font-size: 21px; } }
@@ -740,7 +741,9 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
   const PITCHES = {
     FB: { name: '직구', ratio: 1.0, arm: 0.05, drop: -0.05, arc: 0.1, brk: false },
     TS: { name: '투심', ratio: 0.975, arm: 0.17, drop: 0.07, arc: 0.1, brk: false },
+    CT: { name: '커터', ratio: 0.955, arm: -0.09, drop: 0.03, arc: 0.1, brk: false },
     SL: { name: '슬라이더', ratio: 0.9, arm: -0.22, drop: 0.1, arc: 0.14, brk: true },
+    ST: { name: '스위퍼', ratio: 0.89, arm: -0.36, drop: 0.06, arc: 0.15, brk: true },
     CB: { name: '커브', ratio: 0.8, arm: -0.14, drop: 0.36, arc: 0.34, brk: true },
     CH: { name: '체인지업', ratio: 0.87, arm: 0.13, drop: 0.24, arc: 0.16, brk: true },
     FK: { name: '포크', ratio: 0.9, arm: 0.02, drop: 0.38, arc: 0.14, brk: true },
@@ -1196,10 +1199,18 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
 
 
   /* ---------- CPU 투구 계획 ---------- */
+  const FASTS = { FB: 1, TS: 1, CT: 1 };
   function cpuPitchPlan(p, count, zone) {
-    const types = p.pitches, off = types.filter((t) => t !== 'FB' && t !== 'TS');
+    const types = p.pitches, off = types.filter((t) => !FASTS[t]);
     let type;
-    if (count.b >= 3 && count.s < 2) type = R() < 0.75 ? 'FB' : pick(types);
+    if (p.mix && p.mix.length) {
+      // 실제 구사율대로 + 볼카운트 보정 (볼이 몰리면 속구, 2스트라이크면 변화구를 더)
+      const hitter = count.b >= 3 && count.s < 2, putaway = count.s === 2;
+      const w = p.mix.map(([t, sh]) => sh * (hitter ? (FASTS[t] ? 2.4 : 0.45) : putaway ? (FASTS[t] ? 0.75 : 1.35) : 1));
+      let x = R() * w.reduce((a, b) => a + b, 0);
+      type = p.mix[p.mix.length - 1][0];
+      for (let i = 0; i < w.length; i++) { x -= w[i]; if (x <= 0) { type = p.mix[i][0]; break; } }
+    } else if (count.b >= 3 && count.s < 2) type = R() < 0.75 ? 'FB' : pick(types);
     else if (count.s === 2) type = R() < 0.6 && off.length ? pick(off) : pick(types);
     else type = R() < 0.48 ? 'FB' : pick(types);
     const mid = (zone.top + zone.bot) / 2, hh = (zone.top - zone.bot) / 2;
@@ -1215,7 +1226,8 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
     return meter == null ? 0.045 + (100 - p.ctl) * 0.0011 + fat * 0.06 : 0.028 + (1 - meter) * 0.15 + (100 - p.ctl) * 0.0007 + fat * 0.06;
   }
   function pitchSpeed(p, type, fat, meter) {
-    return p.vel * PITCHES[type].ratio * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0);
+    const base = p.spd && p.spd[type] ? p.spd[type] : p.vel * PITCHES[type].ratio; // 실제 구종별 평균 구속이 있으면 그걸로
+    return base * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0);
   }
   function pitchQuality(p, fat, meter) { return (p.stf / 100) * (meter == null ? 0.9 : 0.72 + 0.38 * meter) - fat * 0.15; }
 
@@ -2934,6 +2946,119 @@ const PHOTO_DB = {"0|박해민":{"u":"https://thumb.wikimedia.org/wikipedia/comm
   "9|서건창":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/%EB%82%98%EC%9D%B4%ED%8A%B8%2C%EC%84%9C%EA%B1%B4%EC%B0%BD%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_5%EC%9B%9429%EC%9D%BC%28%ED%99%94%29%EB%84%A5%EC%84%BCvs_SK%EC%A0%84_%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_%EC%84%9C%EA%B1%B4%EC%B0%BD.jpg/250px-%EB%82%98%EC%9D%B4%ED%8A%B8%2C%EC%84%9C%EA%B1%B4%EC%B0%BD%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_5%EC%9B%9429%EC%9D%BC%28%ED%99%94%29%EB%84%A5%EC%84%BCvs_SK%EC%A0%84_%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_%EC%84%9C%EA%B1%B4%EC%B0%BD.jpg","w":250,"h":313,"s":"https://commons.wikimedia.org/wiki/File:%EB%82%98%EC%9D%B4%ED%8A%B8,%EC%84%9C%EA%B1%B4%EC%B0%BD%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_5%EC%9B%9429%EC%9D%BC(%ED%99%94)%EB%84%A5%EC%84%BCvs_SK%EC%A0%84_%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_%EC%84%9C%EA%B1%B4%EC%B0%BD.jpg","a":"Nexen Heroes Baseball Club","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.42,0.37,1.55]},
   "9|안치홍":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg/250px-%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg","w":250,"h":346,"s":"https://commons.wikimedia.org/wiki/File:%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.5,0.45,1.4]},
   "9|알칸타라":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg/250px-Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg","w":250,"h":286,"s":"https://commons.wikimedia.org/wiki/File:Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg","a":"Korea.net / Korean Culture and Information Service","l":"CC BY-SA 2.0","lu":"https://creativecommons.org/licenses/by-sa/2.0","f":[0.58,0.25,2.2]}};
+/* ===================== 투수 구종 (tools/pitch_mix.js가 생성 — 직접 고치지 말 것) =====================
+   네이버 스포츠 문자중계의 투구 기록(2026-03-28~2026-09-27 정규시즌, 최근 경기부터 456경기)을 투수별로 집계.
+   키: KBO 선수 ID → [집계한 공 수, [[구종, 구사율, 평균 구속 km/h], ...]]  구종: FB 직구 TS 투심 CT 커터 SL 슬라이더 ST 스위퍼 CB 커브 CH 체인지업 FK 포크 */
+const PITCH_MIX = {"50030":[1158,[["TS",0.476,145],["CT",0.257,140.8],["CH",0.169,131.4],["CB",0.054,122.6],["ST",0.043,129.5]]],
+  "50464":[772,[["FB",0.465,142.4],["SL",0.293,131.1],["CH",0.21,124.6],["CB",0.032,122.7]]],
+  "50556":[600,[["FB",0.614,150.4],["CH",0.271,136.2],["SL",0.115,139.3]]],
+  "50859":[907,[["FB",0.515,143.2],["CH",0.277,131.8],["CB",0.108,117.8],["SL",0.1,130.9]]],
+  "50992":[637,[["FB",0.369,143.6],["SL",0.331,132.1],["FK",0.16,130],["CB",0.14,115.9]]],
+  "51111":[624,[["FB",0.491,144.2],["SL",0.182,132.4],["CB",0.177,119.2],["CH",0.149,131.5]]],
+  "51154":[678,[["FB",0.283,144],["FK",0.249,130.9],["CB",0.249,121.3],["SL",0.168,132.2],["CH",0.05,129.7]]],
+  "51264":[1211,[["FB",0.426,143.4],["SL",0.201,131.7],["CB",0.16,115.9],["ST",0.086,124.6],["CT",0.085,134.4],["FK",0.043,126.5]]],
+  "51516":[1505,[["FB",0.468,146.6],["SL",0.304,134.4],["CB",0.155,126],["CH",0.072,131.7]]],
+  "51526":[594,[["FB",0.713,150],["CB",0.244,128.4],["TS",0.043,149.5]]],
+  "51761":[788,[["FB",0.438,143.9],["SL",0.214,135.7],["CH",0.174,122.6],["CB",0.114,119.7],["CT",0.06,137.9]]],
+  "51867":[1576,[["FB",0.513,145.2],["CH",0.19,130.3],["SL",0.16,135.8],["CB",0.137,120.5]]],
+  "51897":[596,[["FB",0.743,145.9],["FK",0.205,130.5],["CB",0.052,123.6]]],
+  "51994":[482,[["FB",0.481,144.7],["SL",0.432,131.3],["FK",0.087,133.8]]],
+  "52043":[1487,[["CT",0.27,137.1],["FB",0.192,145.3],["ST",0.172,127.7],["TS",0.147,143.6],["CB",0.133,123.9],["CH",0.087,133.3]]],
+  "52060":[669,[["FB",0.62,148.8],["SL",0.245,134.7],["CH",0.135,131.5]]],
+  "52204":[492,[["SL",0.411,134],["FB",0.284,147],["TS",0.256,146.7],["FK",0.049,136.5]]],
+  "52530":[814,[["SL",0.467,137.4],["FB",0.393,149.9],["CB",0.07,125.8],["FK",0.07,136.8]]],
+  "52641":[978,[["SL",0.374,130.7],["FB",0.357,141.8],["FK",0.212,131.8],["CB",0.057,117.1]]],
+  "52731":[970,[["FB",0.48,144.8],["FK",0.356,134.8],["SL",0.112,132.8],["CB",0.052,120.4]]],
+  "52809":[772,[["FB",0.744,146.4],["FK",0.134,132.3],["SL",0.078,133.8],["CB",0.044,119.9]]],
+  "52902":[540,[["FB",0.61,152.6],["SL",0.232,134.7],["FK",0.158,136]]],
+  "52992":[266,[["TS",0.421,145.5],["ST",0.293,128.9],["SL",0.286,132.6]]],
+  "53375":[1163,[["CH",0.236,136.5],["FB",0.212,146.7],["SL",0.205,134.4],["TS",0.202,146.1],["CT",0.073,140.4],["CB",0.071,128.3]]],
+  "53562":[330,[["FB",0.403,145.6],["SL",0.294,132.6],["FK",0.145,133.7],["CT",0.121,140.1],["CB",0.036,124.3]]],
+  "53892":[641,[["FB",0.408,147.7],["CH",0.152,127.3],["CB",0.134,125],["TS",0.114,146.5],["FK",0.099,134.4],["SL",0.093,134.4]]],
+  "53919":[516,[["SL",0.678,140],["FB",0.322,153.5]]],
+  "54263":[799,[["FB",0.644,151.9],["SL",0.24,137.5],["FK",0.116,139.2]]],
+  "54362":[881,[["FB",0.728,150.1],["CH",0.196,130.9],["ST",0.043,125.6],["SL",0.033,130.8]]],
+  "54610":[543,[["CT",0.425,134.9],["TS",0.42,143.2],["CH",0.122,133.1],["CB",0.033,125.7]]],
+  "54640":[1832,[["TS",0.34,146.4],["ST",0.302,132.5],["CT",0.212,141.2],["CH",0.108,138],["FB",0.039,146.3]]],
+  "54729":[829,[["FB",0.433,143.3],["FK",0.38,124.3],["CB",0.148,108.3],["SL",0.039,121.4]]],
+  "54768":[660,[["SL",0.448,127.1],["FB",0.383,146.6],["CH",0.1,133],["TS",0.068,145.4]]],
+  "54843":[1371,[["FB",0.462,146.1],["FK",0.214,134.5],["SL",0.194,130],["CB",0.052,112.3],["CH",0.043,123.1],["CT",0.036,140.4]]],
+  "55121":[764,[["FB",0.578,147.6],["SL",0.298,137.5],["CB",0.124,123.8]]],
+  "55130":[1703,[["FB",0.438,149],["CT",0.242,139],["FK",0.17,132.9],["CB",0.15,125.8]]],
+  "55239":[1604,[["FB",0.38,143.9],["ST",0.281,123.4],["CT",0.192,137.3],["CH",0.086,130.2],["TS",0.06,140]]],
+  "55268":[1561,[["TS",0.479,144.3],["CT",0.288,140.2],["FK",0.108,137.3],["ST",0.094,128.1],["SL",0.031,127.6]]],
+  "55348":[993,[["FB",0.531,145.1],["CB",0.179,123.4],["CH",0.177,135.2],["SL",0.113,136.3]]],
+  "55394":[522,[["TS",0.783,144.7],["SL",0.146,129.8],["CB",0.072,122.5]]],
+  "55610":[743,[["FB",0.444,147.6],["SL",0.254,138.2],["ST",0.177,129.5],["CH",0.125,135.3]]],
+  "55633":[1676,[["FB",0.507,149.1],["SL",0.309,133.9],["CH",0.126,138.4],["CB",0.059,128.6]]],
+  "55903":[1746,[["FB",0.365,148.4],["SL",0.239,136.7],["FK",0.223,133.6],["CB",0.172,131.5]]],
+  "55912":[1401,[["FB",0.464,148.1],["CT",0.183,139.8],["CH",0.154,135.9],["SL",0.147,132.3],["CB",0.052,123.5]]],
+  "56032":[886,[["FB",0.424,149.3],["CT",0.249,143.8],["ST",0.16,131.1],["CB",0.09,126.4],["CH",0.04,134],["TS",0.037,148.8]]],
+  "56036":[261,[["TS",0.49,144.3],["ST",0.238,131.4],["CT",0.077,140.7],["FB",0.073,146.1],["CB",0.065,120.1],["CH",0.057,132.7]]],
+  "56103":[778,[["CT",0.264,142.1],["TS",0.201,144.2],["FK",0.157,136.5],["SL",0.15,135.5],["FB",0.122,146.2],["CB",0.106,123.9]]],
+  "56212":[757,[["FB",0.44,145.1],["SL",0.227,130.8],["CB",0.152,119.9],["CH",0.105,129.6],["TS",0.077,141.6]]],
+  "56318":[1270,[["FB",0.569,151.9],["SL",0.352,140.4],["CB",0.079,126.4]]],
+  "56337":[788,[["FB",0.512,142.3],["CH",0.342,122.7],["SL",0.145,127.5]]],
+  "56348":[578,[["FB",0.729,150.7],["SL",0.15,128.8],["FK",0.073,138.5],["CB",0.049,117.5]]],
+  "56459":[1092,[["FB",0.359,148.1],["CH",0.218,134.3],["CT",0.193,139.9],["CB",0.165,122.4],["TS",0.064,147.6]]],
+  "56460":[741,[["FB",0.443,144.5],["FK",0.296,131.1],["SL",0.163,133.7],["CT",0.062,133.3],["CB",0.035,122.4]]],
+  "56464":[737,[["FB",0.415,146.4],["CB",0.142,120.5],["ST",0.141,127.2],["SL",0.139,135.5],["CH",0.091,134.2],["CT",0.072,136.8]]],
+  "56523":[1571,[["ST",0.312,134.7],["FB",0.299,150.8],["CT",0.211,143.7],["FK",0.133,140.5],["TS",0.045,150]]],
+  "56531":[1821,[["FB",0.434,152.9],["ST",0.22,134.3],["CT",0.174,144.5],["CB",0.133,131.7],["CH",0.039,138.8]]],
+  "56536":[611,[["FB",0.412,149.4],["CH",0.347,126.6],["SL",0.241,134.6]]],
+  "56712":[478,[["FB",0.57,149.8],["SL",0.325,135.8],["CH",0.105,137.9]]],
+  "56719":[1507,[["FB",0.456,146.2],["TS",0.167,145.8],["FK",0.119,138.7],["ST",0.117,125],["SL",0.093,125.8],["CB",0.048,122.3]]],
+  "56724":[1976,[["FB",0.436,148.8],["ST",0.184,131.2],["CB",0.122,123.2],["CT",0.108,140.3],["FK",0.086,136.1],["TS",0.063,147.8]]],
+  "56801":[1163,[["TS",0.39,151.9],["CT",0.24,147.7],["CH",0.166,136.7],["FB",0.103,152.5],["CB",0.101,129.3]]],
+  "56823":[1071,[["FB",0.363,143.9],["TS",0.231,143.6],["CB",0.138,113.3],["SL",0.13,130],["ST",0.075,129.1],["CH",0.063,132.2]]],
+  "56840":[1323,[["FB",0.544,144.6],["FK",0.24,131.1],["SL",0.136,133.1],["CB",0.079,119.9]]],
+  "56841":[762,[["FB",0.365,149],["ST",0.2,130.9],["TS",0.193,147.8],["SL",0.154,137.1],["CH",0.088,136.9]]],
+  "56911":[1796,[["FB",0.35,146.9],["CT",0.208,139.3],["FK",0.204,133.4],["SL",0.149,129.5],["CB",0.089,129.4]]],
+  "56966":[1313,[["ST",0.267,134.5],["TS",0.211,147.1],["CH",0.179,136.5],["FB",0.176,148.5],["CT",0.168,139.2]]],
+  "60146":[532,[["FB",0.561,145.2],["SL",0.23,133.1],["CH",0.209,122.5]]],
+  "61101":[1669,[["CH",0.323,124.3],["CB",0.289,111.9],["FB",0.272,140.4],["SL",0.117,132.6]]],
+  "62528":[596,[["FK",0.454,133.9],["FB",0.43,146],["SL",0.116,137.6]]],
+  "62754":[471,[["FB",0.508,137.8],["CH",0.303,124.4],["SL",0.19,130.6]]],
+  "62869":[624,[["FB",0.535,146.6],["SL",0.173,135.8],["TS",0.146,142.5],["FK",0.091,131.3],["CB",0.055,113.6]]],
+  "63342":[630,[["FB",0.522,143.9],["SL",0.307,128.4],["FK",0.17,136.2]]],
+  "63950":[503,[["FB",0.434,145.5],["SL",0.372,131.6],["FK",0.102,133.5],["CB",0.06,119],["TS",0.032,143.8]]],
+  "64001":[1766,[["CH",0.422,120.2],["TS",0.41,135.5],["ST",0.168,119.1]]],
+  "64021":[1518,[["FB",0.357,147.1],["ST",0.208,127.3],["SL",0.199,136.8],["FK",0.173,134.5],["CB",0.062,123.4]]],
+  "64350":[1591,[["FB",0.306,145],["FK",0.299,133.3],["ST",0.201,125.2],["CT",0.141,134.5],["CB",0.053,120.5]]],
+  "64995":[416,[["FB",0.428,145.9],["FK",0.305,140.2],["SL",0.267,133.5]]],
+  "65060":[552,[["TS",0.517,140.6],["CH",0.299,125.8],["ST",0.14,127.8],["CB",0.045,111.5]]],
+  "65062":[749,[["FB",0.577,144.3],["SL",0.246,127.5],["FK",0.178,131.2]]],
+  "65117":[731,[["CT",0.356,137.9],["FB",0.351,146],["ST",0.204,127.2],["CH",0.088,129.5]]],
+  "65320":[1341,[["FB",0.372,146.8],["CH",0.244,128.9],["CT",0.173,136.5],["TS",0.136,146.9],["CB",0.075,121.6]]],
+  "65516":[1077,[["FB",0.555,145.9],["SL",0.379,133.4],["FK",0.065,135.6]]],
+  "65616":[659,[["TS",0.414,143.8],["CT",0.312,137.9],["CB",0.185,122.5],["FK",0.057,136.6],["CH",0.032,136.8]]],
+  "65769":[453,[["FB",0.47,146.1],["SL",0.333,136.4],["FK",0.148,137],["CB",0.049,116.5]]],
+  "65933":[1742,[["FB",0.439,143.2],["SL",0.316,131.6],["FK",0.18,132.4],["CB",0.066,116.8]]],
+  "66291":[743,[["SL",0.53,135.8],["FB",0.427,150.6],["CB",0.043,120.7]]],
+  "66609":[440,[["FB",0.431,142.3],["SL",0.372,133.3],["FK",0.197,132.7]]],
+  "67143":[674,[["FB",0.48,149.3],["CT",0.302,141.3],["CB",0.218,124.3]]],
+  "67266":[621,[["FB",0.466,146],["CB",0.344,127.7],["CH",0.106,134.6],["CT",0.084,142.9]]],
+  "67539":[1560,[["FK",0.331,132.1],["FB",0.312,144.5],["CT",0.14,139.8],["SL",0.131,129],["CB",0.049,120.1],["TS",0.038,142.6]]],
+  "67703":[602,[["FK",0.38,136.5],["FB",0.361,148.2],["SL",0.145,139.7],["TS",0.114,147.2]]],
+  "68043":[648,[["TS",0.683,146.9],["SL",0.217,133],["CH",0.051,135.5],["CT",0.048,143.1]]],
+  "68220":[1730,[["FB",0.439,153.8],["CT",0.156,147],["SL",0.154,136.8],["CH",0.135,134.7],["CB",0.116,123.4]]],
+  "68260":[653,[["FB",0.355,143.8],["CT",0.324,135.6],["FK",0.156,133.4],["SL",0.12,126.3],["ST",0.044,126.9]]],
+  "68341":[1490,[["FB",0.451,153.3],["SL",0.259,141.6],["CB",0.202,127.4],["CH",0.088,134.1]]],
+  "68415":[1176,[["FB",0.303,146.6],["SL",0.23,132],["TS",0.186,144.3],["CH",0.135,130.4],["CB",0.078,121.9],["ST",0.067,120.9]]],
+  "68830":[626,[["FB",0.48,145],["SL",0.376,130.9],["CH",0.144,128.3]]],
+  "68856":[1041,[["FB",0.301,141.3],["CB",0.199,119.7],["CT",0.169,136.8],["TS",0.153,140],["SL",0.104,132.3],["FK",0.075,133.1]]],
+  "69041":[652,[["FB",0.49,144.8],["FK",0.409,127],["SL",0.053,133.4],["CB",0.048,119.5]]],
+  "69045":[1504,[["FB",0.44,150.6],["FK",0.394,134.6],["SL",0.166,136.5]]],
+  "69047":[548,[["FB",0.606,147.2],["SL",0.394,132.6]]],
+  "69360":[527,[["FB",0.571,144.9],["SL",0.177,133.3],["FK",0.139,132.2],["CB",0.112,124.2]]],
+  "69446":[1744,[["FB",0.392,147],["CH",0.243,129.5],["SL",0.162,132.3],["CT",0.101,139],["CB",0.056,113.7],["TS",0.047,144.2]]],
+  "69645":[663,[["FB",0.478,148.1],["SL",0.282,132.3],["TS",0.11,147.9],["CB",0.081,118.8],["FK",0.048,132.5]]],
+  "69962":[672,[["FB",0.497,144.7],["ST",0.307,123.2],["FK",0.138,134.5],["CT",0.058,137.7]]],
+  "69969":[750,[["TS",0.674,146.7],["FK",0.17,135],["ST",0.155,128.1]]],
+  "75867":[517,[["FK",0.515,127.3],["FB",0.485,142.1]]],
+  "76118":[538,[["FB",0.33,147.6],["SL",0.302,136.2],["TS",0.291,149],["FK",0.078,137]]],
+  "76715":[1381,[["FB",0.454,143.2],["CH",0.273,128],["CT",0.17,135.8],["CB",0.104,113.3]]],
+  "77637":[1233,[["FB",0.407,138.2],["SL",0.275,130.7],["CH",0.273,127.6],["CB",0.045,115.9]]]};
 /* ===================== 선수 얼굴 (사진 · 그림) ===================== */
 // 우선순위: ① 내가 올린 사진(이 기기에만 저장) ② KBO 공식 사진(KBO 홈페이지 주소에서 바로 불러옴)
 //          ③ Wikimedia Commons 사진(공식 사진을 못 찾은 선수용) ④ 3D 선수와 같은 얼굴로 그린 그림
@@ -3084,6 +3209,8 @@ function updateLines() {
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
 }
 
+// 실제 구종 구사율 글: "직구 48% · 슬라이더 27% · 포크 15%"
+function mixText(p, n) { return p.mix ? p.mix.slice(0, n || 6).map(([t, sh]) => `${S.PITCHES[t].name} ${Math.round(sh * 100)}%`).join(' · ') : ''; }
 // 타석에 들어서는 타자 / 새로 올라온 투수 소개 카드 (사진 + 기록)
 function playerCard(pl, tm, pit) {
   const el = $('#pcard'); if (!el || !pl || !tm) return;
@@ -3092,7 +3219,8 @@ function playerCard(pl, tm, pit) {
   const today = !pit && pl.g && pl.g.pa ? `<span class="hot">오늘 ${pl.g.ab}타수 ${pl.g.h}안타${pl.g.hr ? ` ${pl.g.hr}홈런` : ''}</span>` : '';
   const cr = photoCredit(pl);
   el.style.setProperty('--tc', tm.t.c1);
-  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
+  const mix = pit && pl.mix ? `<span class="mixl">${mixText(pl, 4)}</span>` : '';
+  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${mix}${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
   el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 2900, 'pcard');
 }
 
@@ -3176,7 +3304,8 @@ function buildPitchButtons() {
   UI.pitchBtns.innerHTML = '';
   p.pitches.forEach((k, i) => {
     const b = document.createElement('button'); b.className = 'pbtn'; b.dataset.k = k;
-    b.innerHTML = `<b>${S.PITCHES[k].name}</b><span>${Math.round(p.vel * S.PITCHES[k].ratio)}km/h</span>`;
+    const kmh = Math.round(p.spd && p.spd[k] ? p.spd[k] : p.vel * S.PITCHES[k].ratio), mx = p.mix && p.mix.find((x) => x[0] === k);
+    b.innerHTML = `<b>${S.PITCHES[k].name}</b><span>${kmh}km/h${mx ? ` · ${Math.round(mx[1] * 100)}%` : ''}</span>`;
     b.setAttribute('aria-pressed', String(k === G.selType)); b.setAttribute('aria-label', `${S.PITCHES[k].name} 선택 (단축키 ${i + 1})`);
     b.addEventListener('click', () => { selectPitchType(k); AU.click(); });
     UI.pitchBtns.appendChild(b);
@@ -3210,9 +3339,10 @@ function drawPad(sel) {
     g.beginPath(); g.moveTo(x0, y0 + ((y1 - y0) * k) / 3); g.lineTo(x1, y0 + ((y1 - y0) * k) / 3); g.stroke();
   }
   // 구종 브레이크 힌트
-  const pk = S.PITCHES[G.selType || 'FB'], p = fieldTeam().pitcher, arm = p.hand === 'R' ? -1 : 1;
+  const pk = S.PITCHES[G.selType || 'FB'], ha = Math.abs(pk.arm);
+  const how = pk.drop > 0.2 ? '떨어짐' : ha > 0.3 ? '크게 휘어짐' : ha > 0.12 ? '휘어짐' : ha > 0.07 ? '살짝 휘어짐' : '빠름';
   g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = `bold 18px ${FONT_UI}`; g.textAlign = 'center';
-  g.fillText(`${pk.name} · ${pk.drop > 0.2 ? '떨어짐' : pk.arm * arm < -0.1 ? '휘어짐' : '빠름'}`, W / 2, H - 12);
+  g.fillText(`${pk.name} · ${how}`, W / 2, H - 12);
   const t = sel || G.aimTarget;
   if (t) {
     g.strokeStyle = '#37d67a'; g.lineWidth = 4; g.beginPath(); g.arc(X(t.x), Y(t.y), 16, 0, Math.PI * 2); g.stroke();
@@ -3290,12 +3420,24 @@ function ratePitcher(r) {
     sta: r.role === 'SP' ? Math.round(88 + Math.min(18, r.ip / 9)) : r.role === 'CL' ? 30 : (r.ip > 50 ? 30 : 24),
   };
 }
+// 실제 구종 (tools/pitch_mix.js로 모은 문자중계 투구 기록): 구종 목록·구사율·구종별 평균 구속. 기록이 없으면 기존 추정 구종 그대로
+function applyPitchMix(p) {
+  const mx = p.kbo && PITCH_MIX[p.kbo];
+  if (!mx) return;
+  p.mix = mx[1].map(([t, sh]) => [t, sh]);
+  p.pitches = mx[1].map((x) => x[0]);
+  p.spd = {}; mx[1].forEach(([t, , v]) => { if (v) p.spd[t] = v; });
+  const fb = p.spd.FB || p.spd.TS || (p.spd.CT && p.spd.CT / 0.955);
+  if (fb) p.vel = Math.round(fb * 10) / 10;
+  p.mixN = mx[0];
+}
 const LEAGUE = REAL.map((t, ti) => {
   const r = { lineup: t.lineup.map(rateHitter), bench: t.bench.map(rateHitter), rotation: t.rotation.map(ratePitcher), bullpen: t.bullpen.map(ratePitcher), date: t.date };
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
   r.rotation.concat(r.bullpen).forEach((p, i) => (p.key = 'P' + i));
   // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
   r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.kbo = KBO_PH[ti + '|' + p.name] || null; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
+  r.rotation.concat(r.bullpen).forEach(applyPitchMix);
   return r;
 });
 
@@ -3615,7 +3757,7 @@ function nextPitch() {
   if (userPitching()) {
     G.phase = 'aim'; G.aimTarget = null;
     startPitchClock();
-    if (!p.pitches.includes(G.selType)) G.selType = 'FB';
+    if (!p.pitches.includes(G.selType)) G.selType = p.pitches[0];
     buildPitchButtons(); drawPad(); showDocks();
     const fat = S.fatigueOf(p, p.g.pc);
     if (fat > 0.55 && fieldTeam().warned !== p) { fieldTeam().warned = p; toast(`${p.name} 체력이 떨어졌어요 — 투수 교체를 고려해 보세요`, 3000); }
@@ -4079,7 +4221,7 @@ function changePitcher(tm, p, remote) {
   if (G.online && !remote) sendAct({ k: 'pc', key: p.key });
   tm.pitcher = p; tm.used.push(p);
   dressField(); pitcherPose(FIG.P, 0, p.hand);
-  G.selType = 'FB'; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
+  G.selType = p.pitches[0]; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
   toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);
   if (G.phase === 'meter') { G.phase = 'aim'; G.meter = null; UI.meter.hidden = true; G.aimTarget = null; }
   if (!remote && G.phase === 'aim') { showDocks(); drawPad(); } // 존 패드 다시 표시 (미터 중 교체 시 패드가 숨겨진 채 멈추던 버그)
@@ -4688,7 +4830,7 @@ document.addEventListener('keydown', (ev) => {
     else if (G.phase === 'play') skipPlay();
     return;
   }
-  if (userPitching() && /^[1-4]$/.test(ev.key)) { const k = fieldTeam().pitcher.pitches[+ev.key - 1]; if (k) { selectPitchType(k); AU.click(); } }
+  if (userPitching() && /^[1-6]$/.test(ev.key)) { const k = fieldTeam().pitcher.pitches[+ev.key - 1]; if (k) { selectPitchType(k); AU.click(); } }
   if (userBatting() && (ev.key === 'b' || ev.key === 'B')) UI.bunt.click();
   if (userBatting() && (ev.key === 's' || ev.key === 'S')) UI.steal.click();
 });
@@ -4880,7 +5022,7 @@ function edLoad(ti) {
 function edName(k) { return ED.names[k] || ED.base[k].name; }
 function edBench() { return Object.keys(ED.base).filter((k) => k[0] === 'B' && !ED.order.includes(k)); }
 function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd}`; }
-function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · 구속·구종은 추정`; }
+function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · ${p.mix ? `${mixText(p)}${p.spd && p.spd.FB ? ` · 직구 평균 ${Math.round(p.spd.FB)}km/h` : ''}` : '구속·구종은 추정'}`; }
 function openRoster(ti) {
   edLoad(ti == null ? OPTS.me : ti); ED.tab = 'bat';
   showTab('roster');
@@ -5305,7 +5447,7 @@ function openPracSet() {
   const P = G.prac, B = $('#pracBody'), me = G.T[G.userSide];
   if (P.kind === 'bat') {
     $('#pracH').textContent = '타격 훈련 설정';
-    const types = [['ANY', '랜덤'], ['FB', '직구'], ['TS', '투심'], ['SL', '슬라이더'], ['CB', '커브'], ['CH', '체인지업'], ['FK', '포크']];
+    const types = [['ANY', '랜덤'], ['FB', '직구'], ['TS', '투심'], ['CT', '커터'], ['SL', '슬라이더'], ['ST', '스위퍼'], ['CB', '커브'], ['CH', '체인지업'], ['FK', '포크']];
     B.innerHTML = `<div class="popt"><span>구종</span>${segHTML('type', types, P.type)}</div>
       <div class="popt"><span>코스</span>${segHTML('course', [['rand', '실전처럼'], ['zone', '스트라이크만'], ['mid', '한가운데']], P.course)}</div>
       <div class="popt"><span>구속</span>${segHTML('spd', [[0.82, '느리게'], [1, '보통'], [1.06, '빠르게']], P.spd)}</div>

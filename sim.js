@@ -44,7 +44,9 @@
   const PITCHES = {
     FB: { name: '직구', ratio: 1.0, arm: 0.05, drop: -0.05, arc: 0.1, brk: false },
     TS: { name: '투심', ratio: 0.975, arm: 0.17, drop: 0.07, arc: 0.1, brk: false },
+    CT: { name: '커터', ratio: 0.955, arm: -0.09, drop: 0.03, arc: 0.1, brk: false },
     SL: { name: '슬라이더', ratio: 0.9, arm: -0.22, drop: 0.1, arc: 0.14, brk: true },
+    ST: { name: '스위퍼', ratio: 0.89, arm: -0.36, drop: 0.06, arc: 0.15, brk: true },
     CB: { name: '커브', ratio: 0.8, arm: -0.14, drop: 0.36, arc: 0.34, brk: true },
     CH: { name: '체인지업', ratio: 0.87, arm: 0.13, drop: 0.24, arc: 0.16, brk: true },
     FK: { name: '포크', ratio: 0.9, arm: 0.02, drop: 0.38, arc: 0.14, brk: true },
@@ -500,10 +502,18 @@
 
 
   /* ---------- CPU 투구 계획 ---------- */
+  const FASTS = { FB: 1, TS: 1, CT: 1 };
   function cpuPitchPlan(p, count, zone) {
-    const types = p.pitches, off = types.filter((t) => t !== 'FB' && t !== 'TS');
+    const types = p.pitches, off = types.filter((t) => !FASTS[t]);
     let type;
-    if (count.b >= 3 && count.s < 2) type = R() < 0.75 ? 'FB' : pick(types);
+    if (p.mix && p.mix.length) {
+      // 실제 구사율대로 + 볼카운트 보정 (볼이 몰리면 속구, 2스트라이크면 변화구를 더)
+      const hitter = count.b >= 3 && count.s < 2, putaway = count.s === 2;
+      const w = p.mix.map(([t, sh]) => sh * (hitter ? (FASTS[t] ? 2.4 : 0.45) : putaway ? (FASTS[t] ? 0.75 : 1.35) : 1));
+      let x = R() * w.reduce((a, b) => a + b, 0);
+      type = p.mix[p.mix.length - 1][0];
+      for (let i = 0; i < w.length; i++) { x -= w[i]; if (x <= 0) { type = p.mix[i][0]; break; } }
+    } else if (count.b >= 3 && count.s < 2) type = R() < 0.75 ? 'FB' : pick(types);
     else if (count.s === 2) type = R() < 0.6 && off.length ? pick(off) : pick(types);
     else type = R() < 0.48 ? 'FB' : pick(types);
     const mid = (zone.top + zone.bot) / 2, hh = (zone.top - zone.bot) / 2;
@@ -519,7 +529,8 @@
     return meter == null ? 0.045 + (100 - p.ctl) * 0.0011 + fat * 0.06 : 0.028 + (1 - meter) * 0.15 + (100 - p.ctl) * 0.0007 + fat * 0.06;
   }
   function pitchSpeed(p, type, fat, meter) {
-    return p.vel * PITCHES[type].ratio * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0);
+    const base = p.spd && p.spd[type] ? p.spd[type] : p.vel * PITCHES[type].ratio; // 실제 구종별 평균 구속이 있으면 그걸로
+    return base * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0);
   }
   function pitchQuality(p, fat, meter) { return (p.stf / 100) * (meter == null ? 0.9 : 0.72 + 0.38 * meter) - fat * 0.15; }
 

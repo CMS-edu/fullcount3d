@@ -54,6 +54,8 @@ function updateLines() {
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
 }
 
+// 실제 구종 구사율 글: "직구 48% · 슬라이더 27% · 포크 15%"
+function mixText(p, n) { return p.mix ? p.mix.slice(0, n || 6).map(([t, sh]) => `${S.PITCHES[t].name} ${Math.round(sh * 100)}%`).join(' · ') : ''; }
 // 타석에 들어서는 타자 / 새로 올라온 투수 소개 카드 (사진 + 기록)
 function playerCard(pl, tm, pit) {
   const el = $('#pcard'); if (!el || !pl || !tm) return;
@@ -62,7 +64,8 @@ function playerCard(pl, tm, pit) {
   const today = !pit && pl.g && pl.g.pa ? `<span class="hot">오늘 ${pl.g.ab}타수 ${pl.g.h}안타${pl.g.hr ? ` ${pl.g.hr}홈런` : ''}</span>` : '';
   const cr = photoCredit(pl);
   el.style.setProperty('--tc', tm.t.c1);
-  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
+  const mix = pit && pl.mix ? `<span class="mixl">${mixText(pl, 4)}</span>` : '';
+  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${mix}${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
   el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 2900, 'pcard');
 }
 
@@ -146,7 +149,8 @@ function buildPitchButtons() {
   UI.pitchBtns.innerHTML = '';
   p.pitches.forEach((k, i) => {
     const b = document.createElement('button'); b.className = 'pbtn'; b.dataset.k = k;
-    b.innerHTML = `<b>${S.PITCHES[k].name}</b><span>${Math.round(p.vel * S.PITCHES[k].ratio)}km/h</span>`;
+    const kmh = Math.round(p.spd && p.spd[k] ? p.spd[k] : p.vel * S.PITCHES[k].ratio), mx = p.mix && p.mix.find((x) => x[0] === k);
+    b.innerHTML = `<b>${S.PITCHES[k].name}</b><span>${kmh}km/h${mx ? ` · ${Math.round(mx[1] * 100)}%` : ''}</span>`;
     b.setAttribute('aria-pressed', String(k === G.selType)); b.setAttribute('aria-label', `${S.PITCHES[k].name} 선택 (단축키 ${i + 1})`);
     b.addEventListener('click', () => { selectPitchType(k); AU.click(); });
     UI.pitchBtns.appendChild(b);
@@ -180,9 +184,10 @@ function drawPad(sel) {
     g.beginPath(); g.moveTo(x0, y0 + ((y1 - y0) * k) / 3); g.lineTo(x1, y0 + ((y1 - y0) * k) / 3); g.stroke();
   }
   // 구종 브레이크 힌트
-  const pk = S.PITCHES[G.selType || 'FB'], p = fieldTeam().pitcher, arm = p.hand === 'R' ? -1 : 1;
+  const pk = S.PITCHES[G.selType || 'FB'], ha = Math.abs(pk.arm);
+  const how = pk.drop > 0.2 ? '떨어짐' : ha > 0.3 ? '크게 휘어짐' : ha > 0.12 ? '휘어짐' : ha > 0.07 ? '살짝 휘어짐' : '빠름';
   g.fillStyle = 'rgba(255,255,255,0.7)'; g.font = `bold 18px ${FONT_UI}`; g.textAlign = 'center';
-  g.fillText(`${pk.name} · ${pk.drop > 0.2 ? '떨어짐' : pk.arm * arm < -0.1 ? '휘어짐' : '빠름'}`, W / 2, H - 12);
+  g.fillText(`${pk.name} · ${how}`, W / 2, H - 12);
   const t = sel || G.aimTarget;
   if (t) {
     g.strokeStyle = '#37d67a'; g.lineWidth = 4; g.beginPath(); g.arc(X(t.x), Y(t.y), 16, 0, Math.PI * 2); g.stroke();
