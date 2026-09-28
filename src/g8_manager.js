@@ -123,7 +123,7 @@ function photoPanel(L) {
   const k = ED.photo, pl = ED.base[k], mine = !!myPhoto(pl), cr = photoCredit(pl);
   const d = document.createElement('div'); d.className = 'phpanel';
   d.innerHTML = `${avatarHTML(pl, 'lg')}<div class="php-t"><b>${esc(edName(k))}</b>
-    <small>${mine ? '내가 올린 사진이에요 (이 기기에만 저장돼요)' : pl.ph ? '자유 이용 사진 (Wikimedia Commons)' : '공개된 자유 이용 사진이 없어서 그림으로 보여줘요'}</small>
+    <small>${mine ? '내가 올린 사진이에요 (이 기기에만 저장돼요)' : pl.kbo ? 'KBO 공식 선수 사진이에요' : pl.ph ? 'Wikimedia Commons 사진이에요' : '사진을 못 찾아서 그림으로 보여줘요'}</small>
     ${cr ? `<small class="cr">${cr}</small>` : ''}
     <div class="row2"><label class="mbtn primary">📷 사진 올리기<input type="file" accept="image/*" hidden></label>${mine ? '<button class="mbtn" data-phdel>원래대로</button>' : ''}<button class="mbtn" data-phx>닫기</button></div></div>`;
   L.appendChild(d);
@@ -139,10 +139,10 @@ function photoPanel(L) {
 }
 // 이 팀 명단에 쓰인 Commons 사진의 저작자·라이선스
 function photoCredits(L) {
-  const ps = Object.values(ED.base).filter((p) => p.ph && !myPhoto(p));
+  const ps = Object.values(ED.base).filter((p) => !p.kbo && p.ph && !myPhoto(p));
   const d = document.createElement('div'); d.className = 'credits';
-  d.innerHTML = `<div class="rhead">선수 사진 출처</div><p class="sub" style="margin:0 0 6px">얼굴을 누르면 내 사진으로 바꿀 수 있어요 (이 기기에만 저장). 사진이 없는 선수는 그림으로 보여줘요.</p>` +
-    (ps.length ? ps.map((p) => `<div>${esc(p.name)} — ${photoCredit(p)} · Wikimedia Commons</div>`).join('') : '<div>이 팀은 자유 이용 사진이 있는 선수가 없어요.</div>');
+  d.innerHTML = `<div class="rhead">선수 사진</div><p class="sub" style="margin:0 0 6px">KBO 공식 홈페이지(koreabaseball.com)의 선수 사진을 불러와서 보여줘요. 얼굴을 누르면 내 사진으로 바꿀 수 있어요 (이 기기에만 저장).</p>` +
+    ps.map((p) => `<div>${esc(p.name)} — ${photoCredit(p)} · Wikimedia Commons</div>`).join('');
   L.appendChild(d);
 }
 function edSave() {

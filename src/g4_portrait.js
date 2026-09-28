@@ -1,5 +1,6 @@
 /* ===================== 선수 얼굴 (사진 · 그림) ===================== */
-// 우선순위: ① 내가 올린 사진(이 기기에만 저장) ② Wikimedia Commons 자유 이용 사진(저작자 표시) ③ 3D 선수와 같은 얼굴로 그린 그림
+// 우선순위: ① 내가 올린 사진(이 기기에만 저장) ② KBO 공식 사진(KBO 홈페이지 주소에서 바로 불러옴)
+//          ③ Wikimedia Commons 사진(공식 사진을 못 찾은 선수용) ④ 3D 선수와 같은 얼굴로 그린 그림
 const MYPH = store.get('myphotos', {}) || {};
 const phId = (pl) => (pl && pl.ti != null ? S.TEAMS[pl.ti].id + '|' + pl.key : null);
 function myPhoto(pl) { const k = phId(pl); return k ? MYPH[k] : null; }
@@ -9,6 +10,14 @@ function setMyPhoto(pl, url) {
   store.set('myphotos', MYPH);
   if (url && (store.get('myphotos', {}) || {})[k] !== url) { delete MYPH[k]; return false; } // 저장 공간 부족
   return true;
+}
+const kboUrl = (id) => `https://6ptotvmi5753.edge.naverncp.com/KBO_IMAGE/person/middle/${KBO_PHOTO_YEAR}/${id}.jpg`;
+const kboPage = (pl) => `https://www.koreabaseball.com/Record/Player/${pl.key && pl.key[0] === 'P' ? 'PitcherDetail' : 'HitterDetail'}/Basic.aspx?playerId=${pl.kbo}`;
+// 사진 안의 얼굴(fx, fy: 0~1)이 동그라미 가운데 오도록 자르기. z = 확대, ar = 세로/가로
+function cropStyle(fx, fy, z, ar) {
+  const w = Math.max(z * 100, 100, 100 / ar), h = w * ar;
+  const l = clamp(50 - fx * w, 100 - w, 0), tp = clamp(50 - fy * h, 100 - h, 0);
+  return `width:${w.toFixed(1)}%;left:${l.toFixed(1)}%;top:${tp.toFixed(1)}%`;
 }
 const _genFace = new Map();
 // 그림 얼굴: 3D 선수와 같은 피부·머리색 (looksOf), 팀 모자·유니폼
@@ -52,17 +61,20 @@ function avatarHTML(pl, cls = '') {
   if (!pl) return '';
   const my = myPhoto(pl);
   if (my) return `<span class="ava ${cls}"><img src="${my}" alt="" style="width:100%;left:0;top:0"></span>`;
+  // 사진을 못 불러오면(주소 바뀜·오프라인 등) 그림 얼굴로
+  const fb = `data-fb="${genFace(pl)}" onerror="this.onerror=null;this.src=this.dataset.fb;this.style.cssText='width:100%;left:0;top:0'"`;
+  if (pl.kbo) return `<span class="ava ph ${cls}" title="사진: KBO 공식 홈페이지"><img src="${kboUrl(pl.kbo)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="${cropStyle(0.5, 0.4, 1.15, 118 / 94)}" ${fb}></span>`;
   const r = pl.ph;
   if (r) {
-    const [fx, fy, z] = r.f || [0.5, 0.3, 1.5], ar = r.h / r.w;
-    const w = Math.max(z * 100, 100, 100 / ar), h = w * ar;
-    const l = clamp(50 - fx * w, 100 - w, 0), tp = clamp(50 - fy * h, 100 - h, 0);
-    return `<span class="ava ph ${cls}" title="사진: ${esc(r.a)} · ${esc(r.l)} (Wikimedia Commons)"><img src="${esc(r.u)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:${w.toFixed(1)}%;left:${l.toFixed(1)}%;top:${tp.toFixed(1)}%" data-fb="${genFace(pl)}" onerror="this.onerror=null;this.src=this.dataset.fb;this.style.cssText='width:100%;left:0;top:0'"></span>`;
+    const f = r.f || [0.5, 0.3, 1.5];
+    return `<span class="ava ph ${cls}" title="사진: ${esc(r.a)} · ${esc(r.l)} (Wikimedia Commons)"><img src="${esc(r.u)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="${cropStyle(f[0], f[1], f[2], r.h / r.w)}" ${fb}></span>`;
   }
   return `<span class="ava gen ${cls}"><img src="${genFace(pl)}" alt="" style="width:100%;left:0;top:0"></span>`;
 }
 function photoCredit(pl) {
-  if (!pl || myPhoto(pl) || !pl.ph) return '';
+  if (!pl || myPhoto(pl)) return '';
+  if (pl.kbo) return `사진: <a href="${kboPage(pl)}" target="_blank" rel="noopener">KBO 공식 홈페이지</a>`;
+  if (!pl.ph) return '';
   const r = pl.ph;
   return `사진: <a href="${esc(r.s)}" target="_blank" rel="noopener">${esc(r.a)}</a> · <a href="${esc(r.lu || r.s)}" target="_blank" rel="noopener">${esc(r.l)}</a>`;
 }

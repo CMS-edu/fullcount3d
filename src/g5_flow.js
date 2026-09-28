@@ -38,7 +38,7 @@ const LEAGUE = REAL.map((t, ti) => {
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
   r.rotation.concat(r.bullpen).forEach((p, i) => (p.key = 'P' + i));
   // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
-  r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
+  r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.kbo = KBO_PH[ti + '|' + p.name] || null; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
   return r;
 });
 

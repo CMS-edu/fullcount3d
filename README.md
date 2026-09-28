@@ -33,8 +33,10 @@ python tools/parse.py && python tools/gen.py     # → src/g4_data.js 재생성
 ```
 
 ## 선수 사진
-- Wikimedia Commons의 **자유 라이선스 사진만** 씀 (공식 구단·KBO 사진은 저작권 때문에 안 씀). 저작자·라이선스는 구단 탭 맨 아래와 선수 카드에 표시
-- `node tools/photos.js` → Wikidata에서 사진 있는 선수를 찾아 `src/g4_photos.js` 생성 (이름+팀으로 맞춰서 동명이인 방지)
+- **KBO 공식 사진**: `node tools/kbo_photos.js` → KBO 홈페이지 선수 검색으로 선수 ID를 찾아 `src/g4_kbo.js` 생성
+  - 이름 → 현역 + 같은 팀 → 등번호 → 투수/야수 순으로 좁혀서 동명이인 방지. 표기가 다른 외국인 선수 등은 `MANUAL`에 직접 추가
+  - 사진 파일은 저장소에 없음. 게임이 KBO 사이트의 사진 주소(`KBO_IMAGE/person/middle/2026/ID.jpg`)를 바로 불러옴 → 시즌이 바뀌면 `YEAR`만 바꿔서 다시 실행
+- 공식 사진을 못 찾은 선수용 예비: Wikimedia Commons 자유 라이선스 사진 (`node tools/photos.js` → `src/g4_photos.js`, 저작자·라이선스 표시)
   - 이적했는데 Wikidata가 안 따라온 선수는 `tools/photos.js`의 `MANUAL`, 동명이인은 `BLOCK`에 추가
   - 얼굴이 동그라미 가운데 오게 하는 위치는 `tools/photo_focus.json` ([가로, 세로, 확대])
 - 사진이 없는 선수는 3D 선수와 같은 얼굴 그림으로 나오고, 구단 탭에서 얼굴을 눌러 **내 사진**을 넣을 수 있음 (그 기기에만 저장)

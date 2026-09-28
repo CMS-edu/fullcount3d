@@ -475,7 +475,7 @@ body.no-webgl .nogl { display: grid; }
           <p><b>투구</b> — 구종 선택 → 존 패드에서 코스 탭 → 움직이는 바늘을 <b>가운데 초록색</b>에서 탭하면 제구가 정확해져요.</p>
           <p><b>감독 작전</b> — 경기 전 <b>구단 관리</b>에서 타순·수비 위치·선발투수·선수 이름을 정하고, 경기 중엔 공격 때 번트·도루·대타·대주자, 수비 때 투수 교체·수비 교체·고의4구. 파울 플라이 아웃, 실책(포구·악송구), 폭투·포일, 스트라이크 낫아웃, 인필드 플라이, 직선타 병살, 보크도 나와요. 내가 던질 땐 <b>피치클락</b>(주자 없음 18초·있음 23초)이 적용돼서 시간이 넘으면 자동 볼이에요 (메뉴에서 끌 수 있음). 연장은 규정대로 최대 <b>11회</b>, 그래도 같으면 무승부예요.</p>
         </div>
-        <p class="fine">일부 선수 사진은 Wikimedia Commons의 자유 이용 사진이에요(저작자·라이선스는 구단 탭 맨 아래). 구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
+        <p class="fine">선수 사진은 KBO 공식 홈페이지의 사진을 불러와서 보여줘요. 구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
       </div>
     </div>
     <div class="pane" id="pane-season" role="tabpanel" aria-labelledby="tab-season" hidden>
@@ -2587,6 +2587,249 @@ function fireShowBig(tm) {
     AU.boom();
   });
 }
+/* ===================== KBO 공식 선수 사진 연결 (tools/kbo_photos.js가 생성 — 직접 고치지 말 것) =====================
+   값 = KBO 선수 ID. 사진은 KBO 홈페이지 주소에서 바로 불러옴 (저장소에 사진 파일 없음). 2026시즌 사진 · 생성 2026-09-28 · 240명 */
+const KBO_PHOTO_YEAR = 2026;
+const KBO_PH = {"0|신민재":65207,
+  "0|박해민":62415,
+  "0|오스틴":53123,
+  "0|송찬의":68110,
+  "0|문보경":69102,
+  "0|구본혁":69100,
+  "0|오지환":79109,
+  "0|박동원":79365,
+  "0|홍창기":66108,
+  "0|문정빈":52121,
+  "0|천성호":50054,
+  "0|문성주":68119,
+  "0|이주헌":52154,
+  "0|임찬규":61101,
+  "0|톨허스트":55130,
+  "0|웰스":55348,
+  "0|송승기":51111,
+  "0|카라스코":56103,
+  "0|김진수":51154,
+  "0|장현식":63950,
+  "0|우강훈":51526,
+  "0|박시원":55121,
+  "0|김진성":75867,
+  "0|손주영":67143,
+  "1|심우준":64006,
+  "1|최인호":50707,
+  "1|문현빈":53764,
+  "1|강백호":68050,
+  "1|노시환":69737,
+  "1|페라자":54730,
+  "1|허인서":52764,
+  "1|김태연":66704,
+  "1|이도윤":65703,
+  "1|이원석":68700,
+  "1|황영묵":54795,
+  "1|박정현":50709,
+  "1|최재훈":78288,
+  "1|왕옌청":56719,
+  "1|류현진":76715,
+  "1|화이트":56724,
+  "1|박준영":52731,
+  "1|에르난데스":56712,
+  "1|황준서":54729,
+  "1|조동욱":54768,
+  "1|이상규":65117,
+  "1|박상원":67703,
+  "1|장유호":69645,
+  "1|이민우":65616,
+  "2|안상현":66864,
+  "2|임근우":52807,
+  "2|박성한":67893,
+  "2|김재환":78224,
+  "2|전의산":50820,
+  "2|최지훈":50854,
+  "2|채현우":69804,
+  "2|신범수":66662,
+  "2|정준재":54812,
+  "2|에레디아":53827,
+  "2|조형우":51865,
+  "2|오태곤":60558,
+  "2|한유섬":62895,
+  "2|김건우":51867,
+  "2|최민준":68856,
+  "2|타케다":56823,
+  "2|베네치아노":56841,
+  "2|김민준":56840,
+  "2|아빌라":56801,
+  "2|김민":68043,
+  "2|문승원":62869,
+  "2|이로운":53892,
+  "2|전영준":52809,
+  "2|조병현":51897,
+  "3|김지찬":50458,
+  "3|김성윤":67449,
+  "3|박승규":69418,
+  "3|디아즈":54400,
+  "3|최형우":72443,
+  "3|강민호":74540,
+  "3|류지혁":62234,
+  "3|김영웅":52430,
+  "3|심재훈":55438,
+  "3|구자욱":62404,
+  "3|전병우":65586,
+  "3|이재현":52415,
+  "3|김도환":69442,
+  "3|원태인":69446,
+  "3|후라도":53375,
+  "3|최원태":65320,
+  "3|양창섭":68415,
+  "3|오러클린":56464,
+  "3|장찬희":56460,
+  "3|페덱":56459,
+  "3|이승민":50464,
+  "3|임기영":62754,
+  "3|이승현":60146,
+  "3|김재윤":65062,
+  "4|김주원":51907,
+  "4|권희동":63963,
+  "4|박민우":62907,
+  "4|블레인":56950,
+  "4|김휘집":51344,
+  "4|박건우":79215,
+  "4|김형준":68912,
+  "4|박시원":50996,
+  "4|최정원":69992,
+  "4|이우성":63260,
+  "4|천재환":67905,
+  "4|안중열":64022,
+  "4|김한별":50902,
+  "4|구창모":65933,
+  "4|토다":56911,
+  "4|라일리":55903,
+  "4|테일러":56966,
+  "4|김태경":50992,
+  "4|임지민":52902,
+  "4|배재환":64995,
+  "4|신영우":53919,
+  "4|송명기":69962,
+  "4|이준혁":52992,
+  "4|전사민":69969,
+  "5|최원준":66606,
+  "5|김민혁":64004,
+  "5|안현민":52001,
+  "5|힐리어드":56034,
+  "5|김현수":76290,
+  "5|김상수":79402,
+  "5|허경민":79240,
+  "5|조대현":68089,
+  "5|권동진":51003,
+  "5|한승택":63722,
+  "5|장성우":78548,
+  "5|류현인":53036,
+  "5|오윤석":64504,
+  "5|고영표":64001,
+  "5|소형준":50030,
+  "5|사우어":56032,
+  "5|오원석":50859,
+  "5|앨런":55912,
+  "5|배제성":65516,
+  "5|부쉴리":56036,
+  "5|손동현":69041,
+  "5|주권":65060,
+  "5|전용주":69047,
+  "5|박영현":52060,
+  "6|황성빈":50500,
+  "6|레이예스":54529,
+  "6|고승민":69517,
+  "6|한동희":68525,
+  "6|전민재":68205,
+  "6|전준우":78513,
+  "6|나승엽":51551,
+  "6|장두성":68507,
+  "6|박건우":55509,
+  "6|손성빈":51528,
+  "6|윤동희":52591,
+  "6|노진혁":62931,
+  "6|한태양":52568,
+  "6|로드리게스":56531,
+  "6|비슬리":56523,
+  "6|김진욱":51516,
+  "6|나균안":67539,
+  "6|박세웅":64021,
+  "6|박정민":56536,
+  "6|현도훈":68260,
+  "6|김원중":62528,
+  "6|이민석":52530,
+  "6|이진하":53562,
+  "6|최준용":50556,
+  "7|박정우":67609,
+  "7|박재현":55636,
+  "7|김도영":52605,
+  "7|카스트로":56626,
+  "7|나성범":62947,
+  "7|김선빈":78603,
+  "7|하주석":62700,
+  "7|김태군":78122,
+  "7|변우혁":69727,
+  "7|김호령":65653,
+  "7|한준수":68646,
+  "7|김규성":66614,
+  "7|박민":50657,
+  "7|네일":54640,
+  "7|올러":55633,
+  "7|양현종":77637,
+  "7|황동하":52641,
+  "7|시라카와":54843,
+  "7|김태형":55610,
+  "7|조상우":63342,
+  "7|한재승":51994,
+  "7|김범수":65769,
+  "7|전상현":66609,
+  "7|성영탁":54610,
+  "8|박찬호":64646,
+  "8|조수행":66209,
+  "8|박준순":55252,
+  "8|양의지":76232,
+  "8|김민석":53554,
+  "8|세베리노":56236,
+  "8|강승호":63123,
+  "8|안재석":51203,
+  "8|정수빈":79231,
+  "8|박지훈":50204,
+  "8|윤준호":53296,
+  "8|손아섭":77532,
+  "8|오명진":50208,
+  "8|곽빈":68220,
+  "8|잭로그":55239,
+  "8|최민석":55268,
+  "8|벤자민":52043,
+  "8|최승용":51264,
+  "8|김정우":68830,
+  "8|김택연":54263,
+  "8|타카다":56212,
+  "8|박치국":67266,
+  "8|이병헌":52204,
+  "8|이영하":66291,
+  "9|서건창":78168,
+  "9|추재현":68362,
+  "9|데이비슨":54944,
+  "9|히우라":56305,
+  "9|김웅빈":65898,
+  "9|박찬혁":52348,
+  "9|김건희":53312,
+  "9|염승원":55339,
+  "9|권혁빈":55371,
+  "9|안치홍":79608,
+  "9|임병욱":64346,
+  "9|이형종":78135,
+  "9|김동헌":53344,
+  "9|알칸타라":69045,
+  "9|하영민":64350,
+  "9|안우진":68341,
+  "9|박준현":56318,
+  "9|배동현":51761,
+  "9|박정훈":55394,
+  "9|전준표":54362,
+  "9|원종현":76118,
+  "9|박지성":56337,
+  "9|조영건":69360,
+  "9|카나쿠보":56348};
 /* ===================== 선수 사진 (tools/photos.js가 생성 — 직접 고치지 말 것) =====================
    Wikimedia Commons의 자유 라이선스 사진만. 키: "팀번호|이름". u=썸네일, s=원본 페이지, a=저작자, l=라이선스, f=[얼굴 가로%, 세로%, 확대]
    생성: 2026-09-28 · 33명 */
@@ -2624,7 +2867,8 @@ const PHOTO_DB = {"0|박해민":{"u":"https://thumb.wikimedia.org/wikipedia/comm
   "9|안치홍":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg/250px-%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg","w":250,"h":346,"s":"https://commons.wikimedia.org/wiki/File:%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.5,0.45,1.4]},
   "9|알칸타라":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg/250px-Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg","w":250,"h":286,"s":"https://commons.wikimedia.org/wiki/File:Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg","a":"Korea.net / Korean Culture and Information Service","l":"CC BY-SA 2.0","lu":"https://creativecommons.org/licenses/by-sa/2.0","f":[0.58,0.25,2.2]}};
 /* ===================== 선수 얼굴 (사진 · 그림) ===================== */
-// 우선순위: ① 내가 올린 사진(이 기기에만 저장) ② Wikimedia Commons 자유 이용 사진(저작자 표시) ③ 3D 선수와 같은 얼굴로 그린 그림
+// 우선순위: ① 내가 올린 사진(이 기기에만 저장) ② KBO 공식 사진(KBO 홈페이지 주소에서 바로 불러옴)
+//          ③ Wikimedia Commons 사진(공식 사진을 못 찾은 선수용) ④ 3D 선수와 같은 얼굴로 그린 그림
 const MYPH = store.get('myphotos', {}) || {};
 const phId = (pl) => (pl && pl.ti != null ? S.TEAMS[pl.ti].id + '|' + pl.key : null);
 function myPhoto(pl) { const k = phId(pl); return k ? MYPH[k] : null; }
@@ -2634,6 +2878,14 @@ function setMyPhoto(pl, url) {
   store.set('myphotos', MYPH);
   if (url && (store.get('myphotos', {}) || {})[k] !== url) { delete MYPH[k]; return false; } // 저장 공간 부족
   return true;
+}
+const kboUrl = (id) => `https://6ptotvmi5753.edge.naverncp.com/KBO_IMAGE/person/middle/${KBO_PHOTO_YEAR}/${id}.jpg`;
+const kboPage = (pl) => `https://www.koreabaseball.com/Record/Player/${pl.key && pl.key[0] === 'P' ? 'PitcherDetail' : 'HitterDetail'}/Basic.aspx?playerId=${pl.kbo}`;
+// 사진 안의 얼굴(fx, fy: 0~1)이 동그라미 가운데 오도록 자르기. z = 확대, ar = 세로/가로
+function cropStyle(fx, fy, z, ar) {
+  const w = Math.max(z * 100, 100, 100 / ar), h = w * ar;
+  const l = clamp(50 - fx * w, 100 - w, 0), tp = clamp(50 - fy * h, 100 - h, 0);
+  return `width:${w.toFixed(1)}%;left:${l.toFixed(1)}%;top:${tp.toFixed(1)}%`;
 }
 const _genFace = new Map();
 // 그림 얼굴: 3D 선수와 같은 피부·머리색 (looksOf), 팀 모자·유니폼
@@ -2677,17 +2929,20 @@ function avatarHTML(pl, cls = '') {
   if (!pl) return '';
   const my = myPhoto(pl);
   if (my) return `<span class="ava ${cls}"><img src="${my}" alt="" style="width:100%;left:0;top:0"></span>`;
+  // 사진을 못 불러오면(주소 바뀜·오프라인 등) 그림 얼굴로
+  const fb = `data-fb="${genFace(pl)}" onerror="this.onerror=null;this.src=this.dataset.fb;this.style.cssText='width:100%;left:0;top:0'"`;
+  if (pl.kbo) return `<span class="ava ph ${cls}" title="사진: KBO 공식 홈페이지"><img src="${kboUrl(pl.kbo)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="${cropStyle(0.5, 0.4, 1.15, 118 / 94)}" ${fb}></span>`;
   const r = pl.ph;
   if (r) {
-    const [fx, fy, z] = r.f || [0.5, 0.3, 1.5], ar = r.h / r.w;
-    const w = Math.max(z * 100, 100, 100 / ar), h = w * ar;
-    const l = clamp(50 - fx * w, 100 - w, 0), tp = clamp(50 - fy * h, 100 - h, 0);
-    return `<span class="ava ph ${cls}" title="사진: ${esc(r.a)} · ${esc(r.l)} (Wikimedia Commons)"><img src="${esc(r.u)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:${w.toFixed(1)}%;left:${l.toFixed(1)}%;top:${tp.toFixed(1)}%" data-fb="${genFace(pl)}" onerror="this.onerror=null;this.src=this.dataset.fb;this.style.cssText='width:100%;left:0;top:0'"></span>`;
+    const f = r.f || [0.5, 0.3, 1.5];
+    return `<span class="ava ph ${cls}" title="사진: ${esc(r.a)} · ${esc(r.l)} (Wikimedia Commons)"><img src="${esc(r.u)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="${cropStyle(f[0], f[1], f[2], r.h / r.w)}" ${fb}></span>`;
   }
   return `<span class="ava gen ${cls}"><img src="${genFace(pl)}" alt="" style="width:100%;left:0;top:0"></span>`;
 }
 function photoCredit(pl) {
-  if (!pl || myPhoto(pl) || !pl.ph) return '';
+  if (!pl || myPhoto(pl)) return '';
+  if (pl.kbo) return `사진: <a href="${kboPage(pl)}" target="_blank" rel="noopener">KBO 공식 홈페이지</a>`;
+  if (!pl.ph) return '';
   const r = pl.ph;
   return `사진: <a href="${esc(r.s)}" target="_blank" rel="noopener">${esc(r.a)}</a> · <a href="${esc(r.lu || r.s)}" target="_blank" rel="noopener">${esc(r.l)}</a>`;
 }
@@ -2972,7 +3227,7 @@ const LEAGUE = REAL.map((t, ti) => {
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
   r.rotation.concat(r.bullpen).forEach((p, i) => (p.key = 'P' + i));
   // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
-  r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
+  r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.kbo = KBO_PH[ti + '|' + p.name] || null; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
   return r;
 });
 
@@ -4645,7 +4900,7 @@ function photoPanel(L) {
   const k = ED.photo, pl = ED.base[k], mine = !!myPhoto(pl), cr = photoCredit(pl);
   const d = document.createElement('div'); d.className = 'phpanel';
   d.innerHTML = `${avatarHTML(pl, 'lg')}<div class="php-t"><b>${esc(edName(k))}</b>
-    <small>${mine ? '내가 올린 사진이에요 (이 기기에만 저장돼요)' : pl.ph ? '자유 이용 사진 (Wikimedia Commons)' : '공개된 자유 이용 사진이 없어서 그림으로 보여줘요'}</small>
+    <small>${mine ? '내가 올린 사진이에요 (이 기기에만 저장돼요)' : pl.kbo ? 'KBO 공식 선수 사진이에요' : pl.ph ? 'Wikimedia Commons 사진이에요' : '사진을 못 찾아서 그림으로 보여줘요'}</small>
     ${cr ? `<small class="cr">${cr}</small>` : ''}
     <div class="row2"><label class="mbtn primary">📷 사진 올리기<input type="file" accept="image/*" hidden></label>${mine ? '<button class="mbtn" data-phdel>원래대로</button>' : ''}<button class="mbtn" data-phx>닫기</button></div></div>`;
   L.appendChild(d);
@@ -4661,10 +4916,10 @@ function photoPanel(L) {
 }
 // 이 팀 명단에 쓰인 Commons 사진의 저작자·라이선스
 function photoCredits(L) {
-  const ps = Object.values(ED.base).filter((p) => p.ph && !myPhoto(p));
+  const ps = Object.values(ED.base).filter((p) => !p.kbo && p.ph && !myPhoto(p));
   const d = document.createElement('div'); d.className = 'credits';
-  d.innerHTML = `<div class="rhead">선수 사진 출처</div><p class="sub" style="margin:0 0 6px">얼굴을 누르면 내 사진으로 바꿀 수 있어요 (이 기기에만 저장). 사진이 없는 선수는 그림으로 보여줘요.</p>` +
-    (ps.length ? ps.map((p) => `<div>${esc(p.name)} — ${photoCredit(p)} · Wikimedia Commons</div>`).join('') : '<div>이 팀은 자유 이용 사진이 있는 선수가 없어요.</div>');
+  d.innerHTML = `<div class="rhead">선수 사진</div><p class="sub" style="margin:0 0 6px">KBO 공식 홈페이지(koreabaseball.com)의 선수 사진을 불러와서 보여줘요. 얼굴을 누르면 내 사진으로 바꿀 수 있어요 (이 기기에만 저장).</p>` +
+    ps.map((p) => `<div>${esc(p.name)} — ${photoCredit(p)} · Wikimedia Commons</div>`).join('');
   L.appendChild(d);
 }
 function edSave() {
