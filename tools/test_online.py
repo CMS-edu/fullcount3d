@@ -33,8 +33,8 @@ async def main():
         await A.goto(url+'#auto&fast&speed=4&mode=none&inn='+sys.argv[2]+'&home=1'); await B.goto(url+'#auto&fast&speed=4&mode=none&inn=1&home=0')
         for pg in (A,B): await pg.wait_for_function('window.__done===true')
         await B.evaluate("window.__fc.OPTS.me=4")
-        await A.click('#onlineBtn'); await A.wait_for_timeout(500); await A.click('#onHost')
-        await B.click('#onlineBtn'); await B.wait_for_selector('[data-join]', timeout=15000); await B.click('[data-join]')
+        await A.click('#tab-online'); await A.wait_for_timeout(500); await A.click('#onHost')
+        await B.click('#tab-online'); await B.wait_for_selector('[data-join]', timeout=15000); await B.click('[data-join]')
         await A.wait_for_function('window.__fc.G.online', timeout=20000); await B.wait_for_function('window.__fc.G.online', timeout=20000)
         print('started')
         t=0; mism=0

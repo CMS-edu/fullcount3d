@@ -504,13 +504,17 @@ const fireworks = (() => {
   const P = []; for (let i = 0; i < FW_N; i++) P.push({ x: 0, y: -99, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1, r: 1, g: 1, b: 1 });
   return { m, pos, col, P, next: 0 };
 })();
-function burst(x, y, z, hex, n = 110) {
-  const c = new T.Color(hex);
+function burst(x, y, z, hex, n = 110, o = {}) {
+  const c = new T.Color(hex), willow = o.kind === 'willow', ring = o.kind === 'ring';
+  const tilt = Math.random() * 0.9 - 0.45;
   for (let k = 0; k < n; k++) {
     const p = fireworks.P[fireworks.next]; fireworks.next = (fireworks.next + 1) % FW_N;
-    const a = Math.random() * Math.PI * 2, e = Math.acos(2 * Math.random() - 1), sp = 12 + Math.random() * 5;
+    const a = ring ? (k / n) * Math.PI * 2 : Math.random() * Math.PI * 2, e = ring ? Math.PI / 2 + tilt * Math.cos(a) : Math.acos(2 * Math.random() - 1);
+    const sp = (o.sp || (willow ? 7 : 12)) * (ring ? 1.25 : 1) + Math.random() * (ring ? 0.6 : 5);
     p.x = x; p.y = y; p.z = z; p.vx = Math.sin(e) * Math.cos(a) * sp; p.vy = Math.cos(e) * sp; p.vz = Math.sin(e) * Math.sin(a) * sp;
-    p.life = p.max = 1.3 + Math.random() * 0.6; p.r = c.r; p.g = c.g; p.b = c.b;
+    if (ring) { const vy = p.vy; p.vy = p.vz * 0.9; p.vz = vy; } // 관중석 쪽을 향한 고리
+    p.life = p.max = (o.life || (willow ? 2.6 : 1.3)) + Math.random() * 0.6; p.g0 = willow ? 3 : 6;
+    const cc = willow ? new T.Color('#ffcf6a') : c; p.r = cc.r; p.g = cc.g; p.b = cc.b;
   }
 }
 function updateFireworks(dt) {
@@ -518,7 +522,7 @@ function updateFireworks(dt) {
   for (let i = 0; i < FW_N; i++) {
     const p = P[i];
     if (p.life > 0) {
-      any = true; p.life -= dt; p.vy -= 6 * dt; p.vx *= 0.985; p.vy *= 0.985; p.vz *= 0.985;
+      any = true; p.life -= dt; p.vy -= (p.g0 || 6) * dt; p.vx *= 0.985; p.vy *= 0.985; p.vz *= 0.985;
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
       const f = Math.max(0, p.life / p.max);
       pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z; col[i * 3] = p.r * f; col[i * 3 + 1] = p.g * f; col[i * 3 + 2] = p.b * f;

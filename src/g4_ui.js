@@ -10,10 +10,10 @@ function flashEl(el, cls, ms, key) {
   clearTimeout(timersUI[key]); el.classList.add(cls);
   if (ms) timersUI[key] = setTimeout(() => el.classList.remove(cls), ms);
 }
-function showCall(html, color, ms = 1100) { UI.call.innerHTML = html; UI.call.style.color = color || '#fff'; flashEl(UI.call, 'show', ms, 'call'); }
+function showCall(html, color, ms = 1100) { UI.call.innerHTML = html; UI.call.style.color = color || '#fff'; UI.call.classList.remove('show'); void UI.call.offsetWidth; flashEl(UI.call, 'show', ms, 'call'); }
 function showBanner(big, small, ms = 1800) {
   UI.banner.querySelector('.big').textContent = big; UI.banner.querySelector('.small').textContent = small || '';
-  flashEl(UI.banner, 'show', ms, 'banner');
+  UI.banner.classList.remove('show'); void UI.banner.offsetWidth; flashEl(UI.banner, 'show', ms, 'banner');
 }
 function hideBanner() { UI.banner.classList.remove('show'); }
 function showFeedback(parts, ms = 1300) {
@@ -47,11 +47,23 @@ function updateLines() {
   const bt = batTeam(), ft = fieldTeam(), b = curBatter(), p = ft.pitcher;
   if (!b || !p) return;
   const today = b.g.pa ? `${b.g.ab}타수 ${b.g.h}안타${b.g.hr ? ` ${b.g.hr}홈런` : ''}` : '첫 타석';
-  UI.batLine.innerHTML = `<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
+  UI.batLine.innerHTML = `${avatarHTML(b, 'xs')}<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
   const fat = S.fatigueOf(p, p.g.pc);
-  UI.pitLine.innerHTML = `<span class="k">투수</span><b>${esc(p.name)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
+  UI.pitLine.innerHTML = `${avatarHTML(p, 'xs')}<span class="k">투수</span><b>${esc(p.name)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
   if (UI.stam) UI.stam.style.width = Math.round((1 - fat) * 100) + '%';
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
+}
+
+// 타석에 들어서는 타자 / 새로 올라온 투수 소개 카드 (사진 + 기록)
+function playerCard(pl, tm, pit) {
+  const el = $('#pcard'); if (!el || !pl || !tm) return;
+  const role = pit ? `${pl.role === 'SP' ? '선발' : pl.role === 'CL' ? '마무리' : '불펜'} · ${pl.hand === 'L' ? '좌' : '우'}투` : `${tm.order + 1}번 타자 · ${pl.posK || ''} · ${pl.hand === 'L' ? '좌' : '우'}타`;
+  const stat = pit ? `ERA ${pl.era.toFixed(2)} · ${Math.round(pl.ip)}이닝 · ${pl.k}K` : `타율 ${fmtAvg(pl.avg)} · ${pl.hr}홈런 · OPS ${(pl.obp + pl.slg).toFixed(3)}`;
+  const today = !pit && pl.g && pl.g.pa ? `<span class="hot">오늘 ${pl.g.ab}타수 ${pl.g.h}안타${pl.g.hr ? ` ${pl.g.hr}홈런` : ''}</span>` : '';
+  const cr = photoCredit(pl);
+  el.style.setProperty('--tc', tm.t.c1);
+  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
+  el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 2900, 'pcard');
 }
 
 /* ---------- 투구 트래커 ---------- */
@@ -193,20 +205,20 @@ function renderTitle() {
   badgeStyle($('#badgeMe'), tm); badgeStyle($('#badgeOpp'), to);
   $('#nameMe').textContent = `${tm.city} ${tm.name}`; $('#nameOpp').textContent = `${to.city} ${to.name}`;
   const r = recOf(OPTS.me); $('#recMe').textContent = `${r.w}승 ${r.l}패 ${r.d}무`;
-  $$('.seg').forEach((sg) => { const k = sg.dataset.opt; sg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(OPTS[k]) === b.dataset.v))); });
+  $$('#pane-home .seg').forEach((sg) => { const k = sg.dataset.opt; sg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(OPTS[k]) === b.dataset.v))); });
   const all = store.get('rec', {}); let w = 0, l = 0, d = 0; Object.values(all).forEach((x) => { w += x.w; l += x.l; d += x.d; });
   $('#recAll').textContent = w + l + d ? `통산 ${w}승 ${l}패 ${d}무` : '첫 경기를 시작해 보세요';
   applyTime(OPTS.time === 'night');
   paintCrowd(OPTS.home ? tm : to, OPTS.home ? to : tm); paintLed(OPTS.home ? tm : to, OPTS.home ? to : tm);
 }
-$$('.arrow').forEach((b) => b.addEventListener('click', () => {
+$$('.arrow[data-pick]').forEach((b) => b.addEventListener('click', () => {
   const k = b.dataset.pick, d = +b.dataset.d;
   let v = OPTS[k];
   do { v = (v + d + 10) % 10; } while (v === (k === 'me' ? OPTS.opp : OPTS.me));
   OPTS[k] = v; renderTitle(); AU.click();
   const el = k === 'me' ? $('#badgeMe') : $('#badgeOpp'); el.style.transform = 'scale(1.08)'; setTimeout(() => (el.style.transform = ''), 140);
 }));
-$$('.seg').forEach((sg) => sg.addEventListener('click', (e) => {
+$$('#pane-home .seg').forEach((sg) => sg.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   const k = sg.dataset.opt, v = b.dataset.v;
   OPTS[k] = k === 'inn' || k === 'home' ? +v : v; renderTitle(); AU.click();

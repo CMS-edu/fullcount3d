@@ -33,10 +33,12 @@ function ratePitcher(r) {
     sta: r.role === 'SP' ? Math.round(88 + Math.min(18, r.ip / 9)) : r.role === 'CL' ? 30 : (r.ip > 50 ? 30 : 24),
   };
 }
-const LEAGUE = REAL.map((t) => {
+const LEAGUE = REAL.map((t, ti) => {
   const r = { lineup: t.lineup.map(rateHitter), bench: t.bench.map(rateHitter), rotation: t.rotation.map(ratePitcher), bullpen: t.bullpen.map(ratePitcher), date: t.date };
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
   r.rotation.concat(r.bullpen).forEach((p, i) => (p.key = 'P' + i));
+  // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
+  r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
   return r;
 });
 
@@ -74,21 +76,22 @@ function fieldersOf(tm) {
 
 /* ---------- 유니폼 ---------- */
 function uni(t, home) {
-  if (home) { const tr = lum(t.c1) > 0.55 ? t.c2 : t.c1; return { jersey: '#f3f3ee', trim: tr, pants: '#f3f3ee', cap: tr, pin: true }; }
-  return { jersey: t.c1, trim: t.c2, pants: '#9aa0a9', cap: t.c1, pin: false };
+  if (home) { const tr = lum(t.c1) > 0.55 ? t.c2 : t.c1; return { jersey: '#f3f3ee', trim: tr, pants: '#f3f3ee', cap: tr, socks: tr, belt: tr, pin: true }; }
+  return { jersey: t.c1, trim: t.c2, pants: '#9aa0a9', cap: t.c1, socks: t.c1, belt: '#16161a', pin: false };
 }
 function dress(f, t, home, pl) {
   const key = t.id + home + (pl ? pl.name + pl.num : '-');
   if (f.dressKey === key) return;
   f.dressKey = key;
-  setFigureColors(f, Object.assign(uni(t, home), { teamText: t.name, num: pl ? pl.num : '', name: pl ? pl.name : '' }));
+  setFigureColors(f, Object.assign(uni(t, home), { teamText: t.name, capText: t.city, num: pl ? pl.num : '', name: pl ? pl.name : '' }));
+  if (f.kind !== 'U') setFigureLooks(f, pl);
 }
 
 /* ---------- 인물 배치 ---------- */
 const FIG = {};
 function ghostable(f) {
   f.ghostMats = [];
-  const own = [f.jerseyMat, f.capMat, f.pantsMat, f.sleeveMat];
+  const own = f.ownMats;
   f.root.traverse((o) => {
     if (!o.isMesh) return;
     if (!own.includes(o.material)) o.material = o.material.clone();
@@ -112,7 +115,7 @@ function initFigures() {
   [FIG.batR, FIG.batL].forEach((f) => { f.bat = new T.Mesh(FG.g.bat, FG.M.bat); f.root.add(f.bat); });
   FIG.run = [0, 1, 2].map(() => makeFigure(Object.assign({}, base, { helmet: true, flapSide: 0.12, kind: 'R' })));
   FIG.coach = [0, 1].map(() => makeFigure(Object.assign({}, base, { kind: 'CO' })));
-  const um = { jersey: '#1b2440', trim: '#1b2440', pants: '#3a3d45', cap: '#111318', kind: 'U' };
+  const um = { jersey: '#1b2440', trim: '#1b2440', pants: '#3a3d45', cap: '#111318', socks: '#111318', kind: 'U' };
   FIG.ump = [makeFigure(Object.assign({}, um, { mask: true }))];
   if (!lowEnd) FIG.ump.push(makeFigure(um), makeFigure(um));
   ghostable(FIG.field[1]); ghostable(FIG.ump[0]);
@@ -299,6 +302,7 @@ function startPA() {
   const b = curBatter();
   setZoneGuide(S.zoneOf(b.height));
   updateBug(); updateLines(); drawTracker(); drawBoard();
+  if (bt.lastCard !== b) { bt.lastCard = b; later(0.15, () => { if (curBatter() === b) playerCard(b, bt); }); }
   UI.speedBox.hidden = true;
   camForPA(true);
   if (!userBatting() && G.cpuBunt) G.bs.mode = 'bunt';
@@ -441,6 +445,8 @@ function release() {
   P.released = true; G.phase = 'flight';
   p.g.pc++;
   G.lastSpeed = P.kmh;
+  ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
+  if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
   UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name; UI.speedBox.hidden = false;
   if (userPitching() && !G.online) {
     const b = curBatter(), zi = S.zoneInfo(S.zoneOf(b.height), P.cross.x, P.cross.y);
@@ -569,7 +575,7 @@ function call(kind) {
   }
   if (end === 'K') {
     b.g.pa++; b.g.ab++; b.g.k++; pit.g.k++; G.outs++; pit.g.outs++;
-    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300);
+    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300); fxStrikeout(userPitching());
     AU.cheer(userPitching() ? 0.8 : 0.3, 1.4); crowdPulse(G.half === 0 ? 'H' : 'A', 0.8);
     if (G.batFig) G.batFig.mode = 'bat';
     showPlayText(`${b.name}, ${kind === 'swing' ? '헛스윙' : '루킹'} 삼진`, 1600);
@@ -745,7 +751,7 @@ function gameOver() {
   if (G.season) seasonAfterGame();
   boardFlash('게임 셋', `${G.T[0].t.city} ${G.T[0].runs} : ${G.T[1].runs} ${G.T[1].t.city}`, 60);
   drawBoard(); updateBug();
-  if (r === 'win') { AU.cheer(1.2, 3.5); AU.drum('x.x.xxx.x.x.xxx.', 170); fireShow(6); crowdPulse(me === G.T[1] ? 'H' : 'A', 2.5); }
+  if (r === 'win') { AU.cheer(1.2, 3.5); AU.drum('x.x.xxx.x.x.xxx.', 170); fireShowBig(me); later(1.8, () => fxWin(me)); crowdPulse(me === G.T[1] ? 'H' : 'A', 2.5); }
   else if (r === 'lose') { AU.groan(); crowdPulse(op === G.T[1] ? 'H' : 'A', 2.5); }
   camOrbit();
   const gen = G.gen;
@@ -769,7 +775,7 @@ function showOver(r) {
     const g = m.p.g;
     const line = m.bat ? `${g.ab}타수 ${g.h}안타${g.hr ? ` ${g.hr}홈런` : ''}${g.rbi ? ` ${g.rbi}타점` : ''}${g.sb ? ` ${g.sb}도루` : ''}`
       : `${Math.floor(g.outs / 3)}${g.outs % 3 ? '⅓⅔'[g.outs % 3 - 1] : ''}이닝 ${g.k}K ${g.r}실점`;
-    $('#overMvp').innerHTML = `<span class="tagm">MVP</span><div><b>${esc(m.p.name)}</b> <span style="opacity:.7">${esc(win.t.city)} · ${m.bat ? m.p.posK : '투수'}</span><br><span style="font-size:13px">${line}</span></div>`;
+    $('#overMvp').innerHTML = `${avatarHTML(m.p, 'md')}<span class="tagm">MVP</span><div><b>${esc(m.p.name)}</b> <span style="opacity:.7">${esc(win.t.city)} · ${m.bat ? m.p.posK : '투수'}</span><br><span style="font-size:13px">${line}</span></div>`;
   } else $('#overMvp').innerHTML = '';
   const hr = me.lineup.concat(me.out).reduce((a, b) => a + b.g.hr, 0), k = op.lineup.concat(op.out).reduce((a, b) => a + b.g.k, 0);
   const rec = recOf(OPTS.me);
@@ -805,7 +811,7 @@ function openPen() {
   tm.ros.bullpen.forEach((p) => {
     const used = tm.used.includes(p);
     const b = document.createElement('button'); b.className = 'pcard'; b.disabled = used;
-    b.innerHTML = `<b>${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.hand === 'L' ? '좌' : '우'}투</span></b><span class="role">${p.role === 'CL' ? '마무리' : '불펜'}</span>` +
+    b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.hand === 'L' ? '좌' : '우'}투</span></b><span class="role">${p.role === 'CL' ? '마무리' : '불펜'}</span>` +
       `<span class="r">${used ? '이미 등판' : pitInfo(p)}</span>`;
     b.addEventListener('click', () => { changePitcher(tm, p); closeModal('#penModal'); });
     list.appendChild(b);
@@ -817,7 +823,7 @@ function changePitcher(tm, p, remote) {
   tm.pitcher = p; tm.used.push(p);
   dressField(); pitcherPose(FIG.P, 0, p.hand);
   G.selType = 'FB'; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
-  toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle();
+  toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);
   if (G.phase === 'meter') { G.phase = 'aim'; G.meter = null; UI.meter.hidden = true; G.aimTarget = null; }
   if (!remote && G.phase === 'aim') { showDocks(); drawPad(); } // 존 패드 다시 표시 (미터 중 교체 시 패드가 숨겨진 채 멈추던 버그)
 }

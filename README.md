@@ -4,12 +4,13 @@
 - `template.html` — HTML 마크업 + CSS (UI 화면, 버튼, 모달)
 - `sim.js` — 순수 야구 로직 (투구 궤적, 타구 물리, 수비·주루 판정, 스윙 판정). 렌더링과 무관해서 node로 단독 테스트 가능
 - `src/` — 게임 코드. 파일 이름 순서대로 이어 붙여져서 한 스크립트가 됨
-  - `g0_core.js` 렌더러·유틸 / `g1_world.js` 야구장 / `g2_figures.js` 선수 모델·포즈 / `g3_audio.js` 효과음
-  - `g4_data.js` **실제 선수 데이터** (tools/gen.py가 생성) / `g4_ui.js` HUD·전광판·타이틀
+  - `g0_core.js` 렌더러·유틸 / `g1_world.js` 야구장·불꽃놀이 / `g2_figures.js` 선수 모델(얼굴·유니폼 텍스처)·포즈 / `g3_audio.js` 효과음
+  - `g4_data.js` **실제 선수 데이터** (tools/gen.py가 생성) / `g4_fx.js` 화면 이펙트(색종이·불꽃·흔들림)
+  - `g4_photos.js` 선수 사진 목록 (tools/photos.js가 생성) / `g4_portrait.js` 선수 얼굴(사진·그림·내 사진) / `g4_ui.js` HUD·전광판·타이틀·선수 소개 카드
   - `g5_flow.js` 경기 흐름 (타석, 투구, 판정, 교체, 기록→능력치 변환 `rateHitter`/`ratePitcher`)
   - `g5r_rules.js` 폭투·낫아웃·보크·피치클락 / `g6_play.js` 타구 후 수비·주루 연출
   - `g7_loop.js` 카메라·입력·메인 루프 / `g8_manager.js` 구단 관리·대타·수비교체
-  - `g9_modes.js` 시즌·훈련 / `gz_online.js` 온라인 1:1 + 로그인 화면 (서버의 WebSocket 방, claude.ai에선 room)
+  - `g9_modes.js` 시즌·훈련 / `gz_online.js` 온라인 1:1 + 로그인 (서버의 WebSocket 방, claude.ai에선 room) / `gzz_home.js` 홈 화면 탭·내 정보
 - `build.py` / `build.js` — 합쳐서 HTML 한 파일로 만드는 스크립트 (같은 일, Python/Node 버전)
 - `server/` — 온라인 서버 (Node): `index.js` 정적 파일·회원가입/로그인 API·실시간 방, `store.js` 계정 저장소
 - `package.json`, `render.yaml` — Render 배포 설정
@@ -30,6 +31,13 @@ python build.py --local -o dist/index.html          # dist/three.min.js를 옆 �
 ```
 python tools/parse.py && python tools/gen.py     # → src/g4_data.js 재생성
 ```
+
+## 선수 사진
+- Wikimedia Commons의 **자유 라이선스 사진만** 씀 (공식 구단·KBO 사진은 저작권 때문에 안 씀). 저작자·라이선스는 구단 탭 맨 아래와 선수 카드에 표시
+- `node tools/photos.js` → Wikidata에서 사진 있는 선수를 찾아 `src/g4_photos.js` 생성 (이름+팀으로 맞춰서 동명이인 방지)
+  - 이적했는데 Wikidata가 안 따라온 선수는 `tools/photos.js`의 `MANUAL`, 동명이인은 `BLOCK`에 추가
+  - 얼굴이 동그라미 가운데 오게 하는 위치는 `tools/photo_focus.json` ([가로, 세로, 확대])
+- 사진이 없는 선수는 3D 선수와 같은 얼굴 그림으로 나오고, 구단 탭에서 얼굴을 눌러 **내 사진**을 넣을 수 있음 (그 기기에만 저장)
 
 ## 테스트용 주소 해시
 - `#auto&speed=3&inn=3&home=1` : 자동 플레이 (양쪽 다 자동)

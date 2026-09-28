@@ -31,7 +31,7 @@ function updateCamera(dt) {
   }
   const kp = 1 - Math.exp(-CAM.kp * dt), kl = 1 - Math.exp(-CAM.kl * dt);
   CAM.p.lerp(CAM.tp, kp); CAM.l.lerp(CAM.tl, kl); CAM.fov = lerp(CAM.fov, CAM.tfov, kp);
-  camera.position.copy(CAM.p); camera.lookAt(CAM.l);
+  camera.position.copy(CAM.p); camera.lookAt(CAM.l); fxApplyShake();
   if (Math.abs(camera.fov - CAM.fov) > 0.01) { camera.fov = CAM.fov; camera.updateProjectionMatrix(); }
   // 타격 시점에서는 포수·구심이 존을 가리지 않게 숨김
   const hideHome = CAM.mode === 'bat' && CAM.p.z > 3;
@@ -130,7 +130,7 @@ glCanvas.addEventListener('pointermove', (ev) => {
 UI.padCanvas.addEventListener('pointerdown', (ev) => { ev.preventDefault(); padPick(ev); });
 document.addEventListener('keydown', (ev) => {
   if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')) return;
-  const modalOpen = !$('#menuModal').hidden || !$('#penModal').hidden || !$('#overModal').hidden || !$('#subModal').hidden || !$('#rosterModal').hidden;
+  const modalOpen = !$('#menuModal').hidden || !$('#penModal').hidden || !$('#overModal').hidden || !$('#subModal').hidden;
   if (ev.key === 'Escape') { if (!$('#menuModal').hidden) closeMenu(); else if (!$('#penModal').hidden) closeModal('#penModal'); else if (G.T && G.phase !== 'over') openMenu(); return; }
   if (modalOpen || !G.T || paused) return;
   if (ev.code === 'Space' || ev.key === 'Enter') {
@@ -188,6 +188,7 @@ function quitToTitle() {
   UI.hud.hidden = true; UI.title.hidden = false; UI.skip.hidden = true; hideDocks();
   ball.hide(); pciRing.visible = false; targetMark.visible = false; board.flash = 0; board.msg = '';
   renderTitle(); dressTitle(); drawBoard(); camOrbit();
+  showTab(TAB.cur, true);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused) openMenu(); });
 
@@ -215,7 +216,7 @@ function cosmetics(dt) {
     if (k !== flashTick) { flashTick = k; drawBoard(); }
     if (board.flash <= 0) { board.msg = ''; drawBoard(); }
   }
-  updateFireworks(dt);
+  updateFireworks(dt); fxTick(dt);
   if (pciRing.visible) {
     if (pciRing.flash) { if (clock > pciRing.flash) { pciRing.visible = false; pciRing.flash = 0; } }
     pciRing.material.opacity = 0.55 + Math.sin(clock * 10) * 0.2;

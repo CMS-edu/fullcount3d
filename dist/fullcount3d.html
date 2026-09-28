@@ -43,9 +43,38 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
 /* ---------- 타이틀 ---------- */
-#title { position: fixed; inset: 0; display: grid; place-items: center; overflow-y: auto; z-index: 20;
-  padding: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 14px);
+#title { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
   background: radial-gradient(120% 80% at 50% 110%, transparent 40%, var(--scrim) 100%); }
+.panes { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-right, 0px) + 14px) 14px calc(env(safe-area-inset-left, 0px) + 14px); }
+.pane { min-height: 100%; display: grid; place-items: center; }
+.pane > .card { min-width: 0; max-width: 100%; }
+@media (max-width: 400px) { .matchup { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 2px; } .picker .arrow { width: 34px; } .badge { width: 58px; height: 58px; } .card { padding: 14px; } }
+.pane > .card { animation: paneIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+.pane > .card.panel { align-self: start; width: min(520px, 100%); }
+@keyframes paneIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+.phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 2px 10px; }
+.panel h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; letter-spacing: 0.02em; }
+.panel .sub { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; line-height: 1.5; }
+.live { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: #1fc46a; box-shadow: 0 0 0 0 rgba(31, 196, 106, 0.6); animation: livePing 1.8s infinite; }
+.live b { color: var(--ink); }
+@keyframes livePing { 70% { box-shadow: 0 0 0 7px rgba(31, 196, 106, 0); } 100% { box-shadow: 0 0 0 0 rgba(31, 196, 106, 0); } }
+/* 하단 탭바 */
+.tabbar { flex: none; position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: var(--panel); border-top: 1px solid var(--border);
+  padding: 6px calc(env(safe-area-inset-right, 0px) + 6px) calc(env(safe-area-inset-bottom, 0px) + 6px) calc(env(safe-area-inset-left, 0px) + 6px);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 -8px 30px rgba(5, 10, 30, 0.18); }
+@media (min-width: 700px) and (min-height: 560px) {
+  .tabbar { width: min(560px, calc(100% - 28px)); margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + 14px); border: 1px solid var(--border); border-radius: 22px; padding: 6px; }
+}
+.tab { position: relative; isolation: isolate; min-height: 54px; border-radius: 14px; display: grid; justify-items: center; align-content: center; gap: 3px; color: var(--ink-2); font-size: 11.5px; font-weight: 700; transition: color 0.2s; }
+.tab svg { width: 24px; height: 24px; transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.tab::before { content: ""; position: absolute; inset: 4px 8%; border-radius: 12px; background: var(--panel-2); opacity: 0; transform: scale(0.8); transition: opacity 0.2s, transform 0.25s; z-index: -1; }
+.tab[aria-selected="true"] { color: var(--accent); }
+.tab[aria-selected="true"]::before { opacity: 1; transform: none; }
+.tab[aria-selected="true"] svg { transform: translateY(-1px) scale(1.12); }
+.tab:active svg { transform: scale(0.9); }
+.badge2 { position: absolute; top: 5px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff4b4b; color: #fff; font-size: 11px; font-style: normal; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--panel); }
 .card { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 16px;
   box-shadow: 0 24px 60px rgba(5, 10, 30, 0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .plate { position: relative; background: linear-gradient(180deg, #0a0f22, #070a17); border-radius: 14px; padding: 16px 14px 12px; text-align: center;
@@ -80,6 +109,9 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .cta { width: 100%; margin-top: 14px; min-height: 56px; border-radius: 16px; background: var(--cta); color: var(--cta-ink); font-family: var(--display);
   font-size: 24px; letter-spacing: 0.06em; box-shadow: 0 6px 0 #b77a00, 0 10px 24px rgba(255, 182, 39, 0.35); transition: transform 0.08s, box-shadow 0.08s; }
 .cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #b77a00; }
+.cta { position: relative; overflow: hidden; }
+.cta::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent); transform: skewX(-20deg); animation: ctaShine 3.6s ease-in-out infinite; pointer-events: none; }
+@keyframes ctaShine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
 .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13px; color: var(--ink-2); gap: 8px; }
 .linkbtn { min-height: 44px; padding: 0 6px; font-weight: 700; color: var(--accent); }
 .howto { margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--ink-2); background: var(--panel-2); border-radius: 12px; padding: 10px 12px; }
@@ -132,11 +164,31 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 
 #call { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(34px, 11vw, 58px); letter-spacing: 0.04em;
   text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 22px rgba(0, 0, 0, 0.5); white-space: nowrap; opacity: 0; transition: opacity 0.12s; text-align: center; }
-#call.show { opacity: 1; }
+#call.show { opacity: 1; animation: callPop 0.42s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes callPop { 0% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; filter: blur(6px); } 60% { transform: translate(-50%, -50%) scale(0.94); opacity: 1; filter: none; } 100% { transform: translate(-50%, -50%) scale(1); } }
 #call small { display: block; font-family: var(--ui); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; color: #dfe6ff; margin-top: 4px; }
 .abs { display: inline-block; font-family: var(--ui); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 1px 6px; border-radius: 5px; background: #1a2656; color: #7fe3ff; border: 1px solid #2c3a78; vertical-align: middle; margin-left: 6px; }
 #banner { position: absolute; left: 0; right: 0; top: 30%; display: grid; place-items: center; opacity: 0; transform: scaleY(0.6); transition: opacity 0.18s, transform 0.18s; }
 #banner.show { opacity: 1; transform: none; }
+#banner.show .big { animation: bigIn 0.5s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes bigIn { 0% { transform: scale(2.2); opacity: 0; letter-spacing: 0.4em; } 100% { transform: none; opacity: 1; } }
+#banner.hr .band { position: relative; overflow: hidden; isolation: isolate; padding: 22px 16px; border-width: 3px; border-color: #ffd84a;
+  background: linear-gradient(90deg, transparent, rgba(40, 18, 0, 0.9) 15%, rgba(60, 25, 0, 0.94) 50%, rgba(40, 18, 0, 0.9) 85%, transparent); }
+#banner.hr .band::before { content: ""; position: absolute; left: 50%; top: 50%; width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; z-index: -1;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 216, 74, 0.22) 0 8deg, transparent 8deg 20deg); animation: rays 6s linear infinite; }
+#banner.hr .big { font-size: clamp(46px, 15vw, 92px); color: transparent; background: linear-gradient(100deg, #fff3b0 20%, #ffb627 40%, #fff 50%, #ffb627 60%, #ff8a3d 80%) 0 0 / 250% 100%;
+  -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 0 16px rgba(255, 190, 40, 0.8)) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.5)); animation: bigIn 0.55s cubic-bezier(0.2, 1.5, 0.4, 1), shine 1.4s linear infinite; }
+@keyframes rays { to { transform: rotate(360deg); } }
+@keyframes shine { to { background-position: -250% 0; } }
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
+#fxFlash { position: fixed; inset: 0; pointer-events: none; z-index: 9; opacity: 0; background: radial-gradient(circle at 50% 45%, var(--fc, #fff) 0%, transparent 75%); }
+#fxFlash.go { animation: fxFlash var(--fd, 380ms) ease-out; }
+@keyframes fxFlash { 0% { opacity: var(--fs, 0.6); } 100% { opacity: 0; } }
+.bug.pulse { animation: bugPulse 0.9s ease-out; }
+@keyframes bugPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 216, 74, 0.9), 0 6px 18px rgba(0, 0, 0, 0.35); transform: scale(1.06); } 100% { box-shadow: 0 0 0 16px rgba(255, 216, 74, 0), 0 6px 18px rgba(0, 0, 0, 0.35); transform: none; } }
+.speed.fire { border-color: #ff8a3d; animation: speedFire 1.2s ease-out; }
+.speed.fire b { color: #ffcf6a; text-shadow: 0 0 10px #ff6a00, 0 0 22px #ff3d00; }
+@keyframes speedFire { 0% { transform: scale(1.25); box-shadow: 0 0 24px #ff6a00; } 100% { transform: none; box-shadow: none; } }
 #banner .band { width: 100%; padding: 14px 16px; text-align: center; background: linear-gradient(90deg, transparent, rgba(11, 21, 53, 0.92) 18%, rgba(11, 21, 53, 0.92) 82%, transparent); border-top: 2px solid var(--led); border-bottom: 2px solid var(--led); }
 #banner .big { font-family: var(--display); font-size: clamp(30px, 10vw, 56px); color: var(--led); letter-spacing: 0.05em; line-height: 1.05; text-shadow: 0 0 18px rgba(255, 182, 39, 0.45); }
 #banner .small { margin-top: 4px; font-size: 14px; font-weight: 500; color: #dfe6ff; }
@@ -229,7 +281,7 @@ body.no-webgl .nogl { display: grid; }
 .rtabs button { flex: 1; min-height: 42px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; }
 .rtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .rhead { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 12px 2px 6px; letter-spacing: 0.04em; }
-.rrow { display: grid; grid-template-columns: 30px 58px 1fr 44px; gap: 6px; align-items: center; padding: 5px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); margin-bottom: 6px; }
+.rrow { display: grid; grid-template-columns: 24px 54px 1fr 40px; gap: 6px; align-items: center; padding: 5px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); margin-bottom: 6px; }
 .rrow.sel { outline: 3px solid var(--accent); outline-offset: -1px; }
 .rrow .no { font-family: var(--display); font-size: 19px; text-align: center; }
 .rrow .pos { min-height: 44px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border); font-weight: 700; font-size: 13px; }
@@ -246,7 +298,7 @@ body.no-webgl .nogl { display: grid; }
 .box td.n { text-align: left; white-space: nowrap; }
 #title .mbtn { margin-top: 10px; font-size: 14px; min-height: 46px; }
 
-.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px; }
 .modes .mbtn { margin: 0; font-size: 13px; padding: 6px 4px; min-height: 48px; }
 .stbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .stbl th, .stbl td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--border); }
@@ -256,6 +308,113 @@ body.no-webgl .nogl { display: grid; }
 .card2 { border: 1px solid var(--border); background: var(--panel-2); border-radius: 14px; padding: 12px; margin: 8px 0; }
 .card2 .big2 { font-family: var(--display); font-size: 22px; margin: 2px 0 6px; }
 .row2 { display: flex; gap: 6px; } .row2 .mbtn { flex: 1; margin: 0; }
+.auth { display: grid; gap: 10px; }
+.auth label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.auth input { font: inherit; font-size: 16px; font-weight: 500; width: 100%; min-height: 48px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); color: var(--ink); }
+.auth input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.auth .row2 .mbtn { margin-top: 4px; }
+.auth .err { color: #d33; font-size: 13px; font-weight: 700; margin: 0; }
+/* ---------- 선수 얼굴 ---------- */
+.ava { position: relative; display: inline-block; flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; vertical-align: middle;
+  background: #1a2656; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.28); }
+.ava img { position: absolute; display: block; max-width: none; height: auto; -webkit-user-drag: none; }
+.ava.xs { width: 22px; height: 22px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85); }
+.ava.xs2 { width: 26px; height: 26px; margin: -4px 4px -4px 0; box-shadow: 0 0 0 1.5px var(--border); }
+.ava.sm { width: 40px; height: 40px; }
+.ava.md { width: 64px; height: 64px; box-shadow: 0 0 0 3px var(--tc, var(--led)), 0 4px 14px rgba(0, 0, 0, 0.45); }
+.ava.lg { width: 92px; height: 92px; box-shadow: 0 0 0 3px var(--accent), 0 6px 18px rgba(0, 0, 0, 0.3); }
+.line .ava.xs { margin: -2px 0 -2px -5px; }
+.rrow .nm { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; padding-left: 2px; }
+.rrow .nm .ava.sm { width: 38px; height: 38px; }
+.rrow .nm .nmt span { line-height: 1.35; }
+.rrow .nm .nmt { display: flex; flex-direction: column; min-width: 0; }
+.rrow .nm .ava { cursor: zoom-in; }
+.mvp .ava.md { --tc: var(--led); width: 52px; height: 52px; }
+#pcard { position: absolute; left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 124px); display: flex; gap: 12px; align-items: center;
+  max-width: min(340px, calc(100vw - 100px)); padding: 9px 14px 9px 9px; border-radius: 16px; background: linear-gradient(100deg, rgba(11, 21, 53, 0.95), rgba(18, 29, 68, 0.9));
+  border: 1px solid var(--bug-line); border-left: 4px solid var(--tc, var(--led)); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0; transform: translateX(-115%); transition: transform 0.4s cubic-bezier(0.2, 1.3, 0.4, 1), opacity 0.25s; pointer-events: none; }
+#pcard.show { opacity: 1; transform: none; }
+#pcard .pc-t { display: grid; gap: 1px; min-width: 0; }
+#pcard small { font-size: 11px; font-weight: 700; color: var(--bug-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pcard b { font-family: var(--display); font-weight: 400; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; }
+#pcard span { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+#pcard .hot { color: var(--led); font-weight: 700; }
+#pcard em { font-style: normal; font-size: 9.5px; color: var(--bug-muted); opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pcard em a { color: inherit; text-decoration: none; }
+@media (orientation: landscape) and (max-height: 520px) { #pcard { top: calc(env(safe-area-inset-top, 0px) + 116px); } #pcard .ava.md { width: 50px; height: 50px; } #pcard b { font-size: 21px; } }
+.phpanel { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 14px; margin-bottom: 10px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--border); animation: paneIn 0.3s ease-out; }
+.php-t { display: grid; gap: 4px; min-width: 0; }
+.php-t b { font-family: var(--display); font-weight: 400; font-size: 22px; }
+.php-t small { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.php-t .cr a, .credits a { color: var(--accent); }
+.php-t .row2 { flex-wrap: wrap; margin-top: 4px; }
+.php-t .row2 .mbtn { flex: 1 1 auto; min-height: 42px; font-size: 13.5px; padding: 0 10px; display: inline-grid; place-items: center; cursor: pointer; }
+.credits { margin-top: 14px; font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
+.credits > div:not(.rhead) { overflow-wrap: anywhere; }
+
+/* ---------- 온라인 · 내 정보 탭 ---------- */
+.rhead .cnt { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 9px; background: #ff4b4b; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.empty { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 18px 10px; border-radius: 16px; background: var(--panel-2); border: 1px dashed var(--border); }
+.empty.sm { padding: 12px; }
+.empty .big3 { font-size: 40px; }
+.spin { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.acct { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font-size: 13px; color: var(--ink-2); margin: 0 0 6px; padding: 8px 10px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); min-height: 50px; }
+.acct b { color: var(--ink); }
+.acct .go { margin-left: auto; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.av { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-size: 16px; background: var(--tc, var(--accent)); color: var(--tf, #fff); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+.av.big { width: 58px; height: 58px; font-size: 28px; border-radius: 18px; }
+.chipset { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chipset i { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border); color: var(--ink-2); }
+.roomcard { width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink); transition: transform 0.12s, border-color 0.2s; animation: paneIn 0.3s ease-out; }
+.roomcard:not(:disabled):hover { border-color: var(--accent); }
+.roomcard:not(:disabled):active { transform: scale(0.98); }
+.roomcard:disabled { opacity: 0.6; cursor: default; }
+.rc-main { display: grid; gap: 1px; min-width: 0; }
+.rc-main b { font-size: 15px; } .rc-main small { font-size: 12px; color: var(--ink-2); }
+.rc-main .warn { color: #d33; font-weight: 700; margin-top: 3px; }
+.rc-go { font-weight: 700; color: var(--cta-ink); background: var(--cta); border-radius: 10px; padding: 8px 10px; font-size: 13px; white-space: nowrap; }
+.rc-go:empty { display: none; }
+.badge.sm { width: 46px; height: 46px; border-radius: 14px; font-size: 16px; }
+.tpick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tpick button { min-height: 44px; border-radius: 12px; background: var(--tc); color: var(--tf); font-family: var(--display); font-size: 14px; border: 2px solid transparent; opacity: 0.72; transform: scale(0.94); transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18); }
+.tpick button[aria-checked="true"] { opacity: 1; transform: none; border-color: var(--ink); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.25); }
+.tpick button:disabled { cursor: default; }
+.ocfg { display: grid; gap: 8px; }
+.oseg { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 3px; }
+.oseg button { flex: 1; min-height: 40px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.oseg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
+.waitcard { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 18px 14px 14px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--border); }
+.waitcard .wt { font-weight: 700; font-size: 16px; } .waitcard .wt b { font-family: var(--display); font-size: 20px; color: var(--accent); letter-spacing: 0.06em; }
+.waitcard .chipset { justify-content: center; }
+.waitcard .row2 { width: 100%; }
+.radar { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
+.radar i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: radar 2.4s ease-out infinite; }
+.radar i:nth-child(2) { animation-delay: 0.8s; } .radar i:nth-child(3) { animation-delay: 1.6s; }
+@keyframes radar { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(1); opacity: 0; } }
+.who { display: flex; flex-wrap: wrap; gap: 6px; }
+.who span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); }
+.who i { width: 7px; height: 7px; border-radius: 50%; background: #1fc46a; }
+.who small { font-weight: 500; color: var(--ink-2); }
+.prof { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: linear-gradient(135deg, var(--panel-2), transparent); border: 1px solid var(--border); }
+.prof .pn { font-family: var(--display); font-size: 24px; line-height: 1.1; }
+.prof .pm { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+.prof .live { margin-left: auto; }
+.stats4 { grid-template-columns: repeat(4, 1fr); }
+.hist { display: grid; gap: 6px; }
+.hrow { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); }
+.hrow .res { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; background: #8a93b8; }
+.hrow .res.w { background: #1c9a55; } .hrow .res.l { background: #c43b3b; }
+.hm { display: grid; min-width: 0; } .hm b { font-size: 14px; } .hm small { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hd { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.setlist { display: grid; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); background: var(--panel-2); }
+.setrow { display: flex; justify-content: space-between; align-items: center; min-height: 50px; padding: 0 14px; font-weight: 700; font-size: 15px; text-align: left; }
+.setrow + .setrow, .setlist .inset + .setrow, .setrow + .inset { border-top: 1px solid var(--border); }
+.setrow span:last-child { color: var(--ink-2); }
+.setrow.danger { color: #d33; }
+.auth.inset { padding: 12px 14px 14px; background: var(--panel); }
+.auth.inset .mbtn { margin-top: 2px; }
 .popt { margin: 10px 0; } .popt > span { display: block; font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 4px; }
 .popt .seg { display: flex; flex-wrap: wrap; gap: 4px; }
 .popt .seg button { flex: 1 1 auto; min-height: 42px; padding: 4px 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; font-size: 13px; }
@@ -269,52 +428,93 @@ body.no-webgl .nogl { display: grid; }
   #playText { bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }
   .dock .hint { display: none; }
   #tracker { top: calc(env(safe-area-inset-top, 0px) + 60px); }
-  .card { width: min(720px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
-  .card .plate { grid-column: 1; } .card .matchup { grid-column: 1; } .card .opts { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
-  .card .cta, .card .foot, .card .howto, .card .fine { grid-column: 1 / -1; }
+  #pane-home .card { width: min(720px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+  #pane-home .card .plate { grid-column: 1; } #pane-home .card .matchup { grid-column: 1; } #pane-home .card .opts { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+  #pane-home .card .cta, #pane-home .card .modes, #pane-home .card .foot, #pane-home .card .howto, #pane-home .card .fine { grid-column: 1 / -1; }
+  .tab { min-height: 42px; grid-auto-flow: column; gap: 6px; } .tab svg { width: 20px; height: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
 <canvas id="gl" aria-label="3D 야구장"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="fxFlash" aria-hidden="true"></div>
 <div id="loading">경기장 조명 켜는 중…</div>
 <div class="nogl"><div><p style="font-size:20px;font-weight:700">이 브라우저에서는 3D(WebGL)를 쓸 수 없어요</p><p>최신 Chrome, Safari, Edge에서 다시 열어 주세요.</p></div></div>
 
 <section id="title" aria-label="시작 화면">
-  <div class="card">
-    <div class="plate"><h1 class="led">풀카운트</h1><div class="led-sub"><b>3D</b> · 한국 프로야구 스타일</div></div>
-    <div class="matchup">
-      <div class="side" id="sideMe">
-        <span class="tag">내 팀</span>
-        <div class="picker"><button class="arrow" data-pick="me" data-d="-1" aria-label="이전 팀">◀</button><div class="badge" id="badgeMe"></div><button class="arrow" data-pick="me" data-d="1" aria-label="다음 팀">▶</button></div>
-        <div class="tname" id="nameMe"></div><div class="rec" id="recMe"></div>
+  <div class="panes" id="panes">
+    <div class="pane" id="pane-home" role="tabpanel" aria-labelledby="tab-home">
+      <div class="card">
+        <div class="plate"><h1 class="led">풀카운트</h1><div class="led-sub"><b>3D</b> · 한국 프로야구 스타일</div></div>
+        <div class="matchup">
+          <div class="side" id="sideMe">
+            <span class="tag">내 팀</span>
+            <div class="picker"><button class="arrow" data-pick="me" data-d="-1" aria-label="이전 팀">◀</button><div class="badge" id="badgeMe"></div><button class="arrow" data-pick="me" data-d="1" aria-label="다음 팀">▶</button></div>
+            <div class="tname" id="nameMe"></div><div class="rec" id="recMe"></div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="side" id="sideOpp">
+            <span class="tag">상대</span>
+            <div class="picker"><button class="arrow" data-pick="opp" data-d="-1" aria-label="이전 상대">◀</button><div class="badge" id="badgeOpp"></div><button class="arrow" data-pick="opp" data-d="1" aria-label="다음 상대">▶</button></div>
+            <div class="tname" id="nameOpp"></div><div class="rec" id="recOpp">&nbsp;</div>
+          </div>
+        </div>
+        <div class="opts">
+          <div class="opt"><span>내 위치</span><div class="seg" data-opt="home"><button data-v="0">원정 (선공)</button><button data-v="1">홈 (후공)</button></div></div>
+          <div class="opt"><span>이닝</span><div class="seg" data-opt="inn"><button data-v="3">3회</button><button data-v="5">5회</button><button data-v="9">9회</button></div></div>
+          <div class="opt"><span>난이도</span><div class="seg" data-opt="diff"><button data-v="rookie">루키</button><button data-v="pro">프로</button><button data-v="legend">레전드</button></div></div>
+          <div class="opt"><span>경기</span><div class="seg" data-opt="time"><button data-v="night">야간</button><button data-v="day">주간</button></div></div>
+        </div>
+        <button class="cta" id="playBtn">플레이볼!</button>
+        <div class="modes"><button class="mbtn" id="batPrBtn">🏏 타격 훈련</button><button class="mbtn" id="pitPrBtn">🎯 투구 훈련</button></div>
+        <div class="foot"><span id="recAll"></span><button class="linkbtn" id="howBtn" aria-expanded="false">조작법 보기</button></div>
+        <div class="howto" id="howto" hidden>
+          <p><b>타격</b> — 공이 날아오면 공이 지나갈 곳을 <b>탭</b>(PC는 클릭 / 마우스로 조준 후 스페이스). 타이밍이 빠르면 당겨치고, 늦으면 밀어쳐요. 공보다 위를 치면 땅볼, 아래를 치면 뜬공이 돼요.</p>
+          <p><b>투구</b> — 구종 선택 → 존 패드에서 코스 탭 → 움직이는 바늘을 <b>가운데 초록색</b>에서 탭하면 제구가 정확해져요.</p>
+          <p><b>감독 작전</b> — 경기 전 <b>구단 관리</b>에서 타순·수비 위치·선발투수·선수 이름을 정하고, 경기 중엔 공격 때 번트·도루·대타·대주자, 수비 때 투수 교체·수비 교체·고의4구. 파울 플라이 아웃, 실책(포구·악송구), 폭투·포일, 스트라이크 낫아웃, 인필드 플라이, 직선타 병살, 보크도 나와요. 내가 던질 땐 <b>피치클락</b>(주자 없음 18초·있음 23초)이 적용돼서 시간이 넘으면 자동 볼이에요 (메뉴에서 끌 수 있음). 연장은 규정대로 최대 <b>11회</b>, 그래도 같으면 무승부예요.</p>
+        </div>
+        <p class="fine">일부 선수 사진은 Wikimedia Commons의 자유 이용 사진이에요(저작자·라이선스는 구단 탭 맨 아래). 구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
       </div>
-      <div class="vs">VS</div>
-      <div class="side" id="sideOpp">
-        <span class="tag">상대</span>
-        <div class="picker"><button class="arrow" data-pick="opp" data-d="-1" aria-label="이전 상대">◀</button><div class="badge" id="badgeOpp"></div><button class="arrow" data-pick="opp" data-d="1" aria-label="다음 상대">▶</button></div>
-        <div class="tname" id="nameOpp"></div><div class="rec" id="recOpp">&nbsp;</div>
+    </div>
+    <div class="pane" id="pane-season" role="tabpanel" aria-labelledby="tab-season" hidden>
+      <div class="card panel">
+        <div class="phead"><h2 id="seasonH">시즌</h2></div>
+        <p class="sub" id="seasonSub"></p>
+        <div id="seasonBody"></div>
       </div>
     </div>
-    <div class="opts">
-      <div class="opt"><span>내 위치</span><div class="seg" data-opt="home"><button data-v="0">원정 (선공)</button><button data-v="1">홈 (후공)</button></div></div>
-      <div class="opt"><span>이닝</span><div class="seg" data-opt="inn"><button data-v="3">3회</button><button data-v="5">5회</button><button data-v="9">9회</button></div></div>
-      <div class="opt"><span>난이도</span><div class="seg" data-opt="diff"><button data-v="rookie">루키</button><button data-v="pro">프로</button><button data-v="legend">레전드</button></div></div>
-      <div class="opt"><span>경기</span><div class="seg" data-opt="time"><button data-v="night">야간</button><button data-v="day">주간</button></div></div>
+    <div class="pane" id="pane-online" role="tabpanel" aria-labelledby="tab-online" hidden>
+      <div class="card panel">
+        <div class="phead"><h2 id="onH">온라인 1:1</h2><span class="live" id="onLive" hidden><i></i><b id="onLiveN">0</b>명 접속</span></div>
+        <div id="onBody"></div>
+      </div>
     </div>
-    <button class="cta" id="playBtn">플레이볼!</button>
-    <div class="modes"><button class="mbtn" id="seasonBtn">🏆 시즌 · 리그</button><button class="mbtn" id="batPrBtn">🏏 타격 훈련</button><button class="mbtn" id="pitPrBtn">🎯 투구 훈련</button></div>
-    <button class="mbtn" id="onlineBtn" style="margin-top:6px;width:100%">🌐 친구와 온라인 1:1</button>
-    <button class="mbtn" id="rosterBtn">⚙ 구단 관리 · 타순 / 수비 / 선발 / 선수 이름</button>
-    <div class="foot"><span id="recAll"></span><button class="linkbtn" id="howBtn" aria-expanded="false">조작법 보기</button></div>
-    <div class="howto" id="howto" hidden>
-      <p><b>타격</b> — 공이 날아오면 공이 지나갈 곳을 <b>탭</b>(PC는 클릭 / 마우스로 조준 후 스페이스). 타이밍이 빠르면 당겨치고, 늦으면 밀어쳐요. 공보다 위를 치면 땅볼, 아래를 치면 뜬공이 돼요.</p>
-      <p><b>투구</b> — 구종 선택 → 존 패드에서 코스 탭 → 움직이는 바늘을 <b>가운데 초록색</b>에서 탭하면 제구가 정확해져요.</p>
-      <p><b>감독 작전</b> — 경기 전 <b>구단 관리</b>에서 타순·수비 위치·선발투수·선수 이름을 정하고, 경기 중엔 공격 때 번트·도루·대타·대주자, 수비 때 투수 교체·수비 교체·고의4구. 파울 플라이 아웃, 실책(포구·악송구), 폭투·포일, 스트라이크 낫아웃, 인필드 플라이, 직선타 병살, 보크도 나와요. 내가 던질 땐 <b>피치클락</b>(주자 없음 18초·있음 23초)이 적용돼서 시간이 넘으면 자동 볼이에요 (메뉴에서 끌 수 있음). 연장은 규정대로 최대 <b>11회</b>, 그래도 같으면 무승부예요.</p>
+    <div class="pane" id="pane-roster" role="tabpanel" aria-labelledby="tab-roster" hidden>
+      <div class="card panel">
+        <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
+        <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
+        <p class="sub" id="rosterHint"></p>
+        <div id="rosterList"></div>
+        <button class="mbtn primary" id="rosterSave">저장</button>
+        <button class="mbtn" id="rosterReset">기본값으로 되돌리기</button>
+      </div>
     </div>
-    <p class="fine">구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
+    <div class="pane" id="pane-me" role="tabpanel" aria-labelledby="tab-me" hidden>
+      <div class="card panel">
+        <div class="phead"><h2>내 정보</h2></div>
+        <div id="meBody"></div>
+      </div>
+    </div>
   </div>
+  <nav class="tabbar" role="tablist" aria-label="메뉴">
+    <button class="tab" role="tab" id="tab-home" data-tab="home" aria-controls="pane-home" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.2 5.6c1.9 1.7 2.9 4 2.9 6.4s-1 4.7-2.9 6.4M16.8 5.6c-1.9 1.7-2.9 4-2.9 6.4s1 4.7 2.9 6.4"/></svg><span>경기</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-season" data-tab="season" aria-controls="pane-season" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/></svg><span>시즌</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-online" data-tab="online" aria-controls="pane-online" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17l-3 3V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/><path d="M20 21l-3-3h-6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2z"/></svg><span>온라인</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-roster" data-tab="roster" aria-controls="pane-roster" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>구단</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-me" data-tab="me" aria-controls="pane-me" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>내 정보</span><i class="badge2" hidden></i></button>
+  </nav>
 </section>
 
 <div id="hud" hidden>
@@ -336,6 +536,7 @@ body.no-webgl .nogl { display: grid; }
   </div>
   <div class="lines"><div class="line" id="batLine"></div><div class="line" id="pitLine"></div>
       <div class="line pe" id="pracLine" hidden><span class="k" id="pracK">훈련</span><span id="pracTxt" style="overflow:hidden;text-overflow:ellipsis"></span><button class="chip" id="pracSet" style="min-height:30px;padding:2px 10px;margin-left:auto">설정</button></div></div>
+  <div id="pcard" aria-hidden="true"></div>
   <canvas id="tracker" width="148" height="184" aria-hidden="true"></canvas>
   <div class="speed" id="speedBox" hidden><b id="speedV">—</b><span id="speedT">구속</span></div>
   <div id="call"></div>
@@ -396,17 +597,6 @@ body.no-webgl .nogl { display: grid; }
     <button class="mbtn" id="homeBtn">메인으로</button>
   </div>
 </div>
-<div class="modal" id="rosterModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rosterH">
-    <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
-    <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
-    <p class="sub" id="rosterHint"></p>
-    <div id="rosterList"></div>
-    <button class="mbtn primary" id="rosterSave">저장</button>
-    <button class="mbtn" id="rosterReset">기본값으로 되돌리기</button>
-    <button class="mbtn" id="rosterClose">닫기</button>
-  </div>
-</div>
 <div class="modal" id="subModal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="subH">
     <h2 id="subH">교체</h2>
@@ -415,27 +605,12 @@ body.no-webgl .nogl { display: grid; }
     <button class="mbtn" id="subClose">취소</button>
   </div>
 </div>
-<div class="modal" id="seasonModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="seasonH">
-    <h2 id="seasonH">시즌</h2>
-    <p class="sub" id="seasonSub"></p>
-    <div id="seasonBody"></div>
-    <button class="mbtn" id="seasonClose">닫기</button>
-  </div>
-</div>
 <div class="modal" id="pracModal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pracH">
     <h2 id="pracH">훈련 설정</h2>
     <div id="pracBody"></div>
     <button class="mbtn primary" id="pracGo">적용</button>
     <button class="mbtn" id="pracQuit">훈련 끝내기</button>
-  </div>
-</div>
-<div class="modal" id="onModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="onH">
-    <h2 id="onH">온라인 1:1</h2>
-    <div id="onBody" class="plist"></div>
-    <button class="mbtn" id="onClose">닫기</button>
   </div>
 </div>
 <div id="toast" role="status"></div>
@@ -1701,13 +1876,17 @@ const fireworks = (() => {
   const P = []; for (let i = 0; i < FW_N; i++) P.push({ x: 0, y: -99, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1, r: 1, g: 1, b: 1 });
   return { m, pos, col, P, next: 0 };
 })();
-function burst(x, y, z, hex, n = 110) {
-  const c = new T.Color(hex);
+function burst(x, y, z, hex, n = 110, o = {}) {
+  const c = new T.Color(hex), willow = o.kind === 'willow', ring = o.kind === 'ring';
+  const tilt = Math.random() * 0.9 - 0.45;
   for (let k = 0; k < n; k++) {
     const p = fireworks.P[fireworks.next]; fireworks.next = (fireworks.next + 1) % FW_N;
-    const a = Math.random() * Math.PI * 2, e = Math.acos(2 * Math.random() - 1), sp = 12 + Math.random() * 5;
+    const a = ring ? (k / n) * Math.PI * 2 : Math.random() * Math.PI * 2, e = ring ? Math.PI / 2 + tilt * Math.cos(a) : Math.acos(2 * Math.random() - 1);
+    const sp = (o.sp || (willow ? 7 : 12)) * (ring ? 1.25 : 1) + Math.random() * (ring ? 0.6 : 5);
     p.x = x; p.y = y; p.z = z; p.vx = Math.sin(e) * Math.cos(a) * sp; p.vy = Math.cos(e) * sp; p.vz = Math.sin(e) * Math.sin(a) * sp;
-    p.life = p.max = 1.3 + Math.random() * 0.6; p.r = c.r; p.g = c.g; p.b = c.b;
+    if (ring) { const vy = p.vy; p.vy = p.vz * 0.9; p.vz = vy; } // 관중석 쪽을 향한 고리
+    p.life = p.max = (o.life || (willow ? 2.6 : 1.3)) + Math.random() * 0.6; p.g0 = willow ? 3 : 6;
+    const cc = willow ? new T.Color('#ffcf6a') : c; p.r = cc.r; p.g = cc.g; p.b = cc.b;
   }
 }
 function updateFireworks(dt) {
@@ -1715,7 +1894,7 @@ function updateFireworks(dt) {
   for (let i = 0; i < FW_N; i++) {
     const p = P[i];
     if (p.life > 0) {
-      any = true; p.life -= dt; p.vy -= 6 * dt; p.vx *= 0.985; p.vy *= 0.985; p.vz *= 0.985;
+      any = true; p.life -= dt; p.vy -= (p.g0 || 6) * dt; p.vx *= 0.985; p.vy *= 0.985; p.vz *= 0.985;
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
       const f = Math.max(0, p.life / p.max);
       pos[i * 3] = p.x; pos[i * 3 + 1] = p.y; pos[i * 3 + 2] = p.z; col[i * 3] = p.r * f; col[i * 3 + 1] = p.g * f; col[i * 3 + 2] = p.b * f;
@@ -1745,27 +1924,79 @@ function applyTime(night) {
 }
 
 /* ===================== FIGURES ===================== */
+// 관절 위치(엉덩이 0.95, 어깨 ±0.235/0.52, 위팔·아래팔 0.3/0.28, 허벅지·정강이 0.47/0.45)는 포즈·IK와 맞물려 있어서 바꾸면 안 됨.
+// 모양만 다듬음: 몸통은 회전체(lathe)로 가슴·어깨 곡선, 팔다리는 캡슐, 얼굴·소매·벨트·양말은 텍스처.
 const FG = (() => {
   const cyl = (rt, rb, h, seg, ty) => { const g = new T.CylinderGeometry(rt, rb, h, seg, 1); g.translate(0, ty, 0); return g; };
+  // 회전체: [반지름, 높이] 점을 아래→위 순서로. uv.v는 높이 비율로 다시 계산 (텍스처가 늘어나지 않게)
+  const lathe = (pts, seg, zs) => {
+    const g = new T.LatheGeometry(pts.map(([r, y]) => new T.Vector2(Math.max(0, r), y)), seg);
+    const P = g.attributes.position, UV = g.attributes.uv;
+    let lo = 1e9, hi = -1e9;
+    for (let i = 0; i < P.count; i++) { lo = Math.min(lo, P.getY(i)); hi = Math.max(hi, P.getY(i)); }
+    for (let i = 0; i < P.count; i++) UV.setY(i, (P.getY(i) - lo) / (hi - lo));
+    if (zs) g.scale(1, 1, zs);
+    g.computeVertexNormals();
+    return g;
+  };
+  // 관절(y=0)에서 아래로 len만큼 내려가는 캡슐
+  const capsule = (rt, rb, len, seg = 10) => {
+    const pts = [], n = 4;
+    for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + (i / n) * (Math.PI / 2); pts.push([Math.cos(a) * rb, -len + Math.sin(a) * rb]); }
+    for (let i = 1; i <= n; i++) { const a = (i / n) * (Math.PI / 2); pts.push([Math.cos(a) * rt, Math.sin(a) * rt]); }
+    return lathe(pts, seg);
+  };
+  // 여러 도형을 한 메시로 합침 (그리기 호출 수 줄이기). uv를 주면 그 점으로 고정(피부색 부분 등), color를 주면 정점색
+  const merge = (parts) => {
+    const pos = [], nor = [], uv = [], col = [];
+    parts.forEach(({ g, uvAt, color }) => {
+      const n = g.index ? g.toNonIndexed() : g, P = n.attributes.position, N = n.attributes.normal, U = n.attributes.uv, c = color ? new T.Color(color) : null;
+      for (let i = 0; i < P.count; i++) {
+        pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i));
+        if (uvAt) uv.push(uvAt[0], uvAt[1]); else uv.push(U ? U.getX(i) : 0, U ? U.getY(i) : 0);
+        if (c) col.push(c.r, c.g, c.b);
+      }
+    });
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    if (col.length) g.setAttribute('color', new T.Float32BufferAttribute(col, 3));
+    return g;
+  };
+  const SKIN_UV = [0.5, 0.985]; // 얼굴 텍스처 맨 위(모자 속) = 맨 피부색
   const g = {
-    hips: cyl(0.165, 0.175, 0.22, 10, 0),
-    torso: cyl(0.215, 0.165, 0.6, 12, 0.3),
-    thigh: cyl(0.088, 0.07, 0.47, 8, -0.235),
-    shin: cyl(0.066, 0.05, 0.45, 8, -0.225),
-    shoe: new T.BoxGeometry(0.11, 0.08, 0.27).translate(0, -0.47, 0.06),
-    upper: cyl(0.06, 0.05, 0.3, 7, -0.15),
-    fore: cyl(0.05, 0.04, 0.28, 7, -0.14),
-    hand: new T.SphereGeometry(0.047, 7, 5).translate(0, -0.3, 0),
-    glove: new T.SphereGeometry(0.1, 8, 6).scale(1, 1.15, 0.6).translate(0, -0.33, 0.02),
-    head: new T.SphereGeometry(0.118, 14, 10).translate(0, 0.12, 0),
-    neck: cyl(0.055, 0.06, 0.12, 7, 0.02),
-    cap: new T.SphereGeometry(0.126, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.15, 0),
-    brim: new T.CylinderGeometry(0.11, 0.11, 0.014, 12, 1, false, -Math.PI / 2, Math.PI).translate(0, 0.16, 0.1),
-    helmet: new T.SphereGeometry(0.135, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.62).translate(0, 0.13, 0),
-    flap: new T.SphereGeometry(0.075, 8, 6).scale(0.45, 1, 1).translate(0, 0.07, 0),
-    bat: cyl(0.034, 0.013, 0.86, 10, 0.43),
-    mask: new T.BoxGeometry(0.2, 0.2, 0.08).translate(0, 0.11, 0.12),
-    pad: new T.BoxGeometry(0.36, 0.42, 0.1).translate(0, 0.3, 0.14),
+    hips: lathe([[0.148, -0.13], [0.17, -0.07], [0.178, 0.0], [0.172, 0.07], [0.158, 0.12]], 14, 0.84),
+    torso: lathe([[0.152, -0.03], [0.16, 0.06], [0.178, 0.18], [0.204, 0.3], [0.222, 0.4], [0.228, 0.47], [0.214, 0.54], [0.176, 0.585], [0.11, 0.615], [0.056, 0.628]], 18, 0.8),
+    thigh: capsule(0.093, 0.074, 0.47),
+    shin: capsule(0.071, 0.052, 0.45),
+    shoe: merge([
+      { g: new T.SphereGeometry(0.066, 10, 7).scale(0.86, 0.62, 1.95).translate(0, -0.465, 0.07), uvAt: [0, 0], color: 0x141416 },
+      { g: new T.BoxGeometry(0.108, 0.022, 0.26).translate(0, -0.5, 0.065), uvAt: [0, 0], color: 0xe9e9e4 },
+    ]),
+    sleeve: lathe([[0.07, -0.15], [0.072, -0.1], [0.073, -0.02], [0.068, 0.03], [0.055, 0.058], [0.032, 0.073], [0, 0.078]], 10),
+    upper: capsule(0.063, 0.054, 0.3, 9),
+    fore: capsule(0.052, 0.041, 0.28, 9),
+    hand: new T.SphereGeometry(0.048, 8, 6).scale(0.9, 1.15, 0.75).translate(0, -0.3, 0),
+    glove: merge([
+      { g: new T.SphereGeometry(0.105, 10, 8).scale(1, 1.22, 0.52).translate(0, -0.34, 0.02) },
+      { g: new T.SphereGeometry(0.04, 6, 5).scale(1, 1.4, 0.8).translate(0.085, -0.29, 0.03) },
+    ]),
+    // 머리 + 코 + 목을 한 메시로 (얼굴은 텍스처)
+    head: merge([
+      { g: new T.SphereGeometry(0.118, 18, 12).scale(0.93, 1.05, 0.99).translate(0, 0.12, 0) },
+      { g: new T.SphereGeometry(0.021, 6, 5).scale(0.75, 1.15, 1).translate(0, 0.103, 0.112), uvAt: SKIN_UV },
+      { g: cyl(0.054, 0.062, 0.14, 9, 0.0), uvAt: SKIN_UV },
+    ]),
+    cap: new T.SphereGeometry(0.126, 16, 7, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.15, 0),
+    brim: new T.CylinderGeometry(0.112, 0.112, 0.012, 14, 1, false, -Math.PI / 2, Math.PI).scale(1, 1, 0.95).translate(0, 0.155, 0.1),
+    helmet: new T.SphereGeometry(0.137, 16, 9, 0, Math.PI * 2, 0, Math.PI * 0.62).translate(0, 0.13, 0),
+    flap: new T.SphereGeometry(0.078, 9, 7).scale(0.45, 1, 1).translate(0, 0.07, 0),
+    bat: lathe([[0, 0], [0.021, 0.002], [0.022, 0.012], [0.0135, 0.024], [0.0135, 0.28], [0.017, 0.4], [0.026, 0.56], [0.033, 0.7], [0.0345, 0.82], [0.031, 0.852], [0.018, 0.861], [0, 0.863]], 12),
+    mask: merge([
+      { g: new T.BoxGeometry(0.2, 0.2, 0.05).translate(0, 0.11, 0.125) },
+      { g: new T.BoxGeometry(0.2, 0.012, 0.012).translate(0, 0.14, 0.155) },
+      { g: new T.BoxGeometry(0.2, 0.012, 0.012).translate(0, 0.09, 0.155) },
+    ]),
+    pad: lathe([[0.2, 0.05], [0.235, 0.2], [0.24, 0.4], [0.2, 0.56], [0.12, 0.6]], 12, 0.82),
   };
   const shadowTex = (() => {
     const c = makeCanvas(64, 64), x = c.getContext('2d');
@@ -1775,89 +2006,215 @@ const FG = (() => {
   })();
   g.shadow = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   const shadowMat = new T.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 });
+  // 저사양 폰은 정점 조명(Lambert), 나머지는 픽셀 조명(Phong) — 곡면이 매끈해 보임
+  const mat = (o = {}) => (lowEnd ? new T.MeshLambertMaterial(o) : new T.MeshPhongMaterial(Object.assign({ shininess: 10, specular: 0x161616 }, o)));
+  const gloss = (o = {}) => new T.MeshPhongMaterial(Object.assign({ shininess: 70, specular: 0x5a5a5a }, o));
+  const batTex = (() => {
+    const c = makeCanvas(16, 128), x = c.getContext('2d');
+    const gr = x.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#e8c68e'); gr.addColorStop(1, '#c79a5e');
+    x.fillStyle = gr; x.fillRect(0, 0, 16, 128);
+    x.fillStyle = 'rgba(120,80,40,0.18)'; for (let i = 0; i < 16; i += 3) x.fillRect(i, 0, 1, 128);
+    x.fillStyle = '#1c1c1f'; x.fillRect(0, 100, 16, 28); // 손잡이 테이프
+    x.fillStyle = '#2a2a2e'; for (let y = 102; y < 126; y += 4) x.fillRect(0, y, 16, 1);
+    return canvasTex(c);
+  })();
   const M = {
-    skin: [new T.MeshLambertMaterial({ color: 0xd8a888 }), new T.MeshLambertMaterial({ color: 0xc58f6d }), new T.MeshLambertMaterial({ color: 0xa87556 }), new T.MeshLambertMaterial({ color: 0x7a5238 })],
-    shoe: new T.MeshLambertMaterial({ color: 0x151515 }),
-    glove: new T.MeshLambertMaterial({ color: 0x7b4a24 }),
-    bat: new T.MeshLambertMaterial({ color: 0xd9b27a }),
-    black: new T.MeshLambertMaterial({ color: 0x1b1b1f }),
-    gray: new T.MeshLambertMaterial({ color: 0x6b7078 }),
-    navy: new T.MeshLambertMaterial({ color: 0x1b2440 }),
+    shoe: mat({ vertexColors: true }),
+    glove: mat({ color: 0x7b4a24 }),
+    bat: gloss({ map: batTex, shininess: 40, specular: 0x333333 }),
+    black: mat({ color: 0x1b1b1f }),
+    gray: mat({ color: 0x6b7078 }),
+    navy: mat({ color: 0x1b2440 }),
   };
-  return { g, M, shadowMat };
+  return { g, M, mat, gloss, shadowMat };
 })();
 
 const _tmpV = new T.Vector3(), _tmpV2 = new T.Vector3(), _tmpQ = new T.Quaternion(), _tmpQ2 = new T.Quaternion();
 const DOWN = new T.Vector3(0, -1, 0);
 
+/* ---------- 유니폼·얼굴 텍스처 ---------- */
+const TEXC = new Map();
+function cachedTex(key, w, h, draw) {
+  let t = TEXC.get(key);
+  if (!t) { const c = makeCanvas(w, h); draw(c.getContext('2d'), w, h); t = canvasTex(c); TEXC.set(key, t); }
+  return t;
+}
 function jerseyTexture(base, trim, text, num, name, pin) {
-  const c = makeCanvas(256, 128), x = c.getContext('2d');
+  const s = lowEnd ? 1 : 2, W = 256 * s, H = 128 * s, c = makeCanvas(W, H), x = c.getContext('2d');
+  x.scale(s, s);
   x.fillStyle = base; x.fillRect(0, 0, 256, 128);
-  if (pin) { x.fillStyle = hexA(trim, 0.35); for (let i = 0; i < 256; i += 9) x.fillRect(i, 0, 1.5, 128); }
-  x.fillStyle = trim; x.fillRect(0, 0, 256, 7); x.fillRect(0, 121, 256, 7);
+  if (pin) { x.fillStyle = hexA(trim, 0.35); for (let i = 0; i < 256; i += 9) x.fillRect(i, 0, 1.2, 128); }
+  // 천 음영 (위는 밝게, 아래는 살짝 어둡게)
+  const sh = x.createLinearGradient(0, 0, 0, 128); sh.addColorStop(0, 'rgba(255,255,255,0.08)'); sh.addColorStop(0.55, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.14)');
+  x.fillStyle = sh; x.fillRect(0, 0, 256, 128);
+  x.fillStyle = trim; x.fillRect(0, 0, 256, 7); x.fillRect(0, 123, 256, 5);
+  // 앞 단추선 (u=0이 가슴 한가운데)
+  x.fillRect(0, 7, 1.6, 121); x.fillRect(254.4, 7, 1.6, 121);
+  x.fillStyle = hexA(trim, 0.9); for (let y = 20; y < 122; y += 17) { x.beginPath(); x.arc(3.2, y, 1.1, 0, Math.PI * 2); x.arc(252.8, y, 1.1, 0, Math.PI * 2); x.fill(); }
   const ink = lum(base) > 0.6 ? trim : (lum(trim) > 0.45 ? trim : '#ffffff');
-  x.fillStyle = ink; x.textAlign = 'center'; x.textBaseline = 'middle';
+  const edge = lum(ink) > 0.6 ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.7)';
+  x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round';
   x.font = `26px ${FONT_DISP}`;
-  for (const cx of [0, 256]) x.fillText(text, cx, 48, 110);
-  x.font = `14px ${FONT_UI}`; x.fillText(name || '', 128, 30, 100);
-  x.font = `58px ${FONT_DISP}`; x.fillText(String(num), 128, 76);
-  if (lum(ink) > 0.6) { x.strokeStyle = 'rgba(0,0,0,0.25)'; x.lineWidth = 1.5; x.strokeText(String(num), 128, 76); }
-  const t = canvasTex(c); return t;
+  for (const cx of [0, 256]) { x.lineWidth = 3; x.strokeStyle = edge; x.strokeText(text, cx, 48, 110); x.fillStyle = ink; x.fillText(text, cx, 48, 110); }
+  x.font = `bold 14px ${FONT_UI}`; x.fillStyle = ink; x.fillText(name || '', 128, 30, 100);
+  x.font = `60px ${FONT_DISP}`;
+  x.lineWidth = 4; x.strokeStyle = edge; x.strokeText(String(num), 128, 78);
+  x.fillStyle = ink; x.fillText(String(num), 128, 78);
+  return canvasTex(c);
+}
+function sleeveTexture(base, trim) {
+  return cachedTex('sl' + base + trim, 16, 32, (x, w, h) => {
+    x.fillStyle = base; x.fillRect(0, 0, w, h);
+    x.fillStyle = trim; x.fillRect(0, h - 6, w, 4);
+    x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(0, h - 2, w, 2);
+  });
+}
+function hipsTexture(pants, belt) {
+  return cachedTex('hp' + pants + belt, 64, 32, (x, w, h) => {
+    x.fillStyle = pants; x.fillRect(0, 0, w, h);
+    x.fillStyle = belt; x.fillRect(0, h * 0.16, w, h * 0.26);
+    x.fillStyle = '#d8d8d8'; x.fillRect(0, h * 0.19, 2, h * 0.2); x.fillRect(w - 2, h * 0.19, 2, h * 0.2); // 버클 (앞)
+    x.fillStyle = 'rgba(0,0,0,0.28)'; for (let k = 1; k < 8; k++) x.fillRect((k * w) / 8 - 0.5, h * 0.14, 1, h * 0.3); // 벨트 고리
+  });
+}
+function shinTexture(pants, socks, trim) {
+  return cachedTex('sh' + pants + socks + trim, 16, 64, (x, w, h) => {
+    x.fillStyle = socks; x.fillRect(0, 0, w, h);
+    x.fillStyle = trim; x.fillRect(0, 22, w, 3); x.fillRect(0, 29, w, 3);
+    x.fillStyle = pants; x.fillRect(0, 0, w, 15);
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(0, 15, w, 2);
+  });
+}
+function capTexture(color, text, shiny) {
+  return cachedTex('cp' + color + text + (shiny ? 1 : 0), 128, 64, (x, w, h) => {
+    x.fillStyle = color; x.fillRect(0, 0, w, h);
+    if (shiny) { const gr = x.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0.1)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); }
+    if (!text) return;
+    const ink = lum(color) > 0.6 ? '#1b1b1f' : '#ffffff';
+    x.font = `${text.length > 2 ? 15 : 19}px ${FONT_DISP}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.lineWidth = 3; x.strokeStyle = lum(color) > 0.6 ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.35)';
+    x.strokeText(text, w * 0.25, h * 0.6, 34); x.fillStyle = ink; x.fillText(text, w * 0.25, h * 0.6, 34);
+  });
+}
+// 얼굴: 머리 구 텍스처 (u=0.25가 정면, 0/0.5가 옆, v는 위→아래). 피부톤·머리색·눈썹·수염을 선수마다 다르게
+const SKINS = ['#f2cfb2', '#e8bc98', '#d9a680', '#a8744f', '#6f4a31'];
+const HAIRS = ['#15110e', '#2b1d13', '#4a3220', '#7a5530', '#b8904f'];
+function faceTexture(sk, hair, v) {
+  return cachedTex(`fc${sk}|${hair}|${v}`, 256, 128, (x, w, h) => {
+    const skin = SKINS[sk], dk = new T.Color(skin).multiplyScalar(0.72).getStyle();
+    x.fillStyle = skin; x.fillRect(0, 0, w, h);
+    const fx = w * 0.25; // 얼굴 가운데
+    // 볼·턱 음영
+    const g1 = x.createRadialGradient(fx, h * 0.6, 4, fx, h * 0.6, 60); g1.addColorStop(0, 'rgba(255,220,200,0.12)'); g1.addColorStop(1, 'rgba(0,0,0,0.08)');
+    x.fillStyle = g1; x.fillRect(0, h * 0.4, w, h * 0.6);
+    // 머리카락: 모자 아래로 보이는 옆·뒤 (얼굴 앞쪽 ±60°는 비움)
+    x.fillStyle = HAIRS[hair];
+    x.fillRect(fx + 43, h * 0.38, w - (fx + 43) + (fx - 43), h * 0.08); // 옆머리 (귀 위)
+    x.fillRect(0, h * 0.38, fx - 43, h * 0.08);
+    x.fillRect(w * 0.5 + 10, h * 0.38, w * 0.5 - 20, h * 0.24); // 뒤통수
+    x.fillRect(fx - 43, h * 0.4, 4, 13); x.fillRect(fx + 39, h * 0.4, 4, 13); // 구레나룻
+    // 귀 (u=0, 0.5)
+    for (const ex of [0, w * 0.5, w]) { x.fillStyle = dk; x.beginPath(); x.ellipse(ex, h * 0.55, 7, 11, 0, 0, Math.PI * 2); x.fill(); x.fillStyle = skin; x.beginPath(); x.ellipse(ex, h * 0.55, 4.5, 8, 0, 0, Math.PI * 2); x.fill(); }
+    // 눈썹
+    x.fillStyle = HAIRS[hair]; const bt = v & 1 ? 3.2 : 2.2;
+    for (const s of [-1, 1]) { x.save(); x.translate(fx + s * 9, h * 0.463); x.rotate(s * -0.12); x.fillRect(-6, -bt / 2, 12, bt); x.restore(); }
+    // 눈
+    for (const s of [-1, 1]) {
+      x.fillStyle = '#f4f1ea'; x.beginPath(); x.ellipse(fx + s * 9, h * 0.515, 4.6, 2.6, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#1d1712'; x.beginPath(); x.ellipse(fx + s * 9, h * 0.518, 2.3, 2.3, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(fx + s * 9 - 5, h * 0.495, 10, 1.2);
+    }
+    // 코 그림자·입
+    x.fillStyle = 'rgba(0,0,0,0.16)'; x.fillRect(fx - 1, h * 0.54, 2, 9);
+    x.fillStyle = new T.Color(skin).multiplyScalar(0.62).getStyle(); x.fillRect(fx - 6, h * 0.655, 12, 2);
+    // 수염
+    if (v & 2) {
+      x.fillStyle = hexA(HAIRS[hair], 0.55);
+      x.beginPath(); x.ellipse(fx, h * 0.72, 22, 13, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = skin; x.fillRect(fx - 7, h * 0.64, 14, 4);
+    } else if (v & 4) { x.fillStyle = hexA(HAIRS[hair], 0.22); x.beginPath(); x.ellipse(fx, h * 0.72, 20, 11, 0, 0, Math.PI * 2); x.fill(); }
+    // 모자 속(맨 위) = 순수 피부색 (코·목이 여기 색을 씀)
+    x.fillStyle = skin; x.fillRect(0, 0, w, h * 0.06);
+  });
+}
+// 선수마다 얼굴 고정: 이름으로 해시 → 외국인 선수는 피부·머리색 폭을 넓게
+function looksOf(pl, seed) {
+  const h = hashN(pl ? (pl.eng || pl.name || '') : 'fig' + (seed || 0));
+  const foreign = !!(pl && pl.foreign);
+  const sk = foreign ? [0, 1, 3, 4, 2][h % 5] : [0, 1, 1, 2][h % 4];
+  const hair = foreign ? [0, 1, 2, 3, 4, 1][(h >>> 4) % 6] : ((h >>> 4) % 5 === 0 ? 1 : 0);
+  const v = ((h >>> 8) & 1) | ((h >>> 9) % (foreign ? 3 : 8) === 0 ? 2 : 0) | ((h >>> 12) % 4 === 0 ? 4 : 0);
+  return { sk, hair, v };
 }
 
 let figSerial = 0;
 function makeFigure(o) {
-  // o: {jersey, pants, cap, trim, helmet(bool), glove('L'|'R'|null), skin, num, name, teamText, pin, kind}
-  const { g, M } = FG;
+  // o: {jersey, pants, cap, trim, socks, helmet(bool), glove('L'|'R'|null), skin, num, name, teamText, capText, pin, kind}
+  const { g, M, mat, gloss } = FG;
   const root = new T.Group(), body = new T.Group(), hip = new T.Group(), spine = new T.Group(), neck = new T.Group();
-  const mk = (geo, mat, parent) => { const m = new T.Mesh(geo, mat); parent.add(m); return m; };
-  const jerseyMat = new T.MeshLambertMaterial({ map: jerseyTexture(o.jersey, o.trim, o.teamText || '', o.num == null ? '' : o.num, o.name, o.pin) });
-  const sleeveMat = new T.MeshLambertMaterial({ color: o.jersey });
-  const pantsMat = new T.MeshLambertMaterial({ color: o.pants });
-  const capMat = new T.MeshLambertMaterial({ color: o.cap });
-  const skin = M.skin[o.skin == null ? figSerial % 3 : o.skin];
+  const mk = (geo, m, parent) => { const ms = new T.Mesh(geo, m); parent.add(ms); return ms; };
+  const jerseyMat = mat({ map: jerseyTexture(o.jersey, o.trim, o.teamText || '', o.num == null ? '' : o.num, o.name, o.pin) });
+  const sleeveMat = mat({ map: sleeveTexture(o.jersey, o.trim) });
+  const pantsMat = mat({ color: o.pants });
+  const hipsMat = mat({ map: hipsTexture(o.pants, o.belt || '#16161a') });
+  const shinMat = mat({ map: shinTexture(o.pants, o.socks || o.trim, o.pants) });
+  const capMat = o.helmet ? gloss({ map: capTexture(o.cap, o.capText || '', true) }) : mat({ map: capTexture(o.cap, o.capText || '') });
+  const capPlain = o.helmet ? gloss({ color: o.cap }) : mat({ color: o.cap });
+  const id = figSerial, lk = o.skin != null ? { sk: o.skin, hair: 0, v: figSerial % 3 } : looksOf(null, id);
+  const skinMat = mat({ color: SKINS[lk.sk], emissive: new T.Color(SKINS[lk.sk]).multiplyScalar(0.16) });
+  const headMat = mat({ map: faceTexture(lk.sk, lk.hair, lk.v), emissive: 0x2a2018 });
   figSerial++;
   root.add(body); body.add(hip); hip.position.y = 0.95;
-  mk(g.hips, pantsMat, hip);
+  mk(g.hips, hipsMat, hip);
   hip.add(spine); spine.position.y = 0.08;
   const torso = mk(g.torso, jerseyMat, spine);
   spine.add(neck); neck.position.y = 0.6;
-  mk(g.neck, skin, neck);
-  mk(g.head, skin, neck);
+  mk(g.head, headMat, neck);
   let hat;
-  if (o.helmet) { hat = mk(g.helmet, capMat, neck); const fl = mk(g.flap, capMat, neck); fl.position.x = o.flapSide || -0.12; }
-  else { hat = mk(g.cap, capMat, neck); mk(g.brim, capMat, neck); }
+  if (o.helmet) { hat = mk(g.helmet, capMat, neck); const fl = mk(g.flap, capPlain, neck); fl.position.x = o.flapSide || -0.12; }
+  else { hat = mk(g.cap, capMat, neck); mk(g.brim, capPlain, neck); }
   if (o.mask) mk(g.mask, M.black, neck);
   if (o.pad) mk(g.pad, M.black, spine);
   const leg = (s) => {
     const L = new T.Group(); L.position.set(0.095 * s, -0.02, 0); hip.add(L);
     mk(g.thigh, pantsMat, L);
     const K = new T.Group(); K.position.y = -0.47; L.add(K);
-    mk(g.shin, o.socks ? new T.MeshLambertMaterial({ color: o.socks }) : pantsMat, K); mk(g.shoe, M.shoe, K);
+    mk(g.shin, shinMat, K); mk(g.shoe, M.shoe, K);
     return { L, K };
   };
   const arm = (s) => {
     const Sh = new T.Group(); Sh.position.set(0.235 * s, 0.52, 0); spine.add(Sh);
-    mk(g.upper, sleeveMat, Sh);
+    mk(g.sleeve, sleeveMat, Sh); mk(g.upper, skinMat, Sh);
     const E = new T.Group(); E.position.y = -0.3; Sh.add(E);
-    mk(g.fore, skin, E);
+    mk(g.fore, skinMat, E);
     const isGlove = (o.glove === 'L' && s > 0) || (o.glove === 'R' && s < 0);
-    const hand = mk(isGlove ? g.glove : g.hand, isGlove ? M.glove : skin, E);
+    const hand = mk(isGlove ? g.glove : g.hand, isGlove ? M.glove : skinMat, E);
     return { Sh, E, hand };
   };
   const lL = leg(1), rL = leg(-1), lA = arm(1), rA = arm(-1);
   const sh = new T.Mesh(g.shadow, FG.shadowMat); sh.scale.set(1.1, 1, 1.1); sh.renderOrder = 5;
   const f = {
-    root, body, hip, spine, neck, torso, hat, lL, rL, lA, rA, shadow: sh, jerseyMat, capMat, pantsMat, sleeveMat,
-    P: neutralPose(), run: 0, kind: o.kind || '', visible: true,
+    root, body, hip, spine, neck, torso, hat, lL, rL, lA, rA, shadow: sh, jerseyMat, capMat, capPlain, pantsMat, hipsMat, shinMat, sleeveMat, skinMat, headMat,
+    P: neutralPose(), run: 0, kind: o.kind || '', visible: true, helmet: !!o.helmet, id,
   };
+  f.ownMats = [jerseyMat, capMat, capPlain, pantsMat, hipsMat, shinMat, sleeveMat, skinMat, headMat];
   world.add(root); world.add(sh);
   return f;
 }
 function setFigureColors(f, o) {
   f.jerseyMat.map && f.jerseyMat.map.dispose();
   f.jerseyMat.map = jerseyTexture(o.jersey, o.trim, o.teamText || '', o.num == null ? '' : o.num, o.name, o.pin); f.jerseyMat.needsUpdate = true;
-  f.sleeveMat.color.set(o.jersey); f.pantsMat.color.set(o.pants); f.capMat.color.set(o.cap);
+  f.sleeveMat.map = sleeveTexture(o.jersey, o.trim);
+  f.pantsMat.color.set(o.pants);
+  f.hipsMat.map = hipsTexture(o.pants, o.belt || '#16161a');
+  f.shinMat.map = shinTexture(o.pants, o.socks || o.trim, o.pants);
+  f.capMat.map = capTexture(o.cap, o.capText || '', f.helmet); f.capPlain.color.set(o.cap);
+}
+// 선수 얼굴·피부 (dress할 때 선수가 바뀌면)
+function setFigureLooks(f, pl) {
+  const lk = looksOf(pl, f.id);
+  f.skinMat.color.set(SKINS[lk.sk]); f.skinMat.emissive.set(SKINS[lk.sk]).multiplyScalar(0.16);
+  f.headMat.map = faceTexture(lk.sk, lk.hair, lk.v);
 }
 function showFigure(f, v) { f.root.visible = v; f.shadow.visible = v; f.visible = v; }
 
@@ -1983,7 +2340,7 @@ const ball = (() => {
   trail.frustumCulled = false; scene.add(trail);
   const hist = [];
   return {
-    m, sh, halo, trail, hist, N, tp, tc,
+    m, sh, halo, trail, hist, N, tp, tc, hot: 0,
     set(x, y, z, big) {
       m.position.set(x, y, z); m.visible = true;
       const s = big || 1; m.scale.setScalar(s); halo.scale.setScalar(0.18 * s + 0.12);
@@ -1998,7 +2355,8 @@ const ball = (() => {
       for (let i = 0; i < N; i++) {
         const p = hist[Math.min(i, hist.length - 1)] || m.position;
         tp[i * 3] = p.x; tp[i * 3 + 1] = p.y; tp[i * 3 + 2] = p.z;
-        const f = (1 - i / N) * 0.8; tc[i * 3] = f; tc[i * 3 + 1] = f; tc[i * 3 + 2] = f * 0.95;
+        const f = (1 - i / N) * (0.8 + this.hot * 0.4), h = this.hot * (i / N + 0.35);
+        tc[i * 3] = f; tc[i * 3 + 1] = f * (1 - h * 0.55); tc[i * 3 + 2] = f * (0.95 - h * 0.85);
       }
       tg.attributes.position.needsUpdate = true; tg.attributes.color.needsUpdate = true;
     },
@@ -2080,6 +2438,273 @@ const AU = {
    기록은 실제 시즌 누적 기록. 능력치(컨택·파워·선구·주력·구속·제구·구위)는 이 기록에서 계산한 게임용 추정치. */
 const REAL_DATE = "2026-09-13";
 const REAL = [{"lineup":[{"n":"신민재","e":"Shin Min-jae","num":"4","pos":"2B","b":"L","pa":440,"avg":0.254,"obp":0.336,"slg":0.277,"hr":0,"sb":12,"bb":45,"so":58},{"n":"박해민","e":"Park Hae-min","num":"17","pos":"CF","b":"L","pa":541,"avg":0.291,"obp":0.369,"slg":0.369,"hr":4,"sb":35,"bb":50,"so":62},{"n":"오스틴","e":"Austin Dean","num":"23","pos":"1B","b":"R","pa":591,"avg":0.342,"obp":0.437,"slg":0.658,"hr":39,"sb":5,"bb":75,"so":84},{"n":"송찬의","e":"Song Chan-eui","num":"55","pos":"LF","b":"R","pa":396,"avg":0.282,"obp":0.375,"slg":0.509,"hr":15,"sb":2,"bb":30,"so":93},{"n":"문보경","e":"Moon Bo-gyeong","num":"2","pos":"DH","b":"L","pa":383,"avg":0.252,"obp":0.36,"slg":0.377,"hr":9,"sb":0,"bb":57,"so":74},{"n":"구본혁","e":"Gu Bon-hyeok","num":"6","pos":"3B","b":"R","pa":355,"avg":0.282,"obp":0.347,"slg":0.325,"hr":0,"sb":5,"bb":29,"so":44},{"n":"오지환","e":"Oh Ji-hwan","num":"10","pos":"SS","b":"L","pa":430,"avg":0.246,"obp":0.326,"slg":0.398,"hr":13,"sb":4,"bb":40,"so":89},{"n":"박동원","e":"Park Dong-won","num":"27","pos":"C","b":"R","pa":391,"avg":0.223,"obp":0.331,"slg":0.381,"hr":12,"sb":1,"bb":50,"so":88},{"n":"홍창기","e":"Hong Chang-ki","num":"51","pos":"RF","b":"L","pa":497,"avg":0.248,"obp":0.383,"slg":0.296,"hr":0,"sb":3,"bb":74,"so":101}],"bench":[{"n":"문정빈","e":"Moon Jeong-bin","num":"56","pos":"1B","b":"R","pa":284,"avg":0.257,"obp":0.338,"slg":0.534,"hr":17,"sb":0,"bb":28,"so":86},{"n":"천성호","e":"Cheon Seong-ho","num":"53","pos":"2B","b":"L","pa":249,"avg":0.285,"obp":0.34,"slg":0.39,"hr":2,"sb":5,"bb":14,"so":40},{"n":"문성주","e":"Moon Sung-ju","num":"8","pos":"LF","b":"L","pa":239,"avg":0.29,"obp":0.36,"slg":0.348,"hr":1,"sb":2,"bb":21,"so":29},{"n":"이주헌","e":"Lee Ju-heon","num":"63","pos":"C","b":"R","pa":142,"avg":0.209,"obp":0.241,"slg":0.343,"hr":4,"sb":0,"bb":3,"so":49}],"rotation":[{"n":"임찬규","e":"Im Chan-kyu","num":"1","t":"R","role":"SP","ip":158.33,"era":4.15,"whip":1.33,"k":93,"bb":40,"sv":0},{"n":"톨허스트","e":"Anders Tolhurst","num":"30","t":"R","role":"SP","ip":150.33,"era":4.25,"whip":1.26,"k":123,"bb":33,"sv":0},{"n":"웰스","e":"Lachlan Wells","num":"","t":"L","role":"SP","ip":96.33,"era":4.11,"whip":1.25,"k":83,"bb":30,"sv":0},{"n":"송승기","e":"Song Seung-ki","num":"","t":"L","role":"SP","ip":70.0,"era":5.53,"whip":1.6,"k":54,"bb":23,"sv":0},{"n":"카라스코","e":"Carlos Carrasco","num":"59","t":"R","role":"SP","ip":50.67,"era":3.55,"whip":0.97,"k":39,"bb":9,"sv":0}],"bullpen":[{"n":"김진수","e":"Kim Jin-su","num":"45","t":"R","role":"RP","ip":57.0,"era":4.11,"whip":1.42,"k":37,"bb":21,"sv":0},{"n":"장현식","e":"Jang Hyun-sik","num":"50","t":"R","role":"RP","ip":51.67,"era":4.01,"whip":1.43,"k":35,"bb":17,"sv":0},{"n":"우강훈","e":"Woo Kang-hoon","num":"20","t":"R","role":"RP","ip":50.67,"era":4.62,"whip":1.44,"k":46,"bb":23,"sv":0},{"n":"박시원","e":"Park Si-won","num":"58","t":"R","role":"RP","ip":49.0,"era":4.41,"whip":1.55,"k":39,"bb":19,"sv":0},{"n":"김진성","e":"Kim Jin-sung","num":"","t":"R","role":"RP","ip":47.33,"era":4.94,"whip":1.58,"k":35,"bb":18,"sv":0},{"n":"손주영","e":"Son Ju-young","num":"29","t":"L","role":"CL","ip":46.0,"era":1.76,"whip":1.35,"k":48,"bb":27,"sv":30}],"date":"09-13"},{"lineup":[{"n":"심우준","e":"Sim Woo-jun","num":"7","pos":"SS","b":"R","pa":434,"avg":0.264,"obp":0.335,"slg":0.34,"hr":6,"sb":22,"bb":37,"so":71},{"n":"최인호","e":"Choi In-ho","num":"41","pos":"CF","b":"L","pa":171,"avg":0.272,"obp":0.341,"slg":0.384,"hr":4,"sb":0,"bb":15,"so":24},{"n":"문현빈","e":"Moon Hyun-bin","num":"51","pos":"LF","b":"L","pa":554,"avg":0.304,"obp":0.384,"slg":0.474,"hr":15,"sb":11,"bb":59,"so":67},{"n":"강백호","e":"Kang Baek-ho","num":"50","pos":"DH","b":"L","pa":529,"avg":0.287,"obp":0.355,"slg":0.544,"hr":33,"sb":0,"bb":50,"so":110},{"n":"노시환","e":"Roh Si-hwan","num":"8","pos":"3B","b":"R","pa":533,"avg":0.281,"obp":0.359,"slg":0.502,"hr":27,"sb":3,"bb":48,"so":139},{"n":"페라자","e":"Yonathan Perlaza","num":"30","pos":"RF","b":"S","pa":546,"avg":0.289,"obp":0.408,"slg":0.498,"hr":20,"sb":10,"bb":89,"so":102},{"n":"허인서","e":"Heo In-seo","num":"59","pos":"C","b":"R","pa":424,"avg":0.291,"obp":0.356,"slg":0.495,"hr":20,"sb":0,"bb":32,"so":119},{"n":"김태연","e":"Kim Tae-yean","num":"25","pos":"1B","b":"R","pa":417,"avg":0.274,"obp":0.348,"slg":0.444,"hr":13,"sb":3,"bb":36,"so":76},{"n":"이도윤","e":"Lee Do-yun","num":"5","pos":"2B","b":"L","pa":382,"avg":0.256,"obp":0.301,"slg":0.334,"hr":2,"sb":3,"bb":20,"so":57}],"bench":[{"n":"이원석","e":"Lee Won-seok","num":"37","pos":"CF","b":"R","pa":211,"avg":0.271,"obp":0.335,"slg":0.346,"hr":1,"sb":6,"bb":15,"so":38},{"n":"황영묵","e":"Hwang Young-mook","num":"95","pos":"2B","b":"L","pa":151,"avg":0.202,"obp":0.32,"slg":0.29,"hr":1,"sb":2,"bb":20,"so":22},{"n":"박정현","e":"Park Jung-hyun","num":"63","pos":"SS","b":"R","pa":122,"avg":0.213,"obp":0.277,"slg":0.454,"hr":8,"sb":1,"bb":9,"so":32},{"n":"최재훈","e":"Choi Jae-hoon","num":"13","pos":"C","b":"R","pa":119,"avg":0.175,"obp":0.299,"slg":0.175,"hr":0,"sb":0,"bb":11,"so":20}],"rotation":[{"n":"왕옌청","e":"Wang Yan-cheng","num":"","t":"L","role":"SP","ip":133.67,"era":3.97,"whip":1.52,"k":100,"bb":58,"sv":0},{"n":"류현진","e":"Ryu Hyun-jin","num":"","t":"L","role":"SP","ip":131.67,"era":3.62,"whip":1.15,"k":113,"bb":18,"sv":0},{"n":"화이트","e":"Owen White","num":"24","t":"R","role":"SP","ip":127.33,"era":3.75,"whip":1.27,"k":92,"bb":30,"sv":0},{"n":"박준영","e":"Park Jun-yeong","num":"","t":"R","role":"SP","ip":71.33,"era":6.06,"whip":1.53,"k":63,"bb":41,"sv":0},{"n":"에르난데스","e":"Wilkel Hernandez","num":"","t":"R","role":"SP","ip":71.33,"era":4.92,"whip":1.47,"k":47,"bb":27,"sv":0}],"bullpen":[{"n":"황준서","e":"Hwang Jun-seo","num":"29","t":"L","role":"RP","ip":56.0,"era":5.63,"whip":1.75,"k":59,"bb":37,"sv":0},{"n":"조동욱","e":"Cho Dong-uk","num":"57","t":"L","role":"RP","ip":53.33,"era":4.56,"whip":1.63,"k":53,"bb":21,"sv":0},{"n":"이상규","e":"Lee Sang-kyu","num":"18","t":"R","role":"RP","ip":51.33,"era":5.08,"whip":1.44,"k":38,"bb":19,"sv":0},{"n":"박상원","e":"Park Sang-won","num":"","t":"R","role":"RP","ip":50.67,"era":4.8,"whip":1.4,"k":52,"bb":18,"sv":0},{"n":"장유호","e":"Jang Yoo-ho","num":"28","t":"R","role":"RP","ip":38.67,"era":3.96,"whip":1.34,"k":27,"bb":18,"sv":0},{"n":"이민우","e":"Lee Min-woo","num":"","t":"R","role":"CL","ip":55.0,"era":4.91,"whip":1.6,"k":29,"bb":22,"sv":7}],"date":"09-13"},{"lineup":[{"n":"안상현","e":"An Sang-hyun","num":"10","pos":"3B","b":"R","pa":228,"avg":0.236,"obp":0.323,"slg":0.323,"hr":3,"sb":5,"bb":22,"so":61},{"n":"임근우","e":"Lim Geun-woo","num":"63","pos":"LF","b":"R","pa":85,"avg":0.221,"obp":0.268,"slg":0.325,"hr":1,"sb":0,"bb":2,"so":23},{"n":"박성한","e":"Park Seong-han","num":"2","pos":"SS","b":"L","pa":582,"avg":0.329,"obp":0.426,"slg":0.418,"hr":4,"sb":5,"bb":84,"so":78},{"n":"김재환","e":"Kim Jae-hwan","num":"32","pos":"DH","b":"L","pa":493,"avg":0.225,"obp":0.339,"slg":0.416,"hr":23,"sb":2,"bb":69,"so":143},{"n":"전의산","e":"Jeon Ui-san","num":"47","pos":"1B","b":"L","pa":291,"avg":0.251,"obp":0.316,"slg":0.433,"hr":11,"sb":1,"bb":25,"so":96},{"n":"최지훈","e":"Choi Ji-hoon","num":"54","pos":"CF","b":"L","pa":538,"avg":0.242,"obp":0.302,"slg":0.397,"hr":13,"sb":20,"bb":41,"so":85},{"n":"채현우","e":"Chae Hyun-woo","num":"15","pos":"RF","b":"R","pa":68,"avg":0.226,"obp":0.242,"slg":0.323,"hr":1,"sb":7,"bb":2,"so":22},{"n":"신범수","e":"Shin Beom-soo","num":"25","pos":"C","b":"L","pa":24,"avg":0.182,"obp":0.25,"slg":0.364,"hr":1,"sb":0,"bb":2,"so":9},{"n":"정준재","e":"Jeong Jun-jae","num":"3","pos":"2B","b":"L","pa":532,"avg":0.271,"obp":0.347,"slg":0.337,"hr":1,"sb":19,"bb":51,"so":77}],"bench":[{"n":"에레디아","e":"Guillermo Heredia","num":"27","pos":"LF","b":"R","pa":457,"avg":0.284,"obp":0.337,"slg":0.466,"hr":17,"sb":2,"bb":25,"so":76},{"n":"조형우","e":"Cho Hyeong-woo","num":"20","pos":"C","b":"R","pa":320,"avg":0.265,"obp":0.325,"slg":0.406,"hr":7,"sb":0,"bb":24,"so":56},{"n":"오태곤","e":"Oh Tae-gon","num":"37","pos":"LF","b":"R","pa":261,"avg":0.252,"obp":0.31,"slg":0.408,"hr":9,"sb":8,"bb":19,"so":72},{"n":"한유섬","e":"Han Yoo-seom","num":"35","pos":"RF","b":"L","pa":193,"avg":0.204,"obp":0.318,"slg":0.253,"hr":2,"sb":1,"bb":25,"so":44}],"rotation":[{"n":"김건우","e":"Kim Keon-woo","num":"39","t":"L","role":"SP","ip":123.33,"era":6.13,"whip":1.74,"k":107,"bb":69,"sv":0},{"n":"최민준","e":"Choi Min-jun","num":"30","t":"R","role":"SP","ip":95.67,"era":4.8,"whip":1.44,"k":70,"bb":46,"sv":0},{"n":"타케다","e":"Takeda Shota","num":"23","t":"R","role":"SP","ip":94.33,"era":7.44,"whip":1.82,"k":73,"bb":42,"sv":0},{"n":"베네치아노","e":"Anthony Veneziano","num":"","t":"L","role":"SP","ip":79.67,"era":6.1,"whip":1.63,"k":68,"bb":32,"sv":0},{"n":"김민준","e":"Kim Min-jun","num":"40","t":"R","role":"SP","ip":79.0,"era":3.65,"whip":1.23,"k":62,"bb":34,"sv":0}],"bullpen":[{"n":"아빌라","e":"Pedro Ávila","num":"33","t":"R","role":"RP","ip":77.67,"era":1.62,"whip":1.02,"k":83,"bb":23,"sv":0},{"n":"김민","e":"Kim Min","num":"1","t":"R","role":"RP","ip":62.33,"era":3.47,"whip":1.4,"k":68,"bb":32,"sv":0},{"n":"문승원","e":"Moon Seung-won","num":"42","t":"R","role":"RP","ip":59.0,"era":3.51,"whip":1.39,"k":28,"bb":31,"sv":0},{"n":"이로운","e":"Lee Ro-un","num":"92","t":"R","role":"RP","ip":58.33,"era":5.4,"whip":1.46,"k":57,"bb":28,"sv":0},{"n":"전영준","e":"Jeon Young-jun","num":"28","t":"R","role":"RP","ip":53.33,"era":5.4,"whip":1.48,"k":61,"bb":31,"sv":0},{"n":"조병현","e":"Jo Byeong-hyeon","num":"","t":"R","role":"CL","ip":50.33,"era":2.5,"whip":1.15,"k":64,"bb":26,"sv":20}],"date":"09-11"},{"lineup":[{"n":"김지찬","e":"Kim Ji-chan","num":"58","pos":"CF","b":"L","pa":493,"avg":0.32,"obp":0.409,"slg":0.369,"hr":0,"sb":22,"bb":59,"so":37},{"n":"김성윤","e":"Kim Seong-yoon","num":"39","pos":"RF","b":"L","pa":449,"avg":0.302,"obp":0.38,"slg":0.385,"hr":3,"sb":18,"bb":48,"so":45},{"n":"박승규","e":"Park Seung-kyu","num":"66","pos":"LF","b":"R","pa":354,"avg":0.27,"obp":0.387,"slg":0.471,"hr":12,"sb":7,"bb":53,"so":54},{"n":"디아즈","e":"Lewin Díaz","num":"0","pos":"1B","b":"L","pa":590,"avg":0.3,"obp":0.38,"slg":0.508,"hr":25,"sb":2,"bb":69,"so":95},{"n":"최형우","e":"Choi Hyoung-woo","num":"34","pos":"DH","b":"L","pa":540,"avg":0.312,"obp":0.398,"slg":0.475,"hr":17,"sb":2,"bb":66,"so":99},{"n":"강민호","e":"Kang Min-ho","num":"47","pos":"C","b":"R","pa":317,"avg":0.267,"obp":0.356,"slg":0.451,"hr":12,"sb":0,"bb":33,"so":68},{"n":"류지혁","e":"Ryu Ji-hyuk","num":"16","pos":"2B","b":"L","pa":506,"avg":0.285,"obp":0.375,"slg":0.389,"hr":5,"sb":29,"bb":54,"so":74},{"n":"김영웅","e":"Kim Young-woong","num":"30","pos":"3B","b":"L","pa":167,"avg":0.173,"obp":0.216,"slg":0.276,"hr":4,"sb":0,"bb":9,"so":48},{"n":"심재훈","e":"Sim Jae-hoon","num":"6","pos":"SS","b":"R","pa":35,"avg":0.29,"obp":0.371,"slg":0.323,"hr":0,"sb":0,"bb":4,"so":8}],"bench":[{"n":"구자욱","e":"Koo Ja-wook","num":"5","pos":"LF","b":"L","pa":492,"avg":0.369,"obp":0.456,"slg":0.576,"hr":15,"sb":6,"bb":66,"so":71},{"n":"전병우","e":"Jeon Byeong-woo","num":"61","pos":"3B","b":"R","pa":391,"avg":0.238,"obp":0.356,"slg":0.404,"hr":11,"sb":3,"bb":42,"so":99},{"n":"이재현","e":"Lee Jae-hyeon","num":"7","pos":"SS","b":"R","pa":268,"avg":0.224,"obp":0.337,"slg":0.457,"hr":15,"sb":1,"bb":28,"so":40},{"n":"김도환","e":"Kim Do-hwan","num":"24","pos":"C","b":"R","pa":119,"avg":0.24,"obp":0.328,"slg":0.37,"hr":3,"sb":0,"bb":11,"so":30}],"rotation":[{"n":"원태인","e":"Won Tae-in","num":"18","t":"R","role":"SP","ip":135.33,"era":4.66,"whip":1.39,"k":110,"bb":30,"sv":0},{"n":"후라도","e":"Ariel Jurado","num":"75","t":"R","role":"SP","ip":132.67,"era":3.12,"whip":1.23,"k":88,"bb":26,"sv":0},{"n":"최원태","e":"Choi Won-tae","num":"","t":"R","role":"SP","ip":121.67,"era":4.59,"whip":1.4,"k":115,"bb":42,"sv":0},{"n":"양창섭","e":"Yang Chang-seop","num":"42","t":"R","role":"SP","ip":91.67,"era":5.01,"whip":1.51,"k":71,"bb":34,"sv":0},{"n":"오러클린","e":"Jack O'Loughlin","num":"","t":"L","role":"SP","ip":83.33,"era":4.86,"whip":1.39,"k":81,"bb":38,"sv":0}],"bullpen":[{"n":"장찬희","e":"Jang Chan-hee","num":"60","t":"R","role":"RP","ip":69.33,"era":4.15,"whip":1.34,"k":52,"bb":28,"sv":0},{"n":"페덱","e":"Chris Paddack","num":"59","t":"R","role":"RP","ip":67.33,"era":3.21,"whip":0.98,"k":69,"bb":11,"sv":0},{"n":"이승민","e":"Lee Seung-min","num":"28","t":"L","role":"RP","ip":62.0,"era":2.76,"whip":1.35,"k":52,"bb":31,"sv":0},{"n":"임기영","e":"Im Gi-yeong","num":"38","t":"R","role":"RP","ip":49.0,"era":4.96,"whip":1.33,"k":33,"bb":11,"sv":0},{"n":"이승현","e":"Lee Seung-hyun","num":"26","t":"R","role":"RP","ip":41.67,"era":4.97,"whip":1.75,"k":39,"bb":22,"sv":0},{"n":"김재윤","e":"Kim Jae-yoon","num":"62","t":"R","role":"CL","ip":62.0,"era":3.19,"whip":1.05,"k":64,"bb":24,"sv":34}],"date":"09-13"},{"lineup":[{"n":"김주원","e":"Kim Ju-won","num":"7","pos":"SS","b":"R","pa":547,"avg":0.288,"obp":0.37,"slg":0.445,"hr":18,"sb":30,"bb":47,"so":68},{"n":"권희동","e":"Kwon Hui-dong","num":"36","pos":"LF","b":"R","pa":280,"avg":0.241,"obp":0.354,"slg":0.345,"hr":5,"sb":1,"bb":40,"so":45},{"n":"박민우","e":"Park Min-woo","num":"2","pos":"2B","b":"L","pa":522,"avg":0.319,"obp":0.407,"slg":0.438,"hr":7,"sb":48,"bb":61,"so":66},{"n":"블레인","e":"Blaine Crim","num":"50","pos":"1B","b":"R","pa":225,"avg":0.251,"obp":0.324,"slg":0.437,"hr":10,"sb":0,"bb":22,"so":50},{"n":"김휘집","e":"Kim Whee-jip","num":"44","pos":"3B","b":"R","pa":307,"avg":0.27,"obp":0.374,"slg":0.471,"hr":11,"sb":5,"bb":33,"so":57},{"n":"박건우","e":"Park Kun-woo","num":"37","pos":"DH","b":"R","pa":497,"avg":0.302,"obp":0.373,"slg":0.49,"hr":20,"sb":9,"bb":53,"so":69},{"n":"김형준","e":"Kim Hyung-jun","num":"25","pos":"C","b":"R","pa":378,"avg":0.243,"obp":0.317,"slg":0.422,"hr":15,"sb":0,"bb":32,"so":122},{"n":"박시원","e":"Park Si-won","num":"53","pos":"RF","b":"L","pa":101,"avg":0.227,"obp":0.293,"slg":0.352,"hr":2,"sb":2,"bb":9,"so":22},{"n":"최정원","e":"Choi Jeong-won","num":"14","pos":"CF","b":"L","pa":246,"avg":0.263,"obp":0.338,"slg":0.286,"hr":0,"sb":25,"bb":16,"so":46}],"bench":[{"n":"이우성","e":"Lee Woo-sung","num":"","pos":"LF","b":"R","pa":420,"avg":0.292,"obp":0.337,"slg":0.387,"hr":6,"sb":4,"bb":24,"so":null},{"n":"천재환","e":"Cheon Jae-hwan","num":"23","pos":"CF","b":"R","pa":296,"avg":0.3,"obp":0.353,"slg":0.442,"hr":7,"sb":6,"bb":17,"so":54},{"n":"안중열","e":"An Joong-yeol","num":"22","pos":"C","b":"R","pa":160,"avg":0.276,"obp":0.367,"slg":0.403,"hr":3,"sb":1,"bb":17,"so":32},{"n":"김한별","e":"Kim Han-byul","num":"13","pos":"2B","b":"R","pa":147,"avg":0.215,"obp":0.34,"slg":0.273,"hr":0,"sb":3,"bb":15,"so":30}],"rotation":[{"n":"구창모","e":"Koo Chang-mo","num":"59","t":"L","role":"SP","ip":151.0,"era":4.11,"whip":1.33,"k":124,"bb":45,"sv":0},{"n":"토다","e":"Toda Natsuki","num":"11","t":"R","role":"SP","ip":138.33,"era":4.94,"whip":1.54,"k":100,"bb":51,"sv":0},{"n":"라일리","e":"Riley Thompson","num":"3","t":"R","role":"SP","ip":127.67,"era":2.68,"whip":1.03,"k":157,"bb":33,"sv":0},{"n":"테일러","e":"Curtis Taylor","num":"","t":"R","role":"SP","ip":124.33,"era":4.78,"whip":1.33,"k":95,"bb":50,"sv":0},{"n":"김태경","e":"Kim Tae-gyeong","num":"60","t":"R","role":"SP","ip":44.0,"era":5.52,"whip":1.52,"k":37,"bb":22,"sv":0}],"bullpen":[{"n":"임지민","e":"Lim Ji-min","num":"","t":"R","role":"RP","ip":46.67,"era":5.4,"whip":1.48,"k":57,"bb":31,"sv":6},{"n":"배재환","e":"Bae Jae-whan","num":"61","t":"R","role":"RP","ip":44.67,"era":4.03,"whip":1.32,"k":44,"bb":17,"sv":0},{"n":"신영우","e":"Shin Yeong-woo","num":"43","t":"R","role":"RP","ip":33.33,"era":2.43,"whip":1.59,"k":50,"bb":38,"sv":0},{"n":"송명기","e":"Song Myung-gi","num":"45","t":"R","role":"RP","ip":33.0,"era":5.18,"whip":1.55,"k":32,"bb":15,"sv":0},{"n":"이준혁","e":"Lee Jun-hyeok","num":"40","t":"R","role":"RP","ip":29.33,"era":2.45,"whip":1.26,"k":25,"bb":17,"sv":0},{"n":"전사민","e":"Chun Sa-min","num":"57","t":"R","role":"CL","ip":59.33,"era":4.55,"whip":1.45,"k":42,"bb":35,"sv":10}],"date":"09-13"},{"lineup":[{"n":"최원준","e":"Choi Won-jun","num":"3","pos":"CF","b":"L","pa":616,"avg":0.343,"obp":0.426,"slg":0.474,"hr":9,"sb":27,"bb":71,"so":83},{"n":"김민혁","e":"Kim Min-hyuck","num":"53","pos":"DH","b":"L","pa":397,"avg":0.296,"obp":0.354,"slg":0.346,"hr":1,"sb":1,"bb":28,"so":65},{"n":"안현민","e":"Ahn Hyun-min","num":"23","pos":"RF","b":"R","pa":367,"avg":0.295,"obp":0.441,"slg":0.507,"hr":13,"sb":4,"bb":59,"so":80},{"n":"힐리어드","e":"Sam Hilliard","num":"34","pos":"LF","b":"L","pa":584,"avg":0.303,"obp":0.372,"slg":0.583,"hr":39,"sb":10,"bb":59,"so":165},{"n":"김현수","e":"Kim Hyun-soo","num":"10","pos":"1B","b":"L","pa":581,"avg":0.28,"obp":0.351,"slg":0.4,"hr":11,"sb":0,"bb":54,"so":67},{"n":"김상수","e":"Kim Sang-su","num":"7","pos":"2B","b":"R","pa":462,"avg":0.278,"obp":0.375,"slg":0.322,"hr":1,"sb":1,"bb":52,"so":58},{"n":"허경민","e":"Heo Kyoung-min","num":"13","pos":"3B","b":"R","pa":364,"avg":0.321,"obp":0.391,"slg":0.401,"hr":4,"sb":1,"bb":27,"so":32},{"n":"조대현","e":"Cho Dae-hyun","num":"42","pos":"C","b":"R","pa":54,"avg":0.298,"obp":0.365,"slg":0.383,"hr":1,"sb":0,"bb":5,"so":10},{"n":"권동진","e":"Kwon Dong-jin","num":"52","pos":"SS","b":"L","pa":242,"avg":0.262,"obp":0.345,"slg":0.376,"hr":2,"sb":3,"bb":25,"so":72}],"bench":[{"n":"한승택","e":"Han Seung-taek","num":"45","pos":"C","b":"R","pa":335,"avg":0.22,"obp":0.288,"slg":0.28,"hr":2,"sb":0,"bb":27,"so":80},{"n":"장성우","e":"Jang Sung-woo","num":"22","pos":"C","b":"R","pa":237,"avg":0.195,"obp":0.35,"slg":0.405,"hr":10,"sb":1,"bb":44,"so":59},{"n":"류현인","e":"Ryu Hyun-in","num":"9","pos":"2B","b":"L","pa":204,"avg":0.313,"obp":0.366,"slg":0.396,"hr":1,"sb":2,"bb":14,"so":38},{"n":"오윤석","e":"Oh Yoon-suk","num":"4","pos":"1B","b":"R","pa":201,"avg":0.287,"obp":0.342,"slg":0.37,"hr":1,"sb":0,"bb":16,"so":44}],"rotation":[{"n":"고영표","e":"Ko Young-pyo","num":"1","t":"R","role":"SP","ip":158.67,"era":3.57,"whip":1.12,"k":170,"bb":21,"sv":0},{"n":"소형준","e":"So Hyeong-jun","num":"","t":"R","role":"SP","ip":114.33,"era":3.38,"whip":1.28,"k":92,"bb":20,"sv":0},{"n":"사우어","e":"Matthew Sauer","num":"","t":"R","role":"SP","ip":101.33,"era":4.88,"whip":1.45,"k":71,"bb":45,"sv":0},{"n":"오원석","e":"Oh Won-seok","num":"","t":"L","role":"SP","ip":92.67,"era":5.92,"whip":1.52,"k":88,"bb":30,"sv":0},{"n":"앨런","e":"Logan Allen","num":"43","t":"L","role":"SP","ip":81.67,"era":3.53,"whip":1.44,"k":68,"bb":26,"sv":0}],"bullpen":[{"n":"배제성","e":"Bae Je-seong","num":"19","t":"R","role":"RP","ip":63.67,"era":3.11,"whip":1.48,"k":59,"bb":36,"sv":0},{"n":"부쉴리","e":"Caleb Boushley","num":"","t":"R","role":"RP","ip":62.67,"era":3.16,"whip":1.32,"k":56,"bb":15,"sv":0},{"n":"손동현","e":"Son Dong-hyun","num":"41","t":"R","role":"RP","ip":58.0,"era":3.41,"whip":1.22,"k":50,"bb":24,"sv":0},{"n":"주권","e":"Ju Kwon","num":"38","t":"R","role":"RP","ip":51.0,"era":4.41,"whip":1.45,"k":24,"bb":19,"sv":0},{"n":"전용주","e":"Jeon Yong-ju","num":"29","t":"L","role":"RP","ip":45.33,"era":3.97,"whip":1.57,"k":45,"bb":34,"sv":0},{"n":"박영현","e":"Park Yeong-hyun","num":"","t":"R","role":"CL","ip":56.67,"era":2.54,"whip":1.29,"k":57,"bb":26,"sv":27}],"date":"09-13"},{"lineup":[{"n":"황성빈","e":"Hwang Seong-bin","num":"0","pos":"CF","b":"L","pa":463,"avg":0.291,"obp":0.343,"slg":0.372,"hr":0,"sb":49,"bb":28,"so":63},{"n":"레이예스","e":"Víctor Reyes","num":"29","pos":"LF","b":"S","pa":581,"avg":0.357,"obp":0.408,"slg":0.521,"hr":16,"sb":1,"bb":46,"so":62},{"n":"고승민","e":"Go Seung-min","num":"2","pos":"2B","b":"L","pa":442,"avg":0.287,"obp":0.341,"slg":0.479,"hr":16,"sb":0,"bb":34,"so":85},{"n":"한동희","e":"Han Dong-hui","num":"25","pos":"3B","b":"R","pa":410,"avg":0.302,"obp":0.366,"slg":0.534,"hr":22,"sb":1,"bb":32,"so":69},{"n":"전민재","e":"Jeon Min-jae","num":"13","pos":"SS","b":"R","pa":477,"avg":0.278,"obp":0.328,"slg":0.382,"hr":8,"sb":12,"bb":31,"so":92},{"n":"전준우","e":"Jeon Jun-woo","num":"8","pos":"DH","b":"R","pa":234,"avg":0.226,"obp":0.27,"slg":0.3,"hr":3,"sb":0,"bb":14,"so":34},{"n":"나승엽","e":"Na Seung-yeup","num":"51","pos":"1B","b":"L","pa":383,"avg":0.284,"obp":0.366,"slg":0.416,"hr":7,"sb":1,"bb":45,"so":58},{"n":"장두성","e":"Jang Du-seong","num":"7","pos":"RF","b":"L","pa":236,"avg":0.278,"obp":0.32,"slg":0.324,"hr":0,"sb":17,"bb":11,"so":45},{"n":"박건우","e":"Park Kun-woo","num":"69","pos":"C","b":"R","pa":42,"avg":0.275,"obp":0.31,"slg":0.325,"hr":0,"sb":0,"bb":1,"so":19}],"bench":[{"n":"손성빈","e":"Son Seong-bin","num":"28","pos":"C","b":"R","pa":340,"avg":0.267,"obp":0.334,"slg":0.407,"hr":7,"sb":0,"bb":26,"so":59},{"n":"윤동희","e":"Yoon Dong-hee","num":"91","pos":"RF","b":"R","pa":239,"avg":0.244,"obp":0.339,"slg":0.364,"hr":4,"sb":0,"bb":27,"so":59},{"n":"노진혁","e":"No Jin-hyuk","num":"52","pos":"2B","b":"L","pa":222,"avg":0.218,"obp":0.294,"slg":0.352,"hr":5,"sb":0,"bb":21,"so":46},{"n":"한태양","e":"Han Tae-yang","num":"6","pos":"2B","b":"R","pa":205,"avg":0.243,"obp":0.34,"slg":0.316,"hr":1,"sb":9,"bb":25,"so":46}],"rotation":[{"n":"로드리게스","e":"Elvin Rodríguez","num":"31","t":"R","role":"SP","ip":156.33,"era":4.38,"whip":1.36,"k":180,"bb":56,"sv":0},{"n":"비슬리","e":"Jeremy Beasley","num":"23","t":"R","role":"SP","ip":144.0,"era":4.81,"whip":1.4,"k":157,"bb":42,"sv":0},{"n":"김진욱","e":"Kim Jin-uk","num":"","t":"L","role":"SP","ip":134.33,"era":3.95,"whip":1.33,"k":116,"bb":49,"sv":0},{"n":"나균안","e":"Na Gyun-an","num":"43","t":"R","role":"SP","ip":131.67,"era":4.24,"whip":1.45,"k":112,"bb":41,"sv":0},{"n":"박세웅","e":"Park Se-woong","num":"21","t":"R","role":"SP","ip":131.67,"era":4.99,"whip":1.55,"k":112,"bb":47,"sv":0}],"bullpen":[{"n":"박정민","e":"Park Jeong-min","num":"36","t":"R","role":"RP","ip":52.0,"era":4.15,"whip":1.37,"k":59,"bb":37,"sv":0},{"n":"현도훈","e":"Hyeon Do-hoon","num":"17","t":"R","role":"RP","ip":51.0,"era":4.41,"whip":1.35,"k":36,"bb":27,"sv":0},{"n":"김원중","e":"Kim Won-jung","num":"34","t":"R","role":"RP","ip":50.33,"era":4.65,"whip":1.49,"k":39,"bb":23,"sv":0},{"n":"이민석","e":"Lee Min-seok","num":"","t":"R","role":"RP","ip":52.33,"era":6.19,"whip":1.7,"k":38,"bb":31,"sv":0},{"n":"이진하","e":"Lee Jin-ha","num":"45","t":"R","role":"RP","ip":21.0,"era":3.0,"whip":1.33,"k":14,"bb":4,"sv":0},{"n":"최준용","e":"Choi Jun-yong","num":"","t":"R","role":"CL","ip":53.67,"era":4.19,"whip":1.47,"k":57,"bb":24,"sv":15}],"date":"09-13"},{"lineup":[{"n":"박정우","e":"Park Jung-woo","num":"1","pos":"CF","b":"L","pa":122,"avg":0.306,"obp":0.429,"slg":0.357,"hr":0,"sb":3,"bb":17,"so":20},{"n":"박재현","e":"Park Jae-hyun","num":"15","pos":"LF","b":"L","pa":504,"avg":0.293,"obp":0.333,"slg":0.475,"hr":17,"sb":19,"bb":28,"so":97},{"n":"김도영","e":"Kim Do-yeong","num":"5","pos":"DH","b":"R","pa":538,"avg":0.31,"obp":0.414,"slg":0.639,"hr":40,"sb":10,"bb":77,"so":91},{"n":"카스트로","e":"Harold Castro","num":"26","pos":"1B","b":"L","pa":377,"avg":0.329,"obp":0.363,"slg":0.55,"hr":16,"sb":1,"bb":17,"so":53},{"n":"나성범","e":"Na Sung-bum","num":"47","pos":"RF","b":"L","pa":528,"avg":0.298,"obp":0.375,"slg":0.543,"hr":29,"sb":0,"bb":54,"so":144},{"n":"김선빈","e":"Kim Sun-bin","num":"3","pos":"2B","b":"R","pa":488,"avg":0.276,"obp":0.38,"slg":0.339,"hr":1,"sb":1,"bb":64,"so":45},{"n":"하주석","e":"Ha Ju-suk","num":"30","pos":"SS","b":"L","pa":223,"avg":0.254,"obp":0.311,"slg":0.358,"hr":4,"sb":0,"bb":12,"so":56},{"n":"김태군","e":"Kim Tae-gun","num":"42","pos":"C","b":"R","pa":220,"avg":0.273,"obp":0.352,"slg":0.401,"hr":5,"sb":0,"bb":14,"so":25},{"n":"변우혁","e":"Byun Woo-hyuk","num":"29","pos":"3B","b":"R","pa":87,"avg":0.203,"obp":0.256,"slg":0.342,"hr":3,"sb":1,"bb":5,"so":26}],"bench":[{"n":"김호령","e":"Kim Ho-ryung","num":"27","pos":"CF","b":"R","pa":539,"avg":0.273,"obp":0.316,"slg":0.416,"hr":13,"sb":15,"bb":32,"so":143},{"n":"한준수","e":"Han Jun-su","num":"25","pos":"C","b":"L","pa":362,"avg":0.285,"obp":0.402,"slg":0.434,"hr":7,"sb":0,"bb":51,"so":55},{"n":"김규성","e":"Kim Kyu-sung","num":"14","pos":"SS","b":"L","pa":206,"avg":0.222,"obp":0.292,"slg":0.283,"hr":0,"sb":4,"bb":18,"so":43},{"n":"박민","e":"Park Min","num":"2","pos":"2B","b":"R","pa":193,"avg":0.201,"obp":0.274,"slg":0.29,"hr":3,"sb":5,"bb":15,"so":32}],"rotation":[{"n":"네일","e":"James Naile","num":"40","t":"R","role":"SP","ip":169.67,"era":3.45,"whip":1.17,"k":143,"bb":35,"sv":0},{"n":"올러","e":"Adam Oller","num":"33","t":"R","role":"SP","ip":160.33,"era":2.81,"whip":1.04,"k":167,"bb":53,"sv":0},{"n":"양현종","e":"Yang Hyeon-jong","num":"54","t":"L","role":"SP","ip":111.33,"era":4.04,"whip":1.43,"k":77,"bb":55,"sv":0},{"n":"황동하","e":"Hwang Dong-ha","num":"41","t":"R","role":"SP","ip":89.0,"era":5.16,"whip":1.51,"k":64,"bb":39,"sv":0},{"n":"시라카와","e":"Keisho Shirakawa","num":"63","t":"R","role":"SP","ip":76.0,"era":4.5,"whip":1.37,"k":63,"bb":43,"sv":0}],"bullpen":[{"n":"김태형","e":"Kim Tae-hyeong","num":"10","t":"R","role":"RP","ip":70.0,"era":5.4,"whip":1.59,"k":47,"bb":31,"sv":0},{"n":"조상우","e":"Cho Sang-woo","num":"11","t":"R","role":"RP","ip":56.33,"era":3.2,"whip":1.42,"k":37,"bb":22,"sv":0},{"n":"한재승","e":"Han Jae-seung","num":"55","t":"R","role":"RP","ip":42.0,"era":4.5,"whip":1.43,"k":26,"bb":22,"sv":0},{"n":"김범수","e":"Kim Beom-su","num":"49","t":"L","role":"RP","ip":38.0,"era":5.92,"whip":2.08,"k":34,"bb":29,"sv":0},{"n":"전상현","e":"Jeon Sang-hyun","num":"51","t":"R","role":"RP","ip":36.0,"era":2.75,"whip":0.92,"k":33,"bb":4,"sv":0},{"n":"성영탁","e":"Sung Yeong-tak","num":"","t":"R","role":"CL","ip":51.67,"era":2.96,"whip":1.26,"k":39,"bb":15,"sv":12}],"date":"09-13"},{"lineup":[{"n":"박찬호","e":"Park Chan-ho","num":"7","pos":"SS","b":"R","pa":567,"avg":0.281,"obp":0.349,"slg":0.369,"hr":5,"sb":31,"bb":53,"so":74},{"n":"조수행","e":"Jo Soo-haeng","num":"51","pos":"RF","b":"L","pa":200,"avg":0.314,"obp":0.389,"slg":0.379,"hr":0,"sb":17,"bb":19,"so":28},{"n":"박준순","e":"Park Jun-soon","num":"52","pos":"2B","b":"R","pa":393,"avg":0.299,"obp":0.356,"slg":0.503,"hr":16,"sb":2,"bb":25,"so":78},{"n":"양의지","e":"Yang Eui-ji","num":"25","pos":"C","b":"R","pa":505,"avg":0.253,"obp":0.356,"slg":0.435,"hr":20,"sb":2,"bb":54,"so":56},{"n":"김민석","e":"Kim Min-suk","num":"2","pos":"LF","b":"L","pa":477,"avg":0.31,"obp":0.387,"slg":0.41,"hr":5,"sb":3,"bb":49,"so":80},{"n":"세베리노","e":"Yunior Severino","num":"36","pos":"DH","b":"S","pa":137,"avg":0.281,"obp":0.365,"slg":0.488,"hr":5,"sb":0,"bb":16,"so":33},{"n":"강승호","e":"Kang Seung-ho","num":"23","pos":"1B","b":"R","pa":248,"avg":0.26,"obp":0.333,"slg":0.409,"hr":8,"sb":6,"bb":17,"so":63},{"n":"안재석","e":"An Jae-seok","num":"62","pos":"3B","b":"L","pa":406,"avg":0.272,"obp":0.323,"slg":0.434,"hr":10,"sb":4,"bb":25,"so":68},{"n":"정수빈","e":"Jung Soo-bin","num":"31","pos":"CF","b":"L","pa":497,"avg":0.252,"obp":0.332,"slg":0.351,"hr":7,"sb":17,"bb":48,"so":71}],"bench":[{"n":"박지훈","e":"Park Ji-hoon","num":"37","pos":"1B","b":"R","pa":282,"avg":0.266,"obp":0.344,"slg":0.349,"hr":2,"sb":5,"bb":25,"so":46},{"n":"윤준호","e":"Yun Jun-ho","num":"27","pos":"C","b":"R","pa":187,"avg":0.215,"obp":0.272,"slg":0.319,"hr":4,"sb":1,"bb":11,"so":46},{"n":"손아섭","e":"Son Ah-seop","num":"24","pos":"LF","b":"L","pa":172,"avg":0.235,"obp":0.302,"slg":0.281,"hr":1,"sb":0,"bb":16,"so":32},{"n":"오명진","e":"Oh Myeong-jin","num":"6","pos":"2B","b":"L","pa":157,"avg":0.241,"obp":0.321,"slg":0.387,"hr":3,"sb":0,"bb":17,"so":33}],"rotation":[{"n":"곽빈","e":"Gwak Been","num":"","t":"R","role":"SP","ip":155.0,"era":2.26,"whip":1.06,"k":186,"bb":39,"sv":0},{"n":"잭로그","e":"Zach Logue","num":"39","t":"L","role":"SP","ip":153.33,"era":4.11,"whip":1.27,"k":130,"bb":29,"sv":0},{"n":"최민석","e":"Choi Min-seok","num":"","t":"R","role":"SP","ip":138.67,"era":2.73,"whip":1.28,"k":121,"bb":53,"sv":0},{"n":"벤자민","e":"Wes Benjamin","num":"48","t":"L","role":"SP","ip":121.67,"era":2.37,"whip":1.16,"k":133,"bb":33,"sv":0},{"n":"최승용","e":"Choi Seung-yong","num":"28","t":"L","role":"SP","ip":108.0,"era":5.92,"whip":1.56,"k":79,"bb":41,"sv":0}],"bullpen":[{"n":"김정우","e":"Kim Jeong-woo","num":"16","t":"R","role":"RP","ip":54.33,"era":2.15,"whip":1.07,"k":45,"bb":25,"sv":0},{"n":"김택연","e":"Kim Taek-yeon","num":"63","t":"R","role":"RP","ip":49.67,"era":2.9,"whip":1.33,"k":66,"bb":29,"sv":0},{"n":"타카다","e":"Takada Takuto","num":"12","t":"L","role":"RP","ip":46.0,"era":3.52,"whip":1.28,"k":39,"bb":19,"sv":0},{"n":"박치국","e":"Park Chi-guk","num":"1","t":"R","role":"RP","ip":45.0,"era":4.4,"whip":1.56,"k":41,"bb":14,"sv":0},{"n":"이병헌","e":"Lee Byeong-heon","num":"29","t":"L","role":"RP","ip":40.67,"era":5.75,"whip":1.84,"k":35,"bb":20,"sv":0},{"n":"이영하","e":"Lee Young-ha","num":"50","t":"R","role":"CL","ip":62.33,"era":3.32,"whip":1.22,"k":83,"bb":29,"sv":23}],"date":"09-13"},{"lineup":[{"n":"서건창","e":"Seo Geon-chang","num":"14","pos":"2B","b":"L","pa":450,"avg":0.308,"obp":0.395,"slg":0.391,"hr":3,"sb":3,"bb":47,"so":49},{"n":"추재현","e":"Choo Jae-hyun","num":"27","pos":"CF","b":"L","pa":283,"avg":0.296,"obp":0.374,"slg":0.401,"hr":4,"sb":0,"bb":25,"so":52},{"n":"데이비슨","e":"Matthew Davidson","num":"34","pos":"1B","b":"R","pa":486,"avg":0.286,"obp":0.36,"slg":0.498,"hr":22,"sb":1,"bb":28,"so":121},{"n":"히우라","e":"Keston Hiura","num":"22","pos":"LF","b":"R","pa":279,"avg":0.258,"obp":0.344,"slg":0.426,"hr":10,"sb":1,"bb":27,"so":84},{"n":"김웅빈","e":"Kim Woong-bin","num":"10","pos":"DH","b":"L","pa":294,"avg":0.251,"obp":0.35,"slg":0.4,"hr":9,"sb":1,"bb":33,"so":67},{"n":"박찬혁","e":"Park Chan-hyeok","num":"43","pos":"RF","b":"R","pa":321,"avg":0.245,"obp":0.339,"slg":0.391,"hr":11,"sb":0,"bb":32,"so":81},{"n":"김건희","e":"Kim Gun-hee","num":"12","pos":"C","b":"R","pa":362,"avg":0.273,"obp":0.33,"slg":0.405,"hr":8,"sb":0,"bb":28,"so":92},{"n":"염승원","e":"Yum Seung-won","num":"39","pos":"3B","b":"L","pa":24,"avg":0.136,"obp":0.136,"slg":0.136,"hr":0,"sb":0,"bb":0,"so":10},{"n":"권혁빈","e":"Gwon Hyuk-bin","num":"00","pos":"SS","b":"R","pa":307,"avg":0.229,"obp":0.276,"slg":0.268,"hr":0,"sb":0,"bb":13,"so":76}],"bench":[{"n":"안치홍","e":"An Chi-hong","num":"9","pos":"1B","b":"R","pa":450,"avg":0.261,"obp":0.345,"slg":0.366,"hr":9,"sb":0,"bb":48,"so":64},{"n":"임병욱","e":"Lim Byeong-wuk","num":"17","pos":"CF","b":"L","pa":266,"avg":0.258,"obp":0.309,"slg":0.439,"hr":10,"sb":3,"bb":13,"so":85},{"n":"이형종","e":"Lee Hyung-jong","num":"36","pos":"LF","b":"R","pa":187,"avg":0.21,"obp":0.312,"slg":0.34,"hr":5,"sb":2,"bb":21,"so":53},{"n":"김동헌","e":"Kim Dong-heon","num":"44","pos":"C","b":"R","pa":99,"avg":0.211,"obp":0.276,"slg":0.344,"hr":2,"sb":0,"bb":5,"so":21}],"rotation":[{"n":"알칸타라","e":"Raúl Alcántara","num":"","t":"R","role":"SP","ip":155.67,"era":3.87,"whip":1.11,"k":137,"bb":19,"sv":0},{"n":"하영민","e":"Ha Yeong-min","num":"50","t":"R","role":"SP","ip":122.0,"era":4.57,"whip":1.44,"k":101,"bb":45,"sv":0},{"n":"안우진","e":"An Woo-jin","num":"41","t":"R","role":"SP","ip":107.0,"era":3.45,"whip":1.27,"k":122,"bb":37,"sv":0},{"n":"박준현","e":"Park Jun-hyun","num":"18","t":"R","role":"SP","ip":83.33,"era":5.62,"whip":1.74,"k":84,"bb":69,"sv":0},{"n":"배동현","e":"Bae Dong-hyun","num":"","t":"R","role":"SP","ip":81.67,"era":6.28,"whip":1.69,"k":66,"bb":23,"sv":0}],"bullpen":[{"n":"박정훈","e":"Park Jeong-hun","num":"","t":"R","role":"RP","ip":55.0,"era":5.56,"whip":1.69,"k":44,"bb":35,"sv":0},{"n":"전준표","e":"Jhun Jun-pyo","num":"62","t":"R","role":"RP","ip":53.33,"era":4.56,"whip":1.74,"k":30,"bb":42,"sv":0},{"n":"원종현","e":"Won Jong-hyan","num":"46","t":"R","role":"RP","ip":46.0,"era":5.67,"whip":1.52,"k":34,"bb":15,"sv":7},{"n":"박지성","e":"Park Ji-sung","num":"37","t":"R","role":"RP","ip":43.0,"era":4.81,"whip":1.56,"k":28,"bb":23,"sv":0},{"n":"조영건","e":"Cho Young-gun","num":"20","t":"R","role":"RP","ip":37.67,"era":4.78,"whip":1.35,"k":26,"bb":10,"sv":0},{"n":"카나쿠보","e":"Kanakubo Yuto","num":"48","t":"R","role":"CL","ip":48.67,"era":4.99,"whip":1.58,"k":50,"bb":17,"sv":14}],"date":"09-12"}];
+/* ===================== 화면 이펙트 (순수 연출 — 경기 결과에 영향 없음) ===================== */
+// 주의: 여기서는 Math.random만 쓴다. GR(경기 난수)을 쓰면 온라인 대전에서 두 기기가 어긋남
+const FX = { cv: $('#fx'), g: null, P: [], w: 0, h: 0, dpr: 1, shake: 0, shakeT: 0, shakeD: 1, dirty: false, flash: $('#fxFlash') };
+FX.g = FX.cv.getContext('2d');
+const rnd = (a, b) => a + Math.random() * (b - a);
+const FX_LITE = lowEnd || reduceMotion;
+function fxResize() {
+  FX.dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1 : 1.5);
+  FX.w = innerWidth; FX.h = innerHeight;
+  FX.cv.width = Math.round(FX.w * FX.dpr); FX.cv.height = Math.round(FX.h * FX.dpr);
+}
+fxResize(); addEventListener('resize', fxResize);
+const _fxv = new T.Vector3();
+function toScreen(p) {
+  _fxv.set(p.x, p.y, p.z).project(camera);
+  return { x: (_fxv.x + 1) / 2 * FX.w, y: (1 - _fxv.y) / 2 * FX.h, ok: _fxv.z < 1 };
+}
+function fxAdd(p) {
+  // 파티클이 꽉 차면 색종이를 먼저 버리고 글자·불꽃·링은 꼭 보여 줌
+  if (FX.P.length >= (FX_LITE ? 220 : 520)) {
+    if (p.k === 'c') return;
+    const i = FX.P.findIndex((q) => q.k === 'c'); if (i < 0) return;
+    FX.P.splice(i, 1);
+  }
+  FX.P.push(p);
+}
+
+/* ---- 파티클 종류 ---- */
+function fxConfetti(n, colors, o = {}) {
+  n = Math.round(n * (FX_LITE ? 0.45 : 1));
+  for (let i = 0; i < n; i++) {
+    const fromX = o.x != null ? o.x : rnd(0, FX.w), fromY = o.y != null ? o.y : rnd(-FX.h * 0.25, -10);
+    const a = o.x != null ? rnd(-Math.PI * 0.95, -Math.PI * 0.05) : Math.PI / 2, sp = o.x != null ? rnd(260, 720) : rnd(40, 160);
+    fxAdd({ k: 'c', x: fromX, y: fromY, vx: Math.cos(a) * sp + rnd(-30, 30), vy: Math.sin(a) * sp, r: rnd(0, 6.3), vr: rnd(-9, 9),
+      w: rnd(6, 11), h: rnd(3, 6), c: colors[i % colors.length], life: rnd(2.6, 4.2), t: 0, wob: rnd(0, 6.3) });
+  }
+}
+function fxSparks(x, y, n, colors, spd = 1) {
+  n = Math.round(n * (FX_LITE ? 0.5 : 1));
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, Math.PI * 2), sp = rnd(260, 900) * spd;
+    fxAdd({ k: 's', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, c: colors[i % colors.length], life: rnd(0.25, 0.6), t: 0, lw: rnd(1.5, 3.5) });
+  }
+}
+function fxRing(x, y, color, size = 1) { fxAdd({ k: 'r', x, y, c: color, life: 0.55, t: 0, s: size }); }
+function fxText(x, y, text, color, size = 34) { fxAdd({ k: 't', x, y, text, c: color, life: 1.4, t: 0, s: size }); }
+function fxShake(amp, dur = 0.45) { if (reduceMotion) return; if (amp >= FX.shake * (FX.shakeT / FX.shakeD || 0)) { FX.shake = amp; FX.shakeT = FX.shakeD = dur; } }
+function fxFlash(color, strength = 0.6, ms = 380) {
+  if (reduceMotion) strength *= 0.4;
+  const f = FX.flash; f.style.setProperty('--fc', color); f.style.setProperty('--fs', strength); f.style.setProperty('--fd', ms + 'ms');
+  f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+}
+function fxApplyShake() {
+  if (FX.shakeT <= 0) return;
+  const k = (FX.shakeT / FX.shakeD) ** 2 * FX.shake;
+  camera.position.x += rnd(-1, 1) * k * 0.35; camera.position.y += rnd(-1, 1) * k * 0.25;
+  camera.rotateZ(rnd(-1, 1) * k * 0.012);
+}
+function fxTick(dt) {
+  if (FX.shakeT > 0) FX.shakeT = Math.max(0, FX.shakeT - dt);
+  const g = FX.g, P = FX.P;
+  if (!P.length) { if (FX.dirty) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, FX.cv.width, FX.cv.height); FX.dirty = false; } return; }
+  FX.dirty = true;
+  g.setTransform(FX.dpr, 0, 0, FX.dpr, 0, 0); g.clearRect(0, 0, FX.w, FX.h);
+  for (let i = P.length - 1; i >= 0; i--) {
+    const p = P[i]; p.t += dt;
+    if (p.t >= p.life) { P.splice(i, 1); continue; }
+    const u = p.t / p.life;
+    if (p.k === 'c') {
+      p.vy += 520 * dt; p.vx *= 1 - 1.6 * dt; p.vy *= 1 - 1.3 * dt; p.wob += dt * 7;
+      p.x += (p.vx + Math.sin(p.wob) * 40) * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      g.save(); g.globalAlpha = u > 0.8 ? (1 - u) / 0.2 : 1; g.translate(p.x, p.y); g.rotate(p.r); g.scale(1, Math.cos(p.wob * 1.3));
+      g.fillStyle = p.c; g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); g.restore();
+    } else if (p.k === 's') {
+      p.vx *= 1 - 3.5 * dt; p.vy = p.vy * (1 - 3.5 * dt) + 380 * dt;
+      const nx = p.x + p.vx * dt, ny = p.y + p.vy * dt;
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1 - u; g.strokeStyle = p.c; g.lineWidth = p.lw * (1 - u * 0.6); g.lineCap = 'round';
+      g.beginPath(); g.moveTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03); g.lineTo(nx, ny); g.stroke();
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+      p.x = nx; p.y = ny;
+    } else if (p.k === 'r') {
+      const e = 1 - (1 - u) ** 3;
+      g.globalAlpha = 1 - u; g.strokeStyle = p.c; g.lineWidth = 10 * (1 - u) * p.s + 1;
+      g.beginPath(); g.arc(p.x, p.y, (20 + e * 150) * p.s, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
+    } else if (p.k === 't') {
+      const e = Math.min(1, p.t / 0.18), sc = 0.6 + 0.4 * (1 - (1 - e) ** 3) + (e < 1 ? 0 : Math.max(0, 0.15 - (p.t - 0.18)) * 0.8);
+      g.save(); g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; g.translate(p.x, p.y - p.t * 46); g.scale(sc, sc);
+      g.font = `${p.s}px ${FONT_DISP}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 6; g.strokeStyle = 'rgba(5,10,30,0.85)'; g.strokeText(p.text, 0, 0);
+      g.fillStyle = p.c; g.shadowColor = p.c; g.shadowBlur = 14; g.fillText(p.text, 0, 0); g.restore();
+    }
+  }
+}
+
+/* ---- 경기 이벤트 연출 ---- */
+const GOLD = ['#ffd84a', '#ffb627', '#fff3b0', '#ffffff', '#ff8a3d'];
+function teamCols(tm) { return tm ? [tm.t.c1, tm.t.c2, '#ffffff', '#ffd84a'] : GOLD; }
+// 배트에 공이 맞는 순간: 타구 속도가 빠를수록 크게
+function fxContact(cp, ev, foul) {
+  const s = toScreen(cp); if (!s.ok) return;
+  const q = clamp((ev - 90) / 80, 0, 1);
+  if (foul && ev < 100) { fxSparks(s.x, s.y, 8, ['#ffffff'], 0.5); return; }
+  fxSparks(s.x, s.y, 14 + Math.round(q * 26), q > 0.6 ? GOLD : ['#ffffff', '#fff3b0', '#9fdcff'], 0.6 + q * 0.7);
+  fxRing(s.x, s.y, q > 0.6 ? '#ffd84a' : '#ffffff', 0.5 + q * 0.7);
+  if (q > 0.35) { fxShake(0.4 + q * 1.1, 0.3 + q * 0.25); fxFlash('#fff6d8', 0.12 + q * 0.3, 260); }
+}
+function fxHit(kind, tm) {
+  const big = kind === '3B' ? 1.3 : kind === '2B' ? 1 : 0.6;
+  fxConfetti(24 * big, teamCols(tm), { x: FX.w / 2, y: FX.h * 0.42 });
+  fxText(FX.w / 2, FX.h * 0.3, kind === '3B' ? '3루타!' : kind === '2B' ? '2루타!' : '안타!', kind === '1B' || kind === 'IFH' || kind === 'BUNT_HIT' ? '#9fe8ff' : '#ffd84a', 40 + big * 10);
+}
+function fxHomeRun(tm) {
+  const cols = teamCols(tm).concat(GOLD);
+  fxFlash('#fff2c2', 0.75, 520); fxShake(2.2, 0.9);
+  setTimeout(() => fxFlash('#ffd84a', 0.35, 420), 260);
+  fxConfetti(160, cols);
+  setTimeout(() => fxConfetti(90, cols), 900);
+  fxConfetti(50, cols, { x: FX.w * 0.08, y: FX.h * 0.95 }); fxConfetti(50, cols, { x: FX.w * 0.92, y: FX.h * 0.95 });
+  UI.banner.classList.add('hr'); clearTimeout(FX.hrT); FX.hrT = setTimeout(() => UI.banner.classList.remove('hr'), 3200);
+  fireShowBig(tm);
+}
+function fxStrikeout(forPitcher) {
+  fxFlash(forPitcher ? '#ffd84a' : '#ff3b3b', 0.28, 360); fxShake(0.7, 0.35);
+  fxSparks(FX.w / 2, FX.h * 0.38, 26, forPitcher ? GOLD : ['#ff4b4b', '#ff9a9a', '#ffffff'], 1.1);
+  fxText(FX.w / 2, FX.h * 0.52, 'K', forPitcher ? '#ffd84a' : '#ff6b6b', 76);
+}
+function fxScore(runs, tm) {
+  const bug = $('.bug'); if (bug) { bug.classList.remove('pulse'); void bug.offsetWidth; bug.classList.add('pulse'); }
+  const r = bug ? bug.getBoundingClientRect() : { left: 20, bottom: 70, width: 100 };
+  fxText(r.left + r.width / 2, r.bottom + 26, `+${runs} 득점`, '#ffd84a', 26);
+  fxConfetti(22, teamCols(tm), { x: r.left + r.width / 2, y: r.bottom });
+}
+function fxWin(tm) {
+  const cols = teamCols(tm).concat(GOLD);
+  fxFlash('#fff2c2', 0.5, 600); fxConfetti(200, cols);
+  setTimeout(() => fxConfetti(120, cols), 1200); setTimeout(() => fxConfetti(80, cols), 2400);
+}
+function fireShowBig(tm) {
+  const c = tm ? [tm.t.c1, tm.t.c2] : [];
+  const cols = c.concat(['#ffb627', '#ff4b4b', '#37d67a', '#5aa9ff', '#ffffff', '#ff7ab8']);
+  const n = FX_LITE ? 6 : 11;
+  for (let i = 0; i < n; i++) later(i * 0.28, () => {
+    const x = rnd(-70, 70), y = rnd(48, 85), z = rnd(-165, -115), col = cols[i % cols.length];
+    const kind = i % 4 === 1 ? 'ring' : i % 4 === 3 ? 'willow' : null;
+    burst(x, y, z, col, kind === 'willow' ? 150 : 120, { kind });
+    if (i % 3 === 0) burst(x + rnd(-8, 8), y + rnd(-6, 6), z, '#ffffff', 40, { sp: 6, life: 0.7 });
+    AU.boom();
+  });
+}
+/* ===================== 선수 사진 (tools/photos.js가 생성 — 직접 고치지 말 것) =====================
+   Wikimedia Commons의 자유 라이선스 사진만. 키: "팀번호|이름". u=썸네일, s=원본 페이지, a=저작자, l=라이선스, f=[얼굴 가로%, 세로%, 확대]
+   생성: 2026-09-28 · 33명 */
+const PHOTO_DB = {"0|박해민":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/%EB%B0%95%ED%95%B4%EB%AF%BC_%EC%84%A0%EC%88%98.jpg/250px-%EB%B0%95%ED%95%B4%EB%AF%BC_%EC%84%A0%EC%88%98.jpg","w":250,"h":308,"s":"https://commons.wikimedia.org/wiki/File:%EB%B0%95%ED%95%B4%EB%AF%BC_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.45,0.31,2]},
+  "0|오지환":{"u":"https://upload.wikimedia.org/wikipedia/commons/e/ea/Oh_Ji-Hwan.jpg","w":250,"h":401,"s":"https://commons.wikimedia.org/wiki/File:Oh_Ji-Hwan.jpg","a":"flickr.com/people/lge","l":"CC BY 2.0","lu":"https://creativecommons.org/licenses/by/2.0","f":[0.52,0.15,2.75]},
+  "0|홍창기":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4f/%ED%99%8D%EC%B0%BD%EA%B8%B0_%EC%84%A0%EC%88%98.jpg/250px-%ED%99%8D%EC%B0%BD%EA%B8%B0_%EC%84%A0%EC%88%98.jpg","w":250,"h":339,"s":"https://commons.wikimedia.org/wiki/File:%ED%99%8D%EC%B0%BD%EA%B8%B0_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.56,0.3,2.1]},
+  "1|강백호":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/58/Kang_Baek-Ho_2019_Premier_12.jpg/500px-Kang_Baek-Ho_2019_Premier_12.jpg","w":500,"h":500,"s":"https://commons.wikimedia.org/wiki/File:Kang_Baek-Ho_2019_Premier_12.jpg","a":"Trainholic","l":"CC BY-SA 4.0","lu":"https://creativecommons.org/licenses/by-sa/4.0","f":[0.5,0.19,3.4]},
+  "1|류현진":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fd/Hyun_jin_Ryu_2013_NLDS.jpg/500px-Hyun_jin_Ryu_2013_NLDS.jpg","w":500,"h":555,"s":"https://commons.wikimedia.org/wiki/File:Hyun_jin_Ryu_2013_NLDS.jpg","a":"Derral Chen on Flickr (Original version) 佾珜 (Crop)","l":"CC BY-SA 2.0","lu":"https://creativecommons.org/licenses/by-sa/2.0","f":[0.445,0.105,6]},
+  "1|왕옌청":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/W_yancheng20210602.jpg/960px-W_yancheng20210602.jpg","w":960,"h":1280,"s":"https://commons.wikimedia.org/wiki/File:W_yancheng20210602.jpg","a":"Eargus","l":"CC BY-SA 4.0","lu":"https://creativecommons.org/licenses/by-sa/4.0","f":[0.505,0.34,7.5]},
+  "1|최재훈":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Choi_Jaehoon_2025.jpg/500px-Choi_Jaehoon_2025.jpg","w":500,"h":667,"s":"https://commons.wikimedia.org/wiki/File:Choi_Jaehoon_2025.jpg","a":"Seohae1999","l":"CC BY-SA 4.0","lu":"https://creativecommons.org/licenses/by-sa/4.0","f":[0.49,0.245,5.5]},
+  "2|김재환":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Kim_Jae-hwan_%EA%B9%80%EC%9E%AC%ED%99%98_2016_%EA%B3%A8%EB%93%A0%EA%B8%80%EB%9F%AC%EB%B8%8C.png/250px-Kim_Jae-hwan_%EA%B9%80%EC%9E%AC%ED%99%98_2016_%EA%B3%A8%EB%93%A0%EA%B8%80%EB%9F%AC%EB%B8%8C.png","w":250,"h":313,"s":"https://commons.wikimedia.org/wiki/File:Kim_Jae-hwan_%EA%B9%80%EC%9E%AC%ED%99%98_2016_%EA%B3%A8%EB%93%A0%EA%B8%80%EB%9F%AC%EB%B8%8C.png","a":"KBS 뷰","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.5,0.3,1.6]},
+  "3|강민호":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/0/01/Kang_Min-Ho%2C_Beijing_2008.jpg/250px-Kang_Min-Ho%2C_Beijing_2008.jpg","w":250,"h":232,"s":"https://commons.wikimedia.org/wiki/File:Kang_Min-Ho,_Beijing_2008.jpg","a":"roger.badsoul on Flickr (Original version) User UCinternational (Crop)","l":"CC BY-SA 2.0","lu":"https://creativecommons.org/licenses/by-sa/2.0","f":[0.26,0.2,3]},
+  "3|구자욱":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/2017_09_01_%EC%82%BC%EC%84%B1_vs_SK_%EA%B5%BF%EB%B0%94%EC%9D%B4_%EB%9D%BC%EC%9D%B4%EC%98%A8%ED%82%B9_1_%284%29.jpg/500px-2017_09_01_%EC%82%BC%EC%84%B1_vs_SK_%EA%B5%BF%EB%B0%94%EC%9D%B4_%EB%9D%BC%EC%9D%B4%EC%98%A8%ED%82%B9_1_%284%29.jpg","w":500,"h":333,"s":"https://commons.wikimedia.org/wiki/File:2017_09_01_%EC%82%BC%EC%84%B1_vs_SK_%EA%B5%BF%EB%B0%94%EC%9D%B4_%EB%9D%BC%EC%9D%B4%EC%98%A8%ED%82%B9_1_(4).jpg","a":"WiiWii","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.5,0.2,5.5]},
+  "3|김재윤":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/%EA%B9%80%EC%9E%AC%EC%9C%A4_%EC%95%BC%EA%B5%AC_%EC%84%A0%EC%88%98.jpg/250px-%EA%B9%80%EC%9E%AC%EC%9C%A4_%EC%95%BC%EA%B5%AC_%EC%84%A0%EC%88%98.jpg","w":250,"h":336,"s":"https://commons.wikimedia.org/wiki/File:%EA%B9%80%EC%9E%AC%EC%9C%A4_%EC%95%BC%EA%B5%AC_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.43,0.27,2.4]},
+  "3|박승규":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/%EB%B0%95%EC%8A%B9%EA%B7%9C_%EC%84%A0%EC%88%98.jpg/250px-%EB%B0%95%EC%8A%B9%EA%B7%9C_%EC%84%A0%EC%88%98.jpg","w":250,"h":320,"s":"https://commons.wikimedia.org/wiki/File:%EB%B0%95%EC%8A%B9%EA%B7%9C_%EC%84%A0%EC%88%98.jpg","a":"LionsTV","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.5,0.32,1.5]},
+  "3|양창섭":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/%EC%96%91%EC%B0%BD%EC%84%AD_%EC%84%A0%EC%88%98.jpg/250px-%EC%96%91%EC%B0%BD%EC%84%AD_%EC%84%A0%EC%88%98.jpg","w":250,"h":295,"s":"https://commons.wikimedia.org/wiki/File:%EC%96%91%EC%B0%BD%EC%84%AD_%EC%84%A0%EC%88%98.jpg","a":"LionsTV","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.4,0.45,1]},
+  "3|원태인":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/%EC%9B%90%ED%83%9C%EC%9D%B8_%EC%84%A0%EC%88%98.jpg/250px-%EC%9B%90%ED%83%9C%EC%9D%B8_%EC%84%A0%EC%88%98.jpg","w":250,"h":305,"s":"https://commons.wikimedia.org/wiki/File:%EC%9B%90%ED%83%9C%EC%9D%B8_%EC%84%A0%EC%88%98.jpg","a":"LionsTV","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.48,0.33,1.45]},
+  "4|박건우":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/2017_02_28_WBC_%ED%8F%89%EA%B0%80%EC%A0%84_2_%EB%B0%95%EA%B1%B4%EC%9A%B0.jpg/250px-2017_02_28_WBC_%ED%8F%89%EA%B0%80%EC%A0%84_2_%EB%B0%95%EA%B1%B4%EC%9A%B0.jpg","w":250,"h":223,"s":"https://commons.wikimedia.org/wiki/File:2017_02_28_WBC_%ED%8F%89%EA%B0%80%EC%A0%84_2_%EB%B0%95%EA%B1%B4%EC%9A%B0.jpg","a":"WiiWii","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.39,0.42,2]},
+  "4|박민우":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/2/29/151208._2015_KBO_%EA%B3%A8%EB%93%A0_%EA%B8%80%EB%9F%AC%EB%B8%8C_%EC%8B%9C%EC%83%81%EC%8B%9D._48.jpg/500px-151208._2015_KBO_%EA%B3%A8%EB%93%A0_%EA%B8%80%EB%9F%AC%EB%B8%8C_%EC%8B%9C%EC%83%81%EC%8B%9D._48.jpg","w":500,"h":333,"s":"https://commons.wikimedia.org/wiki/File:151208._2015_KBO_%EA%B3%A8%EB%93%A0_%EA%B8%80%EB%9F%AC%EB%B8%8C_%EC%8B%9C%EC%83%81%EC%8B%9D._48.jpg","a":"MFDICE의 이것저것","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.565,0.255,5]},
+  "4|이우성":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Lee_Woo-sung%2C_Doosan_Bears%2C_December_2%2C_2012.jpg/250px-Lee_Woo-sung%2C_Doosan_Bears%2C_December_2%2C_2012.jpg","w":250,"h":371,"s":"https://commons.wikimedia.org/wiki/File:Lee_Woo-sung,_Doosan_Bears,_December_2,_2012.jpg","a":"덕문 - 티스토리 / Tistory","l":"CC BY-SA 4.0","lu":"https://creativecommons.org/licenses/by-sa/4.0","f":[0.46,0.17,3]},
+  "5|고영표":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6f/%EA%B3%A0%EC%98%81%ED%91%9C_%EC%95%BC%EA%B5%AC_%EC%84%A0%EC%88%98.jpg/250px-%EA%B3%A0%EC%98%81%ED%91%9C_%EC%95%BC%EA%B5%AC_%EC%84%A0%EC%88%98.jpg","w":250,"h":346,"s":"https://commons.wikimedia.org/wiki/File:%EA%B3%A0%EC%98%81%ED%91%9C_%EC%95%BC%EA%B5%AC_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.46,0.38,1.8]},
+  "5|김현수":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/KoreaWBC2009.jpg/500px-KoreaWBC2009.jpg","w":500,"h":375,"s":"https://commons.wikimedia.org/wiki/File:KoreaWBC2009.jpg","a":"Kenneth Han","l":"Public domain","lu":"","f":[0.43,0.6,5]},
+  "5|허경민":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e0/2016_10_04_%EB%8B%A8%EC%83%81%EC%9D%B8%EC%82%AC_1_%ED%97%88%EA%B2%BD%EB%AF%BC.jpg/250px-2016_10_04_%EB%8B%A8%EC%83%81%EC%9D%B8%EC%82%AC_1_%ED%97%88%EA%B2%BD%EB%AF%BC.jpg","w":250,"h":295,"s":"https://commons.wikimedia.org/wiki/File:2016_10_04_%EB%8B%A8%EC%83%81%EC%9D%B8%EC%82%AC_1_%ED%97%88%EA%B2%BD%EB%AF%BC.jpg","a":"WiiWii","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.5,0.43,1.3]},
+  "6|노진혁":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/%EB%85%B8%EC%A7%84%ED%98%81_%EC%84%A0%EC%88%98.jpg/250px-%EB%85%B8%EC%A7%84%ED%98%81_%EC%84%A0%EC%88%98.jpg","w":250,"h":339,"s":"https://commons.wikimedia.org/wiki/File:%EB%85%B8%EC%A7%84%ED%98%81_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.5,0.25,2]},
+  "6|윤동희":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/%EC%9C%A4%EB%8F%99%ED%9D%AC_%EC%84%A0%EC%88%98.jpg/250px-%EC%9C%A4%EB%8F%99%ED%9D%AC_%EC%84%A0%EC%88%98.jpg","w":250,"h":339,"s":"https://commons.wikimedia.org/wiki/File:%EC%9C%A4%EB%8F%99%ED%9D%AC_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.55,0.3,2]},
+  "6|전준우":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/%EC%A0%84%EC%A4%80%EC%9A%B0_%EC%84%A0%EC%88%98.jpg/250px-%EC%A0%84%EC%A4%80%EC%9A%B0_%EC%84%A0%EC%88%98.jpg","w":250,"h":317,"s":"https://commons.wikimedia.org/wiki/File:%EC%A0%84%EC%A4%80%EC%9A%B0_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.58,0.42,1.6]},
+  "7|양현종":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b3/%EC%96%91%ED%98%84%EC%A2%85_%28KIA_%ED%83%80%EC%9D%B4%EA%B1%B0%EC%A6%88%29.jpg/250px-%EC%96%91%ED%98%84%EC%A2%85_%28KIA_%ED%83%80%EC%9D%B4%EA%B1%B0%EC%A6%88%29.jpg","w":250,"h":316,"s":"https://commons.wikimedia.org/wiki/File:%EC%96%91%ED%98%84%EC%A2%85_(KIA_%ED%83%80%EC%9D%B4%EA%B1%B0%EC%A6%88).jpg","a":"Gwangju Munhwa Broadcasting Corporation (official YouTube account) Verification: linked on the left of the official website (first icon from the left)","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.53,0.6,1]},
+  "8|곽빈":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Gwak_Been_2023.jpg/500px-Gwak_Been_2023.jpg","w":500,"h":625,"s":"https://commons.wikimedia.org/wiki/File:Gwak_Been_2023.jpg","a":"Seohae1999","l":"CC BY-SA 3.0","lu":"https://creativecommons.org/licenses/by-sa/3.0","f":[0.5,0.105,4.5]},
+  "8|벤자민":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/%EC%9B%A8%EC%8A%A4_Benjamin_KT.jpg/250px-%EC%9B%A8%EC%8A%A4_Benjamin_KT.jpg","w":250,"h":362,"s":"https://commons.wikimedia.org/wiki/File:%EC%9B%A8%EC%8A%A4_Benjamin_KT.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.46,0.2,2.3]},
+  "8|손아섭":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bc/2012_Son_A-Seob.jpg/500px-2012_Son_A-Seob.jpg","w":500,"h":375,"s":"https://commons.wikimedia.org/wiki/File:2012_Son_A-Seob.jpg","a":"히히히","l":"CC BY-SA 3.0","lu":"https://creativecommons.org/licenses/by-sa/3.0","f":[0.535,0.26,6]},
+  "8|양의지":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/2/25/151208._2015_KBO_%EA%B3%A8%EB%93%A0_%EA%B8%80%EB%9F%AC%EB%B8%8C_%EC%8B%9C%EC%83%81%EC%8B%9D._62.jpg/250px-151208._2015_KBO_%EA%B3%A8%EB%93%A0_%EA%B8%80%EB%9F%AC%EB%B8%8C_%EC%8B%9C%EC%83%81%EC%8B%9D._62.jpg","w":250,"h":311,"s":"https://commons.wikimedia.org/wiki/File:151208._2015_KBO_%EA%B3%A8%EB%93%A0_%EA%B8%80%EB%9F%AC%EB%B8%8C_%EC%8B%9C%EC%83%81%EC%8B%9D._62.jpg","a":"MFDICE의 이것저것","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.52,0.22,2.5]},
+  "8|정수빈":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Soobin_Jung.jpg/250px-Soobin_Jung.jpg","w":250,"h":166,"s":"https://commons.wikimedia.org/wiki/File:Soobin_Jung.jpg","a":"tistory blog sin835","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.34,0.5,1.6]},
+  "8|조수행":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/2016_10_04_%EB%8B%A8%EC%83%81%EC%9D%B8%EC%82%AC_2_%EC%A1%B0%EC%88%98%ED%96%891.jpg/250px-2016_10_04_%EB%8B%A8%EC%83%81%EC%9D%B8%EC%82%AC_2_%EC%A1%B0%EC%88%98%ED%96%891.jpg","w":250,"h":313,"s":"https://commons.wikimedia.org/wiki/File:2016_10_04_%EB%8B%A8%EC%83%81%EC%9D%B8%EC%82%AC_2_%EC%A1%B0%EC%88%98%ED%96%891.jpg","a":"WiiWii","l":"CC BY 4.0","lu":"https://creativecommons.org/licenses/by/4.0","f":[0.5,0.55,1.3]},
+  "9|서건창":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/%EB%82%98%EC%9D%B4%ED%8A%B8%2C%EC%84%9C%EA%B1%B4%EC%B0%BD%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_5%EC%9B%9429%EC%9D%BC%28%ED%99%94%29%EB%84%A5%EC%84%BCvs_SK%EC%A0%84_%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_%EC%84%9C%EA%B1%B4%EC%B0%BD.jpg/250px-%EB%82%98%EC%9D%B4%ED%8A%B8%2C%EC%84%9C%EA%B1%B4%EC%B0%BD%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_5%EC%9B%9429%EC%9D%BC%28%ED%99%94%29%EB%84%A5%EC%84%BCvs_SK%EC%A0%84_%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_%EC%84%9C%EA%B1%B4%EC%B0%BD.jpg","w":250,"h":313,"s":"https://commons.wikimedia.org/wiki/File:%EB%82%98%EC%9D%B4%ED%8A%B8,%EC%84%9C%EA%B1%B4%EC%B0%BD%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_5%EC%9B%9429%EC%9D%BC(%ED%99%94)%EB%84%A5%EC%84%BCvs_SK%EC%A0%84_%EC%88%98%ED%9B%88%EC%84%A0%EC%88%98_%EC%84%9C%EA%B1%B4%EC%B0%BD.jpg","a":"Nexen Heroes Baseball Club","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.42,0.37,1.55]},
+  "9|안치홍":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg/250px-%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg","w":250,"h":346,"s":"https://commons.wikimedia.org/wiki/File:%EC%95%88%EC%B9%98%ED%99%8D_%EC%84%A0%EC%88%98.jpg","a":"OSEN SPORTS","l":"CC BY 3.0","lu":"https://creativecommons.org/licenses/by/3.0","f":[0.5,0.45,1.4]},
+  "9|알칸타라":{"u":"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg/250px-Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg","w":250,"h":286,"s":"https://commons.wikimedia.org/wiki/File:Ra%C3%BAl_Alc%C3%A1ntara_doosan.jpg","a":"Korea.net / Korean Culture and Information Service","l":"CC BY-SA 2.0","lu":"https://creativecommons.org/licenses/by-sa/2.0","f":[0.58,0.25,2.2]}};
+/* ===================== 선수 얼굴 (사진 · 그림) ===================== */
+// 우선순위: ① 내가 올린 사진(이 기기에만 저장) ② Wikimedia Commons 자유 이용 사진(저작자 표시) ③ 3D 선수와 같은 얼굴로 그린 그림
+const MYPH = store.get('myphotos', {}) || {};
+const phId = (pl) => (pl && pl.ti != null ? S.TEAMS[pl.ti].id + '|' + pl.key : null);
+function myPhoto(pl) { const k = phId(pl); return k ? MYPH[k] : null; }
+function setMyPhoto(pl, url) {
+  const k = phId(pl); if (!k) return false;
+  if (url) MYPH[k] = url; else delete MYPH[k];
+  store.set('myphotos', MYPH);
+  if (url && (store.get('myphotos', {}) || {})[k] !== url) { delete MYPH[k]; return false; } // 저장 공간 부족
+  return true;
+}
+const _genFace = new Map();
+// 그림 얼굴: 3D 선수와 같은 피부·머리색 (looksOf), 팀 모자·유니폼
+function genFace(pl) {
+  const key = (pl.ti == null ? '-' : pl.ti) + '|' + (pl.key || pl.name);
+  let url = _genFace.get(key); if (url) return url;
+  const t = S.TEAMS[pl.ti == null ? 0 : pl.ti], lk = looksOf(pl, 0);
+  const c = makeCanvas(128, 128), x = c.getContext('2d'), skin = SKINS[lk.sk], hair = HAIRS[lk.hair];
+  const dk = (hex, k) => new T.Color(hex).multiplyScalar(k).getStyle();
+  const bg = x.createLinearGradient(0, 0, 0, 128); bg.addColorStop(0, dk(t.c1, 1.15)); bg.addColorStop(1, dk(t.c1, 0.55));
+  x.fillStyle = bg; x.fillRect(0, 0, 128, 128);
+  x.fillStyle = 'rgba(255,255,255,0.07)'; for (let i = -128; i < 128; i += 14) { x.beginPath(); x.moveTo(i, 128); x.lineTo(i + 128, 0); x.lineTo(i + 135, 0); x.lineTo(i + 7, 128); x.fill(); }
+  // 어깨·유니폼
+  const jersey = lum(t.c1) > 0.6 ? '#f3f3ee' : t.c1, trim = lum(t.c1) > 0.6 ? t.c2 : t.c2;
+  x.fillStyle = jersey; x.beginPath(); x.moveTo(8, 128); x.quadraticCurveTo(14, 96, 44, 92); x.lineTo(84, 92); x.quadraticCurveTo(114, 96, 120, 128); x.fill();
+  x.strokeStyle = trim; x.lineWidth = 4; x.beginPath(); x.moveTo(50, 92); x.lineTo(64, 106); x.lineTo(78, 92); x.stroke();
+  x.fillStyle = lum(jersey) > 0.6 ? trim : '#ffffff'; x.font = `18px ${FONT_DISP}`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  if (pl.num) x.fillText(String(pl.num), 96, 114);
+  // 목·머리
+  x.fillStyle = dk(skin, 0.86); x.fillRect(54, 76, 20, 20);
+  x.fillStyle = skin; x.beginPath(); x.ellipse(64, 62, 25, 29, 0, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.ellipse(39, 64, 5, 8, 0, 0, Math.PI * 2); x.ellipse(89, 64, 5, 8, 0, 0, Math.PI * 2); x.fill(); // 귀
+  x.fillStyle = hair; x.fillRect(38, 42, 7, 16); x.fillRect(83, 42, 7, 16); // 옆머리
+  // 모자
+  const capC = lum(t.c1) > 0.55 ? t.c2 : t.c1;
+  x.fillStyle = capC; x.beginPath(); x.ellipse(64, 44, 29, 22, 0, Math.PI, 0); x.fill();
+  x.fillStyle = dk(capC, 0.75); x.beginPath(); x.ellipse(66, 45, 31, 6, 0, 0, Math.PI * 2); x.fill();
+  x.fillStyle = lum(capC) > 0.6 ? '#1b1b1f' : '#ffffff'; x.font = `${t.city.length > 2 ? 11 : 14}px ${FONT_DISP}`; x.fillText(t.city, 64, 33, 34);
+  // 눈썹·눈·코·입
+  x.fillStyle = hair; const bt = lk.v & 1 ? 3.5 : 2.5;
+  x.fillRect(50, 53, 11, bt); x.fillRect(67, 53, 11, bt);
+  x.fillStyle = '#1d1712'; x.beginPath(); x.ellipse(56, 61, 2.6, 2.8, 0, 0, Math.PI * 2); x.ellipse(72, 61, 2.6, 2.8, 0, 0, Math.PI * 2); x.fill();
+  x.fillStyle = dk(skin, 0.8); x.beginPath(); x.moveTo(64, 63); x.lineTo(60, 72); x.lineTo(66, 72); x.fill();
+  x.strokeStyle = dk(skin, 0.55); x.lineWidth = 2; x.beginPath(); x.moveTo(58, 79); x.quadraticCurveTo(64, 82, 70, 79); x.stroke();
+  if (lk.v & 2) { x.fillStyle = hexA(hair, 0.55); x.beginPath(); x.ellipse(64, 82, 17, 10, 0, 0, Math.PI); x.fill(); x.fillRect(47, 78, 34, 4); }
+  url = c.toDataURL('image/png'); _genFace.set(key, url);
+  return url;
+}
+// 동그란 얼굴 사진 HTML. cls: xs(HUD) / sm(명단) / md(카드) / lg
+function avatarHTML(pl, cls = '') {
+  if (!pl) return '';
+  const my = myPhoto(pl);
+  if (my) return `<span class="ava ${cls}"><img src="${my}" alt="" style="width:100%;left:0;top:0"></span>`;
+  const r = pl.ph;
+  if (r) {
+    const [fx, fy, z] = r.f || [0.5, 0.3, 1.5], ar = r.h / r.w;
+    const w = Math.max(z * 100, 100, 100 / ar), h = w * ar;
+    const l = clamp(50 - fx * w, 100 - w, 0), tp = clamp(50 - fy * h, 100 - h, 0);
+    return `<span class="ava ph ${cls}" title="사진: ${esc(r.a)} · ${esc(r.l)} (Wikimedia Commons)"><img src="${esc(r.u)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:${w.toFixed(1)}%;left:${l.toFixed(1)}%;top:${tp.toFixed(1)}%" data-fb="${genFace(pl)}" onerror="this.onerror=null;this.src=this.dataset.fb;this.style.cssText='width:100%;left:0;top:0'"></span>`;
+  }
+  return `<span class="ava gen ${cls}"><img src="${genFace(pl)}" alt="" style="width:100%;left:0;top:0"></span>`;
+}
+function photoCredit(pl) {
+  if (!pl || myPhoto(pl) || !pl.ph) return '';
+  const r = pl.ph;
+  return `사진: <a href="${esc(r.s)}" target="_blank" rel="noopener">${esc(r.a)}</a> · <a href="${esc(r.lu || r.s)}" target="_blank" rel="noopener">${esc(r.l)}</a>`;
+}
+// 사진 파일 → 가운데(위쪽 기준)를 정사각형으로 잘라 작게 저장
+function fileToAvatar(file) {
+  return new Promise((ok, bad) => {
+    if (!file || !/^image\//.test(file.type)) return bad(new Error('이미지 파일만 돼요'));
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(img.width, img.height), sx = (img.width - s) / 2, sy = Math.max(0, (img.height - s) * 0.2);
+      const c = makeCanvas(160, 160); c.getContext('2d').drawImage(img, sx, sy, s, s, 0, 0, 160, 160);
+      URL.revokeObjectURL(u); ok(c.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); bad(new Error('사진을 읽을 수 없어요')); };
+    img.src = u;
+  });
+}
 /* ===================== UI ===================== */
 const UI = {
   title: $('#title'), hud: $('#hud'), call: $('#call'), banner: $('#banner'), feedback: $('#feedback'), playText: $('#playText'), toast: $('#toast'),
@@ -2092,10 +2717,10 @@ function flashEl(el, cls, ms, key) {
   clearTimeout(timersUI[key]); el.classList.add(cls);
   if (ms) timersUI[key] = setTimeout(() => el.classList.remove(cls), ms);
 }
-function showCall(html, color, ms = 1100) { UI.call.innerHTML = html; UI.call.style.color = color || '#fff'; flashEl(UI.call, 'show', ms, 'call'); }
+function showCall(html, color, ms = 1100) { UI.call.innerHTML = html; UI.call.style.color = color || '#fff'; UI.call.classList.remove('show'); void UI.call.offsetWidth; flashEl(UI.call, 'show', ms, 'call'); }
 function showBanner(big, small, ms = 1800) {
   UI.banner.querySelector('.big').textContent = big; UI.banner.querySelector('.small').textContent = small || '';
-  flashEl(UI.banner, 'show', ms, 'banner');
+  UI.banner.classList.remove('show'); void UI.banner.offsetWidth; flashEl(UI.banner, 'show', ms, 'banner');
 }
 function hideBanner() { UI.banner.classList.remove('show'); }
 function showFeedback(parts, ms = 1300) {
@@ -2129,11 +2754,23 @@ function updateLines() {
   const bt = batTeam(), ft = fieldTeam(), b = curBatter(), p = ft.pitcher;
   if (!b || !p) return;
   const today = b.g.pa ? `${b.g.ab}타수 ${b.g.h}안타${b.g.hr ? ` ${b.g.hr}홈런` : ''}` : '첫 타석';
-  UI.batLine.innerHTML = `<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
+  UI.batLine.innerHTML = `${avatarHTML(b, 'xs')}<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
   const fat = S.fatigueOf(p, p.g.pc);
-  UI.pitLine.innerHTML = `<span class="k">투수</span><b>${esc(p.name)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
+  UI.pitLine.innerHTML = `${avatarHTML(p, 'xs')}<span class="k">투수</span><b>${esc(p.name)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
   if (UI.stam) UI.stam.style.width = Math.round((1 - fat) * 100) + '%';
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
+}
+
+// 타석에 들어서는 타자 / 새로 올라온 투수 소개 카드 (사진 + 기록)
+function playerCard(pl, tm, pit) {
+  const el = $('#pcard'); if (!el || !pl || !tm) return;
+  const role = pit ? `${pl.role === 'SP' ? '선발' : pl.role === 'CL' ? '마무리' : '불펜'} · ${pl.hand === 'L' ? '좌' : '우'}투` : `${tm.order + 1}번 타자 · ${pl.posK || ''} · ${pl.hand === 'L' ? '좌' : '우'}타`;
+  const stat = pit ? `ERA ${pl.era.toFixed(2)} · ${Math.round(pl.ip)}이닝 · ${pl.k}K` : `타율 ${fmtAvg(pl.avg)} · ${pl.hr}홈런 · OPS ${(pl.obp + pl.slg).toFixed(3)}`;
+  const today = !pit && pl.g && pl.g.pa ? `<span class="hot">오늘 ${pl.g.ab}타수 ${pl.g.h}안타${pl.g.hr ? ` ${pl.g.hr}홈런` : ''}</span>` : '';
+  const cr = photoCredit(pl);
+  el.style.setProperty('--tc', tm.t.c1);
+  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
+  el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 2900, 'pcard');
 }
 
 /* ---------- 투구 트래커 ---------- */
@@ -2275,20 +2912,20 @@ function renderTitle() {
   badgeStyle($('#badgeMe'), tm); badgeStyle($('#badgeOpp'), to);
   $('#nameMe').textContent = `${tm.city} ${tm.name}`; $('#nameOpp').textContent = `${to.city} ${to.name}`;
   const r = recOf(OPTS.me); $('#recMe').textContent = `${r.w}승 ${r.l}패 ${r.d}무`;
-  $$('.seg').forEach((sg) => { const k = sg.dataset.opt; sg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(OPTS[k]) === b.dataset.v))); });
+  $$('#pane-home .seg').forEach((sg) => { const k = sg.dataset.opt; sg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(String(OPTS[k]) === b.dataset.v))); });
   const all = store.get('rec', {}); let w = 0, l = 0, d = 0; Object.values(all).forEach((x) => { w += x.w; l += x.l; d += x.d; });
   $('#recAll').textContent = w + l + d ? `통산 ${w}승 ${l}패 ${d}무` : '첫 경기를 시작해 보세요';
   applyTime(OPTS.time === 'night');
   paintCrowd(OPTS.home ? tm : to, OPTS.home ? to : tm); paintLed(OPTS.home ? tm : to, OPTS.home ? to : tm);
 }
-$$('.arrow').forEach((b) => b.addEventListener('click', () => {
+$$('.arrow[data-pick]').forEach((b) => b.addEventListener('click', () => {
   const k = b.dataset.pick, d = +b.dataset.d;
   let v = OPTS[k];
   do { v = (v + d + 10) % 10; } while (v === (k === 'me' ? OPTS.opp : OPTS.me));
   OPTS[k] = v; renderTitle(); AU.click();
   const el = k === 'me' ? $('#badgeMe') : $('#badgeOpp'); el.style.transform = 'scale(1.08)'; setTimeout(() => (el.style.transform = ''), 140);
 }));
-$$('.seg').forEach((sg) => sg.addEventListener('click', (e) => {
+$$('#pane-home .seg').forEach((sg) => sg.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   const k = sg.dataset.opt, v = b.dataset.v;
   OPTS[k] = k === 'inn' || k === 'home' ? +v : v; renderTitle(); AU.click();
@@ -2330,10 +2967,12 @@ function ratePitcher(r) {
     sta: r.role === 'SP' ? Math.round(88 + Math.min(18, r.ip / 9)) : r.role === 'CL' ? 30 : (r.ip > 50 ? 30 : 24),
   };
 }
-const LEAGUE = REAL.map((t) => {
+const LEAGUE = REAL.map((t, ti) => {
   const r = { lineup: t.lineup.map(rateHitter), bench: t.bench.map(rateHitter), rotation: t.rotation.map(ratePitcher), bullpen: t.bullpen.map(ratePitcher), date: t.date };
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
   r.rotation.concat(r.bullpen).forEach((p, i) => (p.key = 'P' + i));
+  // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
+  r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
   return r;
 });
 
@@ -2371,21 +3010,22 @@ function fieldersOf(tm) {
 
 /* ---------- 유니폼 ---------- */
 function uni(t, home) {
-  if (home) { const tr = lum(t.c1) > 0.55 ? t.c2 : t.c1; return { jersey: '#f3f3ee', trim: tr, pants: '#f3f3ee', cap: tr, pin: true }; }
-  return { jersey: t.c1, trim: t.c2, pants: '#9aa0a9', cap: t.c1, pin: false };
+  if (home) { const tr = lum(t.c1) > 0.55 ? t.c2 : t.c1; return { jersey: '#f3f3ee', trim: tr, pants: '#f3f3ee', cap: tr, socks: tr, belt: tr, pin: true }; }
+  return { jersey: t.c1, trim: t.c2, pants: '#9aa0a9', cap: t.c1, socks: t.c1, belt: '#16161a', pin: false };
 }
 function dress(f, t, home, pl) {
   const key = t.id + home + (pl ? pl.name + pl.num : '-');
   if (f.dressKey === key) return;
   f.dressKey = key;
-  setFigureColors(f, Object.assign(uni(t, home), { teamText: t.name, num: pl ? pl.num : '', name: pl ? pl.name : '' }));
+  setFigureColors(f, Object.assign(uni(t, home), { teamText: t.name, capText: t.city, num: pl ? pl.num : '', name: pl ? pl.name : '' }));
+  if (f.kind !== 'U') setFigureLooks(f, pl);
 }
 
 /* ---------- 인물 배치 ---------- */
 const FIG = {};
 function ghostable(f) {
   f.ghostMats = [];
-  const own = [f.jerseyMat, f.capMat, f.pantsMat, f.sleeveMat];
+  const own = f.ownMats;
   f.root.traverse((o) => {
     if (!o.isMesh) return;
     if (!own.includes(o.material)) o.material = o.material.clone();
@@ -2409,7 +3049,7 @@ function initFigures() {
   [FIG.batR, FIG.batL].forEach((f) => { f.bat = new T.Mesh(FG.g.bat, FG.M.bat); f.root.add(f.bat); });
   FIG.run = [0, 1, 2].map(() => makeFigure(Object.assign({}, base, { helmet: true, flapSide: 0.12, kind: 'R' })));
   FIG.coach = [0, 1].map(() => makeFigure(Object.assign({}, base, { kind: 'CO' })));
-  const um = { jersey: '#1b2440', trim: '#1b2440', pants: '#3a3d45', cap: '#111318', kind: 'U' };
+  const um = { jersey: '#1b2440', trim: '#1b2440', pants: '#3a3d45', cap: '#111318', socks: '#111318', kind: 'U' };
   FIG.ump = [makeFigure(Object.assign({}, um, { mask: true }))];
   if (!lowEnd) FIG.ump.push(makeFigure(um), makeFigure(um));
   ghostable(FIG.field[1]); ghostable(FIG.ump[0]);
@@ -2596,6 +3236,7 @@ function startPA() {
   const b = curBatter();
   setZoneGuide(S.zoneOf(b.height));
   updateBug(); updateLines(); drawTracker(); drawBoard();
+  if (bt.lastCard !== b) { bt.lastCard = b; later(0.15, () => { if (curBatter() === b) playerCard(b, bt); }); }
   UI.speedBox.hidden = true;
   camForPA(true);
   if (!userBatting() && G.cpuBunt) G.bs.mode = 'bunt';
@@ -2738,6 +3379,8 @@ function release() {
   P.released = true; G.phase = 'flight';
   p.g.pc++;
   G.lastSpeed = P.kmh;
+  ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
+  if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
   UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name; UI.speedBox.hidden = false;
   if (userPitching() && !G.online) {
     const b = curBatter(), zi = S.zoneInfo(S.zoneOf(b.height), P.cross.x, P.cross.y);
@@ -2866,7 +3509,7 @@ function call(kind) {
   }
   if (end === 'K') {
     b.g.pa++; b.g.ab++; b.g.k++; pit.g.k++; G.outs++; pit.g.outs++;
-    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300);
+    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300); fxStrikeout(userPitching());
     AU.cheer(userPitching() ? 0.8 : 0.3, 1.4); crowdPulse(G.half === 0 ? 'H' : 'A', 0.8);
     if (G.batFig) G.batFig.mode = 'bat';
     showPlayText(`${b.name}, ${kind === 'swing' ? '헛스윙' : '루킹'} 삼진`, 1600);
@@ -3034,6 +3677,7 @@ function gameOver() {
   G.phase = 'over'; hideDocks(); UI.skip.hidden = true;
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const r = me.runs > op.runs ? 'win' : me.runs < op.runs ? 'lose' : 'draw';
+  if (G.online) onlineResult(r);
   const rec = store.get('rec', {}), id = me.t.id;
   rec[id] = rec[id] || { w: 0, l: 0, d: 0 };
   rec[id][r === 'win' ? 'w' : r === 'lose' ? 'l' : 'd']++;
@@ -3041,7 +3685,7 @@ function gameOver() {
   if (G.season) seasonAfterGame();
   boardFlash('게임 셋', `${G.T[0].t.city} ${G.T[0].runs} : ${G.T[1].runs} ${G.T[1].t.city}`, 60);
   drawBoard(); updateBug();
-  if (r === 'win') { AU.cheer(1.2, 3.5); AU.drum('x.x.xxx.x.x.xxx.', 170); fireShow(6); crowdPulse(me === G.T[1] ? 'H' : 'A', 2.5); }
+  if (r === 'win') { AU.cheer(1.2, 3.5); AU.drum('x.x.xxx.x.x.xxx.', 170); fireShowBig(me); later(1.8, () => fxWin(me)); crowdPulse(me === G.T[1] ? 'H' : 'A', 2.5); }
   else if (r === 'lose') { AU.groan(); crowdPulse(op === G.T[1] ? 'H' : 'A', 2.5); }
   camOrbit();
   const gen = G.gen;
@@ -3065,7 +3709,7 @@ function showOver(r) {
     const g = m.p.g;
     const line = m.bat ? `${g.ab}타수 ${g.h}안타${g.hr ? ` ${g.hr}홈런` : ''}${g.rbi ? ` ${g.rbi}타점` : ''}${g.sb ? ` ${g.sb}도루` : ''}`
       : `${Math.floor(g.outs / 3)}${g.outs % 3 ? '⅓⅔'[g.outs % 3 - 1] : ''}이닝 ${g.k}K ${g.r}실점`;
-    $('#overMvp').innerHTML = `<span class="tagm">MVP</span><div><b>${esc(m.p.name)}</b> <span style="opacity:.7">${esc(win.t.city)} · ${m.bat ? m.p.posK : '투수'}</span><br><span style="font-size:13px">${line}</span></div>`;
+    $('#overMvp').innerHTML = `${avatarHTML(m.p, 'md')}<span class="tagm">MVP</span><div><b>${esc(m.p.name)}</b> <span style="opacity:.7">${esc(win.t.city)} · ${m.bat ? m.p.posK : '투수'}</span><br><span style="font-size:13px">${line}</span></div>`;
   } else $('#overMvp').innerHTML = '';
   const hr = me.lineup.concat(me.out).reduce((a, b) => a + b.g.hr, 0), k = op.lineup.concat(op.out).reduce((a, b) => a + b.g.k, 0);
   const rec = recOf(OPTS.me);
@@ -3101,7 +3745,7 @@ function openPen() {
   tm.ros.bullpen.forEach((p) => {
     const used = tm.used.includes(p);
     const b = document.createElement('button'); b.className = 'pcard'; b.disabled = used;
-    b.innerHTML = `<b>${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.hand === 'L' ? '좌' : '우'}투</span></b><span class="role">${p.role === 'CL' ? '마무리' : '불펜'}</span>` +
+    b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.hand === 'L' ? '좌' : '우'}투</span></b><span class="role">${p.role === 'CL' ? '마무리' : '불펜'}</span>` +
       `<span class="r">${used ? '이미 등판' : pitInfo(p)}</span>`;
     b.addEventListener('click', () => { changePitcher(tm, p); closeModal('#penModal'); });
     list.appendChild(b);
@@ -3113,7 +3757,7 @@ function changePitcher(tm, p, remote) {
   tm.pitcher = p; tm.used.push(p);
   dressField(); pitcherPose(FIG.P, 0, p.hand);
   G.selType = 'FB'; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
-  toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle();
+  toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);
   if (G.phase === 'meter') { G.phase = 'aim'; G.meter = null; UI.meter.hidden = true; G.aimTarget = null; }
   if (!remote && G.phase === 'aim') { showDocks(); drawPad(); } // 존 패드 다시 표시 (미터 중 교체 시 패드가 숨겨진 채 멈추던 버그)
 }
@@ -3296,6 +3940,7 @@ function contact(sw) {
   const tr = S.flyBall({ x: cp.x, y: cp.y, z: cp.z }, sw.ev, sw.la, sw.phi);
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
+  if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
   G.pitchLog.push({ x: P.cross.x, y: P.cross.y, res: tr.foul ? 'strike' : 'play' });
   if (userBatting() && sw.foul) showFeedback([['파울', 'm'], [`타이밍 ${sw.tl || ''}`, 'm']], 1000);
   startPlay(tr, sw);
@@ -3482,13 +4127,13 @@ function updatePlay(dt) {
   if (!play.ev.text && ((play.hr && t > 1.0) || (!play.hr && !play.foul && (t > Math.min(res.fieldT + 0.1, 2.2) || t > 1.4)))) {
     play.ev.text = true; showPlayText(res.text, 2600);
     if (res.kind === 'E') { boardFlash('실책!', fieldTeam().t.city, 2.5); AU.cheer(0.8, 1.6); crowdPulse(play.side, 1); }
-    if (['1B', '2B', '3B', 'IFH', 'BUNT_HIT'].includes(res.kind)) boardFlash(res.kind === '2B' ? '2루타!' : res.kind === '3B' ? '3루타!' : '안타!', curBatter().name, 3);
+    if (['1B', '2B', '3B', 'IFH', 'BUNT_HIT'].includes(res.kind)) { boardFlash(res.kind === '2B' ? '2루타!' : res.kind === '3B' ? '3루타!' : '안타!', curBatter().name, 3); fxHit(res.kind, batTeam()); }
   }
   if (play.hr && !play.ev.hr && t > 0.9) {
     play.ev.hr = true;
     showBanner('홈런!', res.text.split('!')[0] + '!', 2600);
     boardFlash('HOME RUN', curBatter().name, 6);
-    fireShow(5); AU.cheer(1.3, 4); crowdPulse(play.side, 2.5); AU.drum('x.x.xxx.x.x.xxx.', 170);
+    fxHomeRun(batTeam()); AU.cheer(1.3, 4); crowdPulse(play.side, 2.5); AU.drum('x.x.xxx.x.x.xxx.', 170);
   }
   if (play.foul && !play.ev.foul) { play.ev.foul = true; showCall('파울', '#ffffff', 700); }
   if (t >= play.dur) finishPlay();
@@ -3514,6 +4159,8 @@ function onThrowArrive(play, th) {
 function onScore(play, r) {
   void r;
   if (!play.ev.run) { play.ev.run = true; AU.cheer(1, 2.2); crowdPulse(play.side, 1.4); }
+  play.ev.nRun = (play.ev.nRun || 0) + 1; const n = play.ev.nRun;
+  setTimeout(() => { if (play.ev.nRun === n) fxScore(n, batTeam()); }, 250);
 }
 
 function finishPlay() {
@@ -3606,7 +4253,7 @@ function updateCamera(dt) {
   }
   const kp = 1 - Math.exp(-CAM.kp * dt), kl = 1 - Math.exp(-CAM.kl * dt);
   CAM.p.lerp(CAM.tp, kp); CAM.l.lerp(CAM.tl, kl); CAM.fov = lerp(CAM.fov, CAM.tfov, kp);
-  camera.position.copy(CAM.p); camera.lookAt(CAM.l);
+  camera.position.copy(CAM.p); camera.lookAt(CAM.l); fxApplyShake();
   if (Math.abs(camera.fov - CAM.fov) > 0.01) { camera.fov = CAM.fov; camera.updateProjectionMatrix(); }
   // 타격 시점에서는 포수·구심이 존을 가리지 않게 숨김
   const hideHome = CAM.mode === 'bat' && CAM.p.z > 3;
@@ -3705,7 +4352,7 @@ glCanvas.addEventListener('pointermove', (ev) => {
 UI.padCanvas.addEventListener('pointerdown', (ev) => { ev.preventDefault(); padPick(ev); });
 document.addEventListener('keydown', (ev) => {
   if (ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA')) return;
-  const modalOpen = !$('#menuModal').hidden || !$('#penModal').hidden || !$('#overModal').hidden || !$('#subModal').hidden || !$('#rosterModal').hidden;
+  const modalOpen = !$('#menuModal').hidden || !$('#penModal').hidden || !$('#overModal').hidden || !$('#subModal').hidden;
   if (ev.key === 'Escape') { if (!$('#menuModal').hidden) closeMenu(); else if (!$('#penModal').hidden) closeModal('#penModal'); else if (G.T && G.phase !== 'over') openMenu(); return; }
   if (modalOpen || !G.T || paused) return;
   if (ev.code === 'Space' || ev.key === 'Enter') {
@@ -3756,13 +4403,14 @@ $('#quitBtn').addEventListener('click', quitToTitle);
 $('#againBtn').addEventListener('click', () => { $('#overModal').hidden = true; if (G.season) { quitToTitle(); openSeason(); } else startGame(); });
 $('#homeBtn').addEventListener('click', quitToTitle);
 function quitToTitle() {
-  if (G.online) { if (G.phase !== 'over') sendAct({ k: 'quit' }); const q = G.online; G.online = null; setTimeout(() => { G.online = q; endOnline(); }, 1500); }
+  if (G.online) { if (G.phase !== 'over') { sendAct({ k: 'quit' }); onlineResult('lose'); } const q = G.online; G.online = null; setTimeout(() => { G.online = q; endOnline(); }, 1500); }
   clearTimers(); G.gen++; paused = false;
   G.T = null; G.phase = 'title'; G.prac = null; G.season = null; G.mode = 'exh'; $('#pracLine').hidden = true; G.play = null; G.pitch = null; G.steal = null; G.bases = [null, null, null]; G.runFig = [null, null, null];
   ['#menuModal', '#penModal', '#overModal', '#subModal'].forEach((s) => ($(s).hidden = true));
   UI.hud.hidden = true; UI.title.hidden = false; UI.skip.hidden = true; hideDocks();
   ball.hide(); pciRing.visible = false; targetMark.visible = false; board.flash = 0; board.msg = '';
   renderTitle(); dressTitle(); drawBoard(); camOrbit();
+  showTab(TAB.cur, true);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused) openMenu(); });
 
@@ -3790,7 +4438,7 @@ function cosmetics(dt) {
     if (k !== flashTick) { flashTick = k; drawBoard(); }
     if (board.flash <= 0) { board.msg = ''; drawBoard(); }
   }
-  updateFireworks(dt);
+  updateFireworks(dt); fxTick(dt);
   if (pciRing.visible) {
     if (pciRing.flash) { if (clock > pciRing.flash) { pciRing.visible = false; pciRing.flash = 0; } }
     pciRing.material.opacity = 0.55 + Math.sin(clock * 10) * 0.2;
@@ -3895,7 +4543,7 @@ function applyRoster(tm) {
 const ED = { team: 0, tab: 'bat', order: [], pos: {}, names: {}, sp: null, sel: null, posSel: null, editing: null, dirty: false };
 function edLoad(ti) {
   const r = LEAGUE[ti], cfg = rosterCfgAll()[S.TEAMS[ti].id] || {};
-  ED.team = ti; ED.sel = null; ED.posSel = null; ED.editing = null; ED.dirty = false;
+  ED.team = ti; ED.sel = null; ED.posSel = null; ED.editing = null; ED.dirty = false; ED.photo = null;
   ED.names = Object.assign({}, cfg.names || {}); ED.hands = Object.assign({}, cfg.hands || {});
   const tmp = { t: S.TEAMS[ti], ros: JSON.parse(JSON.stringify(r)), lineup: null, bench: null, pitcher: null, used: [] };
   tmp.lineup = tmp.ros.lineup.slice(); tmp.bench = tmp.ros.bench.slice();
@@ -3911,18 +4559,19 @@ function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}�
 function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · 구속·구종은 추정`; }
 function openRoster(ti) {
   edLoad(ti == null ? OPTS.me : ti); ED.tab = 'bat';
-  renderRoster(); openModal('#rosterModal');
+  showTab('roster');
 }
 function renderRoster() {
   const t = S.TEAMS[ED.team];
   $('#rosterH').textContent = `${t.city} ${t.name}${ED.team === OPTS.me ? ' (내 팀)' : ''}`;
   $$('.rtabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === ED.tab)));
   const L = $('#rosterList'); L.innerHTML = '';
+  if (ED.photo && ED.base[ED.photo] && ED.tab !== 'paste') photoPanel(L);
   const row = (html, cls) => { const d = document.createElement('div'); d.className = 'rrow' + (cls ? ' ' + cls : ''); d.innerHTML = html; L.appendChild(d); return d; };
   const head = (tx) => { const h = document.createElement('div'); h.className = 'rhead'; h.textContent = tx; L.appendChild(h); };
   const nameCell = (k, info) => ED.editing === k
     ? `<input maxlength="10" value="${esc(edName(k))}" aria-label="선수 이름" data-k="${k}">`
-    : `<button class="nm" data-k="${k}"><b>${esc(edName(k))} ${ED.base[k].num ? `<small style="opacity:.6">#${ED.base[k].num}</small>` : ''}</b><span>${info}</span></button>`;
+    : `<button class="nm" data-k="${k}">${avatarHTML(ED.base[k], 'sm')}<span class="nmt"><b>${esc(edName(k))} ${ED.base[k].num ? `<small style="opacity:.6">#${ED.base[k].num}</small>` : ''}</b><span>${info}</span></span></button>`;
   if (ED.tab === 'bat') {
     $('#rosterHint').textContent = ED.posSel ? '포지션을 바꿀 다른 선수의 포지션 칸을 누르세요' : ED.sel ? '바꿀 선수를 누르세요 (주전끼리 = 타순 교환, 벤치 선수 = 선발 투입)' : '선수를 누르고 다른 선수를 누르면 타순 교환 · 포지션 칸끼리 누르면 수비 위치 교환 · ✎ 이름 수정';
     head('선발 라인업');
@@ -3952,7 +4601,8 @@ function renderRoster() {
       row(`<span class="no" style="font-size:12px">${p.role === 'CL' ? '마무리' : '불펜'}</span><span></span>${nameCell(p.key, pitInfo(p))}<button class="ed" data-ek="${p.key}" aria-label="${esc(edName(p.key))} 이름 수정">✎</button>`);
     });
   }
-  const inp = L.querySelector('input');
+  if (ED.tab !== 'paste') photoCredits(L);
+  const inp = L.querySelector('input:not([type=file])');
   if (inp) {
     inp.focus(); inp.select();
     const done = () => { const v = inp.value.trim().slice(0, 10); if (v && v !== ED.base[inp.dataset.k].name) ED.names[inp.dataset.k] = v; else delete ED.names[inp.dataset.k]; ED.editing = null; ED.dirty = true; renderRoster(); };
@@ -3961,6 +4611,8 @@ function renderRoster() {
   }
 }
 $('#rosterList').addEventListener('click', (e) => {
+  const av = e.target.closest('.nm .ava');
+  if (av) { ED.photo = av.closest('.nm').dataset.k; ED.sel = null; ED.posSel = null; renderRoster(); $('#panes').scrollTop = 0; AU.click(); return; }
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.ek) { ED.editing = b.dataset.ek; ED.sel = null; ED.posSel = null; renderRoster(); return; }
   if (b.dataset.sp != null && b.classList.contains('sp')) { ED.sp = b.dataset.sp || null; ED.dirty = true; AU.click(); renderRoster(); return; }
@@ -3988,6 +4640,33 @@ $('#rosterList').addEventListener('click', (e) => {
     AU.click(); renderRoster();
   }
 });
+// 선수 사진 바꾸기 (명단에서 얼굴을 누르면 열림)
+function photoPanel(L) {
+  const k = ED.photo, pl = ED.base[k], mine = !!myPhoto(pl), cr = photoCredit(pl);
+  const d = document.createElement('div'); d.className = 'phpanel';
+  d.innerHTML = `${avatarHTML(pl, 'lg')}<div class="php-t"><b>${esc(edName(k))}</b>
+    <small>${mine ? '내가 올린 사진이에요 (이 기기에만 저장돼요)' : pl.ph ? '자유 이용 사진 (Wikimedia Commons)' : '공개된 자유 이용 사진이 없어서 그림으로 보여줘요'}</small>
+    ${cr ? `<small class="cr">${cr}</small>` : ''}
+    <div class="row2"><label class="mbtn primary">📷 사진 올리기<input type="file" accept="image/*" hidden></label>${mine ? '<button class="mbtn" data-phdel>원래대로</button>' : ''}<button class="mbtn" data-phx>닫기</button></div></div>`;
+  L.appendChild(d);
+  d.querySelector('input[type=file]').addEventListener('change', async (e) => {
+    try {
+      const url = await fileToAvatar(e.target.files[0]);
+      if (!setMyPhoto(pl, url)) { toast('저장 공간이 부족해요. 다른 선수 사진을 지워 주세요', 2800); return; }
+      toast('사진을 바꿨어요'); renderRoster(); if (G.T) updateLines();
+    } catch (x) { toast(x.message || '사진을 못 읽었어요'); }
+  });
+  const del = d.querySelector('[data-phdel]'); if (del) del.onclick = (e) => { e.stopPropagation(); setMyPhoto(pl, null); renderRoster(); };
+  d.querySelector('[data-phx]').onclick = (e) => { e.stopPropagation(); ED.photo = null; renderRoster(); };
+}
+// 이 팀 명단에 쓰인 Commons 사진의 저작자·라이선스
+function photoCredits(L) {
+  const ps = Object.values(ED.base).filter((p) => p.ph && !myPhoto(p));
+  const d = document.createElement('div'); d.className = 'credits';
+  d.innerHTML = `<div class="rhead">선수 사진 출처</div><p class="sub" style="margin:0 0 6px">얼굴을 누르면 내 사진으로 바꿀 수 있어요 (이 기기에만 저장). 사진이 없는 선수는 그림으로 보여줘요.</p>` +
+    (ps.length ? ps.map((p) => `<div>${esc(p.name)} — ${photoCredit(p)} · Wikimedia Commons</div>`).join('') : '<div>이 팀은 자유 이용 사진이 있는 선수가 없어요.</div>');
+  L.appendChild(d);
+}
 function edSave() {
   const all = rosterCfgAll(), id = S.TEAMS[ED.team].id;
   const pos = {}; ED.order.forEach((k) => (pos[k] = ED.pos[k]));
@@ -3997,15 +4676,13 @@ function edSave() {
 $$('.rtabs button').forEach((b) => b.addEventListener('click', () => { ED.tab = b.dataset.tab; ED.sel = null; ED.posSel = null; ED.editing = null; renderRoster(); }));
 $('#rtPrev').addEventListener('click', () => { if (ED.dirty) edSave(); edLoad((ED.team + 9) % 10); renderRoster(); AU.click(); });
 $('#rtNext').addEventListener('click', () => { if (ED.dirty) edSave(); edLoad((ED.team + 1) % 10); renderRoster(); AU.click(); });
-$('#rosterSave').addEventListener('click', () => { edSave(); toast('저장했어요! 다음 경기부터 적용돼요'); closeModal('#rosterModal'); renderTitle(); });
+$('#rosterSave').addEventListener('click', () => { edSave(); toast('저장했어요! 다음 경기부터 적용돼요'); renderTitle(); });
 $('#rosterReset').addEventListener('click', () => { const all = rosterCfgAll(); delete all[S.TEAMS[ED.team].id]; store.set('roster2', all); edLoad(ED.team); renderRoster(); toast('기본값으로 되돌렸어요'); });
-$('#rosterClose').addEventListener('click', () => { if (ED.dirty) edSave(); closeModal('#rosterModal'); });
-$('#rosterBtn').addEventListener('click', () => { AU.click(); openRoster(OPTS.me); });
 
 /* ---------- 경기 중 교체 (대타 · 대주자) ---------- */
 function subCard(p, extra) {
   const b = document.createElement('button'); b.className = 'pcard';
-  b.innerHTML = `<b>${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.num ? '#' + p.num + ' · ' : ''}${p.posK}</span></b><span class="role">${extra || '벤치'}</span><span class="r">${batInfo(p)}</span>`;
+  b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.num ? '#' + p.num + ' · ' : ''}${p.posK}</span></b><span class="role">${extra || '벤치'}</span><span class="r">${batInfo(p)}</span>`;
   return b;
 }
 function openPH() {
@@ -4035,7 +4712,7 @@ function openPR(k) {
     $('#subSub').textContent = '어느 주자를 바꿀까?';
     occ.forEach((i) => {
       const p = G.bases[i], b = document.createElement('button'); b.className = 'pcard';
-      b.innerHTML = `<b>${i + 1}루 주자 ${esc(p.name)}</b><span class="role">주력 ${p.spd}</span>`;
+      b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${i + 1}루 주자 ${esc(p.name)}</b><span class="role">주력 ${p.spd}</span>`;
       b.addEventListener('click', () => openPR(i)); L.appendChild(b);
     });
     paused = true; openModal('#subModal'); return;
@@ -4159,7 +4836,7 @@ function openDef(slot) {
     tm.lineup.forEach((p, i) => {
       if (p.pos === 'DH') return;
       const b = document.createElement('button'); b.className = 'pcard';
-      b.innerHTML = `<b>${esc(p.name)} <span style="font-weight:500;opacity:.7">${i + 1}번 · ${p.posK}</span></b><span class="role">주력 ${p.spd}</span><span class="r">${batInfo(p)}</span>`;
+      b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${i + 1}번 · ${p.posK}</span></b><span class="role">주력 ${p.spd}</span><span class="r">${batInfo(p)}</span>`;
       b.addEventListener('click', () => openDef(i)); L.appendChild(b);
     });
   } else {
@@ -4503,7 +5180,6 @@ function myPair() {
 function playSeasonGame() {
   const pr = myPair(); if (!pr) return;
   const home = pr[0] === SEA.team ? 1 : 0, opp = home ? pr[1] : pr[0];
-  closeModal('#seasonModal');
   const hi = pr[0], ai = pr[1];
   startGame({ season: true, me: SEA.team, opp, home, inn: SEA.inn, sp: [rotIdx(ai), rotIdx(hi)] });
 }
@@ -4525,7 +5201,7 @@ function simToEnd() {
   if (simBusy || !SEA || SEA.over) return;
   simBusy = true;
   const step = () => {
-    if (!simBusy || !SEA || SEA.over || $('#seasonModal').hidden) { simBusy = false; seaSave(); renderSeason(); return; }
+    if (!simBusy || !SEA || SEA.over || TAB.cur !== 'season' || UI.title.hidden) { simBusy = false; seaSave(); renderSeason(); return; }
     simDay(false);
     $('#seasonSub').textContent = `자동 진행 중… ${SEA.day}/${SEA.len}경기`;
     if (SEA.day % 6 === 0) seaSave();
@@ -4537,7 +5213,7 @@ function simToEnd() {
 /* ---- 시즌 화면 ---- */
 let seaTab = 'home';
 function openSeason() {
-  seaLoad(); seaTab = 'home'; renderSeason(); openModal('#seasonModal');
+  seaTab = 'home'; showTab('season');
 }
 function fmtIP(o) { return `${Math.floor(o / 3)}${o % 3 ? '.' + (o % 3) : ''}`; }
 function leaders(kind) {
@@ -4617,14 +5293,14 @@ function confirmTwice(sel, msg) {
   setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = old; } }, 3000);
   return false;
 }
-$('#seasonBtn').addEventListener('click', () => { AU.click(); openSeason(); });
-$('#seasonClose').addEventListener('click', () => { simBusy = false; closeModal('#seasonModal'); });
 
 if (window.__fc) Object.assign(window.__fc, { simGame, newSeason, simDay, openSeason, startPractice, gameOver, sea: () => SEA });
 
 /* ===================== 온라인 1:1 (room presence 기반 락스텝) ===================== */
 // 원리: 두 기기가 같은 시드로 같은 계산을 하고, 사람의 선택(투구/스윙/작전)만 주고받는다.
-const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [], ui: false };
+// 방 설정(이닝·홈/원정·주야간·판정 난이도)은 방장이 정하고, 참가자는 그 설정으로 경기한다.
+const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [],
+  cfg: Object.assign({ inn: 3, side: 1, night: 1, diff: 'pro' }, store.get('oncfg', {})) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
 function hashSeed(a, b, c) { let h = (a ^ 0x9e3779b9) >>> 0; h = Math.imul(h ^ (b + 0x7f4a7c15), 2654435761) >>> 0; h = Math.imul(h ^ (c * 40503 + 17), 2246822519) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
 function onSeed(pi, tag) { return S.mulberry32(hashSeed(G.online.seed, pi, tag)); }
@@ -4634,59 +5310,237 @@ function pres(patch) {
   if (!ON.room) return;
   ON.room.presence(patch).catch((e) => toast('연결 오류: ' + (e && e.code || '알 수 없음')));
 }
+const TAB = { cur: 'home', keys: ['home', 'season', 'online', 'roster', 'me'] }; // 홈 화면 탭 상태 (gzz_home.js)
+const onlineVisible = () => !UI.title.hidden && TAB.cur === 'online';
+
+/* ---------- 계정 + 서버 연결 (Render 등 자체 서버에 올렸을 때) ---------- */
+const NET = { server: false, token: store.get('auth', null), user: null, hist: [], conn: false, busy: false, err: '', room: null };
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? 'POST' : 'GET', headers: Object.assign({ 'Content-Type': 'application/json' }, NET.token ? { Authorization: 'Bearer ' + NET.token } : {}), body: body ? JSON.stringify(body) : undefined });
+  let j = null; try { j = await r.json(); } catch (e) { /* JSON 아님 = 게임 서버가 아님 */ }
+  if (!j) throw { msg: '게임 서버에 연결할 수 없어요 (정적 파일로 열었나요?)', code: r.status };
+  if (!r.ok) throw { msg: j.error || '오류 ' + r.status, code: r.status };
+  return j;
+}
+function setAuth(tok, user) {
+  NET.token = tok; NET.user = user; store.set('auth', tok);
+  if (!tok) { NET.hist = []; ON.host = null; ON.joinCode = null; if (NET.room) NET.room.close(); NET.room = null; ON.room = null; ON.peers = []; NET.conn = false; updateOnlineBadge(); }
+}
+async function refreshMe() {
+  try { const j = await api('/api/me'); NET.user = j.user; NET.hist = j.hist || []; } catch (e) { if (e.code === 401) setAuth(null, null); }
+  tabRefresh();
+}
+async function doAuth(kind, name, pw) {
+  NET.busy = true; NET.err = ''; NET.name = name; tabRefresh();
+  try {
+    const j = await api('/api/' + kind, { name, pw });
+    setAuth(j.token, j.user); toast((kind === 'signup' ? '가입 완료! ' : '') + j.user.name + ' 님 환영해요');
+    connectRoom(); refreshMe();
+  } catch (e) { NET.err = e.msg || '연결 실패'; }
+  NET.busy = false; tabRefresh();
+}
+// 로그인·회원가입 폼 (온라인 탭, 내 정보 탭에서 같이 씀)
+function renderAuth(B, intro) {
+  B.innerHTML = `<p class="sub">${intro}</p>
+    <form class="auth" autocomplete="on">
+      <label>아이디<input class="auName" name="username" autocomplete="username" maxlength="12" value="${esc(NET.name || '')}" placeholder="2~12자 한글·영문·숫자" required></label>
+      <label>비밀번호<input class="auPw" name="password" type="password" autocomplete="current-password" maxlength="64" placeholder="4자 이상" required></label>
+      ${NET.err ? `<p class="err" role="alert">${esc(NET.err)}</p>` : ''}
+      <div class="row2"><button class="mbtn primary" type="submit" ${NET.busy ? 'disabled' : ''}>로그인</button><button class="mbtn auSignup" type="button" ${NET.busy ? 'disabled' : ''}>회원가입</button></div>
+      ${NET.busy ? '<p class="sub" style="margin:0">서버 응답 기다리는 중… (무료 서버는 자고 있으면 깨어나는 데 1분쯤 걸려요)</p>' : ''}
+      <p class="fine" style="text-align:left;margin:4px 0 0">이메일·실명은 받지 않아요. 아이디, 암호화된 비밀번호, 대표 팀, 온라인 전적만 저장돼요.</p>
+    </form>`;
+  const f = B.querySelector('form'), go = (k) => {
+    const n = f.querySelector('.auName').value.trim(), pw = f.querySelector('.auPw').value;
+    if (!n || !pw) { NET.err = '아이디와 비밀번호를 입력해 주세요'; tabRefresh(); return; }
+    doAuth(k, n, pw);
+  };
+  f.onsubmit = (e) => { e.preventDefault(); go('login'); };
+  f.querySelector('.auSignup').onclick = () => go('signup');
+}
+function onlineResult(r) {
+  if (!NET.server || !NET.token || !G.online || G.online.rec || !G.T) return;
+  G.online.rec = 1;
+  const me = G.T[G.userSide], op = G.T[1 - G.userSide];
+  api('/api/result', { r, g: G.online.code + ':' + G.online.seed, my: me.runs, op: op.runs, team: me.idx, oteam: op.idx, oname: G.online.oname, inn: G.maxInn }).then(refreshMe, () => {});
+}
+// claude.ai room과 같은 모양(presence / onPeers)의 WebSocket 방
+function makeNetRoom() {
+  const peerId = 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  let ws = null, my = {}, map = new Map(), hs = [], retry = 0, closed = false, timer = 0;
+  const me = () => ({ peer: peerId, isMe: true, name: NET.user && NET.user.name, presence: Object.freeze(Object.assign({}, my)) });
+  const fire = () => { map.set(peerId, me()); const ps = [...map.values()]; hs.forEach((h) => h({ peers: ps })); };
+  const put = (m) => { if (m.peer !== peerId) map.set(m.peer, { peer: m.peer, isMe: false, name: m.name, uid: m.uid, presence: Object.freeze(m.presence || {}) }); };
+  function connect() {
+    if (closed || (ws && ws.readyState < 2)) return;
+    clearTimeout(timer);
+    ws = new WebSocket(location.origin.replace(/^http/, 'ws') + '/ws?token=' + encodeURIComponent(NET.token) + '&peer=' + peerId);
+    ws.onopen = () => { retry = 0; NET.conn = true; ws.send(JSON.stringify({ t: 'pres', patch: my, reset: 1 })); tabRefresh(); };
+    ws.onmessage = (e) => {
+      let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      if (m.t === 'hello') { map.clear(); m.peers.forEach(put); fire(); }
+      else if (m.t === 'peer') { put(m); fire(); }
+      else if (m.t === 'leave') { map.delete(m.peer); fire(); }
+    };
+    ws.onclose = (e) => {
+      NET.conn = false;
+      if (e.code === 4001) { setAuth(null, null); toast('다시 로그인해 주세요', 3000); tabRefresh(); return; }
+      if (closed) return;
+      map.clear(); fire();
+      timer = setTimeout(connect, Math.min(5000, 400 * 2 ** retry++));
+      tabRefresh();
+    };
+  }
+  setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); }, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !closed && (!ws || ws.readyState > 1)) { retry = 0; connect(); } });
+  connect();
+  return {
+    presence: async (patch) => {
+      for (const k in patch) { if (patch[k] === null) delete my[k]; else my[k] = patch[k]; }
+      if (JSON.stringify(my).length > 7000) throw { code: 'too_big' };
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'pres', patch }));
+      map.set(peerId, me());
+    },
+    onPeers: (h) => { hs.push(h); fire(); return () => {}; },
+    close: () => { closed = true; clearTimeout(timer); if (ws) ws.close(); },
+  };
+}
+function useRoom(room) {
+  ON.room = room;
+  room.onPeers((ch) => { ON.peers = ch.peers; onRoomChange(); });
+  pres(Object.assign({}, ON.my, { fc: 1 }));
+  tabRefresh();
+}
+function connectRoom() {
+  if (NET.room || !NET.token) return;
+  NET.room = makeNetRoom(); useRoom(NET.room);
+}
 (async () => {
   try {
-    if (!window.claude || typeof window.claude.use !== 'function') return;
-    const room = await window.claude.use('room');
-    if (!room) return;
-    ON.room = room;
-    pres({ fc: 1 });
-    room.onPeers((ch) => { ON.peers = ch.peers; onRoomChange(); });
-    if (ON.ui) renderOnline();
-  } catch (e) { /* 온라인 불가 — 조용히 */ }
+    if (window.claude && typeof window.claude.use === 'function') {
+      const room = await window.claude.use('room');
+      if (room) { useRoom(room); return; }
+    }
+  } catch (e) { /* claude.ai 아님 */ }
+  if (!/^https?:$/.test(location.protocol)) return;
+  NET.server = true;
+  if (NET.token) { await refreshMe(); if (NET.token) connectRoom(); }
+  tabRefresh();
 })();
 function others() { return ON.peers.filter((p) => !p.isMe && p.presence && p.presence.fc === 1); }
+function openRooms() { return others().filter((p) => p.presence.lob); }
 function myRC() { return rosterCfgAll()[S.TEAMS[OPTS.me].id] || {}; }
+function updateOnlineBadge() {
+  const n = ON.room ? openRooms().length : 0, bd = $('#tab-online .badge2');
+  if (bd) { bd.hidden = !n || TAB.cur === 'online'; bd.textContent = n; }
+  const lv = $('#onLive'); if (lv) { lv.hidden = !ON.room || (NET.server && !NET.conn); $('#onLiveN').textContent = others().length + 1; }
+}
 
-/* ---------- 로비 UI ---------- */
-function openOnline() { ON.ui = true; renderOnline(); openModal('#onModal'); }
+/* ---------- 로비 UI (온라인 탭) ---------- */
+const DIFF_NM = { rookie: '루키', pro: '프로', legend: '레전드' };
+function cfgChips(c, hostView) {
+  const side = c.side === 2 ? '홈/원정 랜덤' : hostView ? (c.side ? '방장 홈' : '방장 원정') : (c.side ? '내가 홈' : '내가 원정');
+  return `<span class="chipset"><i>${c.inn}이닝</i><i>${side}</i><i>${c.night ? '🌙 야간' : '☀ 주간'}</i><i>판정 ${DIFF_NM[c.diff] || '프로'}</i></span>`;
+}
+function oseg(key, opts) {
+  return `<div class="oseg" data-ok="${key}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${String(ON.cfg[key]) === String(v)}">${l}</button>`).join('')}</div>`;
+}
+function teamPickHTML(disabled) {
+  return `<div class="tpick" role="radiogroup" aria-label="내 팀">${S.TEAMS.map((t, i) => {
+    const fg = lum(t.c1) > 0.6 && lum(t.c2) > 0.6 ? '#111' : t.c2;
+    return `<button type="button" role="radio" data-team="${i}" aria-checked="${i === OPTS.me}" ${disabled ? 'disabled' : ''} style="--tc:${t.c1};--tf:${fg}" title="${esc(t.city)} ${esc(t.name)}"><b>${esc(t.city)}</b></button>`;
+  }).join('')}</div>`;
+}
 function renderOnline() {
   const B = $('#onBody'); if (!B) return;
-  const me = S.TEAMS[OPTS.me];
-  if (!ON.room) {
-    B.innerHTML = `<p class="sub">온라인 대전은 claude.ai에서 이 게임 링크를 연 상태에서만 돼요. 친구도 로그인한 상태로, 공유받은 링크로 들어와야 해요.</p>`;
+  updateOnlineBadge();
+  if (!NET.server && !ON.room) {
+    B.innerHTML = `<div class="empty"><div class="big3">🌐</div><p class="sub">온라인 대전은 게임 서버(Render 등)에 올린 주소로 열었을 때만 돼요.</p></div>`;
     return;
   }
-  let h = `<p class="sub">내 팀: <b>${esc(me.city)} ${esc(me.name)}</b> · ${OPTS.inn}이닝 · ${OPTS.home ? '홈(후공)' : '원정(선공)'}<br><span style="font-size:12px">팀·이닝·홈/원정은 시작 화면에서 바꾸고 와. 방장 설정으로 경기해.</span></p>`;
+  if (NET.server && !NET.token) { renderAuth(B, '친구와 1:1로 붙으려면 로그인해 주세요. 처음이면 아이디·비밀번호를 정하고 <b>회원가입</b>을 누르면 돼요.'); return; }
+  const acct = NET.user ? `<button class="acct" id="onAcct"><span class="av" style="--tc:${NET.user.fav != null ? S.TEAMS[NET.user.fav].c1 : 'var(--accent)'}">${esc(NET.user.name.slice(0, 1))}</span><span><b>${esc(NET.user.name)}</b> · 온라인 ${NET.user.w}승 ${NET.user.l}패${NET.user.d ? ' ' + NET.user.d + '무' : ''}</span><span class="go">내 정보 ›</span></button>` : '';
+  if (!ON.room || (NET.server && !NET.conn)) {
+    B.innerHTML = acct + `<div class="empty"><div class="spin"></div><p class="sub">서버에 연결하는 중… 무료 서버는 처음 깨어나는 데 1분쯤 걸릴 수 있어요.</p></div>`;
+    bindOnline(B); return;
+  }
+  const me = S.TEAMS[OPTS.me];
+  let h = acct;
   if (ON.host) {
-    h += `<div class="pcard" style="cursor:default"><b>방 코드 ${ON.host}</b><span class="role">대기 중</span><span class="r">친구가 이 게임을 열고 "온라인 1:1"에서 이 방의 참가를 누르면 바로 시작돼요.</span></div><button class="mbtn" id="onCancel">방 닫기</button>`;
+    h += `<div class="waitcard"><div class="radar"><i></i><i></i><i></i><span class="badge" style="background:${me.c1};color:${lum(me.c1) > 0.6 ? '#111' : me.c2}">${esc(me.city)}</span></div>
+      <div class="wt">방 <b>${ON.host}</b> · 친구를 기다리는 중</div>${cfgChips(ON.cfg, true)}
+      <p class="sub" style="margin:8px 0 0">친구가 이 주소로 들어와서 <b>온라인</b> 탭의 열린 방을 누르면 바로 시작돼요.</p>
+      <div class="row2" style="margin-top:10px"><button class="mbtn" id="onInvite">📤 친구 초대</button><button class="mbtn" id="onCancel">방 닫기</button></div></div>`;
   } else if (ON.joinCode) {
-    h += `<div class="pcard" style="cursor:default"><b>방 ${ON.joinCode} 참가 요청 중…</b><span class="r">방장 쪽에서 곧 시작돼요.</span></div><button class="mbtn" id="onCancel">취소</button>`;
+    h += `<div class="waitcard"><div class="spin"></div><div class="wt">방 ${esc(ON.joinCode)} 참가 요청 중…</div><p class="sub" style="margin:4px 0 0">방장 쪽에서 곧 시작돼요.</p><button class="mbtn" id="onCancel">취소</button></div>`;
   } else {
-    h += `<button class="mbtn primary" id="onHost">방 만들기</button><div class="rhead">열린 방</div>`;
-    const rooms = others().filter((p) => p.presence.lob);
-    if (!rooms.length) h += `<p class="sub">아직 열린 방이 없어요. 친구가 방을 만들면 여기 떠요.</p>`;
+    const rooms = openRooms();
+    h += `<div class="rhead">열린 방 ${rooms.length ? `<span class="cnt">${rooms.length}</span>` : ''}</div>`;
+    if (!rooms.length) h += `<div class="empty sm"><p class="sub" style="margin:0">아직 열린 방이 없어요. 아래에서 방을 만들거나, 친구가 만들 때까지 기다려 주세요.</p></div>`;
+    h += '<div class="plist">';
     rooms.forEach((p) => {
       const L = p.presence.lob, t = S.TEAMS[L.team] || me, same = L.team === OPTS.me;
-      h += `<button class="pcard" data-join="${esc(String(L.code))}" data-peer="${esc(p.peer)}" ${same ? 'disabled' : ''}><b>방 ${esc(String(L.code))} · ${esc(t.city)} ${esc(t.name)}</b><span class="role">${L.home ? '방장 홈' : '방장 원정'}</span><span class="r">${L.inn}이닝${same ? ' · 같은 팀이라 참가 불가 (시작 화면에서 내 팀 변경)' : ' · 눌러서 참가'}</span></button>`;
+      const fg = lum(t.c1) > 0.6 ? '#111' : t.c2;
+      h += `<button class="roomcard" data-join="${esc(String(L.code))}" ${same ? 'disabled' : ''}>
+        <span class="badge sm" style="background:${t.c1};color:${fg}">${esc(t.city)}</span>
+        <span class="rc-main"><b>${p.name ? esc(p.name) + '의 방' : '방 ' + esc(String(L.code))}</b><small>${esc(t.city)} ${esc(t.name)}</small>${cfgChips({ inn: L.inn, side: L.side === 2 ? 2 : 1 - L.side, night: L.night, diff: L.diff }, false)}
+        ${same ? '<small class="warn">같은 팀이라 참가 불가 — 아래에서 내 팀을 바꿔 주세요</small>' : ''}</span>
+        <span class="rc-go">${same ? '' : '참가 ›'}</span></button>`;
     });
+    h += '</div>';
+    h += `<div class="rhead">내 팀 <span style="font-weight:500">· ${esc(me.city)} ${esc(me.name)}</span></div>${teamPickHTML(false)}`;
+    h += `<div class="rhead">방 만들기 <span style="font-weight:500">· 내가 정한 설정으로 경기해요</span></div>
+      <div class="ocfg">
+        <div class="opt"><span>이닝</span>${oseg('inn', [[3, '3회'], [5, '5회'], [9, '9회']])}</div>
+        <div class="opt"><span>내 위치</span>${oseg('side', [[0, '원정'], [1, '홈'], [2, '랜덤']])}</div>
+        <div class="opt"><span>경기</span>${oseg('night', [[1, '야간'], [0, '주간']])}</div>
+        <div class="opt"><span>판정</span>${oseg('diff', [['rookie', '루키'], ['pro', '프로'], ['legend', '레전드']])}</div>
+      </div>
+      <button class="cta" id="onHost" style="font-size:20px;min-height:52px">방 만들기</button>`;
+    const os = others();
+    if (os.length) h += `<div class="rhead">지금 접속 중</div><div class="who">${os.map((p) => `<span><i></i>${esc(p.name || '손님')}${p.presence.g ? ' <small>경기 중</small>' : p.presence.lob ? ' <small>방 대기</small>' : ''}</span>`).join('')}</div>`;
   }
-  h += `<p class="sub" style="margin-top:10px">지금 접속: ${others().length + 1}명</p>`;
   B.innerHTML = h;
-  const hb = $('#onHost'); if (hb) hb.onclick = () => { ON.host = String(1000 + Math.floor(Math.random() * 9000)); pres({ lob: { code: ON.host, team: OPTS.me, home: OPTS.home, inn: OPTS.inn } }); renderOnline(); AU.click(); };
-  const cb = $('#onCancel'); if (cb) cb.onclick = () => { ON.host = null; ON.joinCode = null; pres({ lob: null, join: null }); renderOnline(); };
+  bindOnline(B);
+}
+function bindOnline(B) {
+  const on = (id, fn) => { const e = B.querySelector(id); if (e) e.onclick = fn; };
+  on('#onAcct', () => showTab('me'));
+  on('#onHost', () => {
+    ON.host = String(1000 + Math.floor(Math.random() * 9000));
+    const c = ON.cfg; store.set('oncfg', c);
+    pres({ lob: { code: ON.host, team: OPTS.me, side: c.side, inn: c.inn, night: c.night, diff: c.diff } });
+    renderOnline(); AU.click();
+  });
+  on('#onCancel', () => { ON.host = null; ON.joinCode = null; pres({ lob: null, join: null }); renderOnline(); });
+  on('#onInvite', async () => {
+    const url = location.origin + location.pathname, text = `풀카운트 3D 1:1 하자! 온라인 탭에서 방 ${ON.host} 눌러서 들어와`;
+    try { if (navigator.share) { await navigator.share({ title: '풀카운트 3D', text, url }); return; } } catch (e) { return; }
+    try { await navigator.clipboard.writeText(text + '\n' + url); toast('초대 문구를 복사했어요. 메신저에 붙여 넣어 보내세요'); } catch (e) { toast(url); }
+  });
   B.querySelectorAll('[data-join]').forEach((b) => (b.onclick = () => {
     ON.joinCode = b.dataset.join; pres({ join: { code: ON.joinCode, team: OPTS.me, rc: myRC() } }); renderOnline(); AU.click();
+  }));
+  B.querySelectorAll('.oseg').forEach((sg) => sg.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const k = sg.dataset.ok; ON.cfg[k] = k === 'diff' ? b.dataset.v : +b.dataset.v; store.set('oncfg', ON.cfg);
+    sg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); AU.click();
+  }));
+  B.querySelectorAll('[data-team]').forEach((b) => (b.onclick = () => {
+    const i = +b.dataset.team; OPTS.me = i; if (OPTS.opp === i) OPTS.opp = (i + 1) % 10;
+    store.set('opts', OPTS); renderTitle(); renderOnline(); AU.click();
   }));
 }
 function onRoomChange() {
   const os = others();
+  updateOnlineBadge();
   if (!G.online) {
     if (ON.host) {
       const g = os.find((p) => p.presence.join && String(p.presence.join.code) === ON.host);
       if (g) {
-        const j = g.presence.join;
-        const go = { code: ON.host, seed: (Math.random() * 2147483647) | 0, hs: OPTS.home ? 1 : 0, inn: OPTS.inn, ht: OPTS.me, gt: j.team, rh: myRC(), rg: j.rc || {}, diff: OPTS.diff };
+        const j = g.presence.join, c = ON.cfg;
+        const hs = c.side === 2 ? (Math.random() < 0.5 ? 1 : 0) : c.side;
+        const go = { code: ON.host, seed: (Math.random() * 2147483647) | 0, hs, inn: c.inn, ht: OPTS.me, gt: j.team, rh: myRC(), rg: j.rc || {}, diff: c.diff, night: c.night };
         ON.host = null; pres({ lob: null, go });
         beginOnline(go, true, g.peer);
         return;
@@ -4695,8 +5549,9 @@ function onRoomChange() {
     if (ON.joinCode) {
       const h = os.find((p) => p.presence.go && String(p.presence.go.code) === ON.joinCode);
       if (h) { const go = h.presence.go; ON.joinCode = null; beginOnline(go, false, h.peer); return; }
+      if (!os.some((p) => p.presence.lob && String(p.presence.lob.code) === ON.joinCode)) { ON.joinCode = null; pres({ join: null }); toast('방이 닫혔어요'); }
     }
-    if (ON.ui && !$('#onModal').hidden) renderOnline();
+    if (onlineVisible()) renderOnline();
     return;
   }
   const P = os.find((p) => p.peer === G.online.peer);
@@ -4713,16 +5568,17 @@ function onRoomChange() {
   });
 }
 function beginOnline(go, host, peer) {
-  G.online = { host, peer, code: String(go.code), seed: go.seed >>> 0, pi: 0, lost: 0 };
-  ON.acts = []; ON.n = 0; ON.seen = 0; ON.q = []; ON.ui = false;
+  const op = ON.peers.find((p) => p.peer === peer);
+  G.online = { host, peer, code: String(go.code), seed: go.seed >>> 0, pi: 0, lost: 0, oname: op && op.name ? String(op.name) : null };
+  ON.acts = []; ON.n = 0; ON.seen = 0; ON.q = [];
   pres({ acts: [], g: G.online.code });
   const mySide = host ? go.hs : 1 - go.hs;
   const me = host ? go.ht : go.gt, opp = host ? go.gt : go.ht;
   G.onlineRC = {}; G.onlineRC[S.TEAMS[go.ht].id] = go.rh || {}; G.onlineRC[S.TEAMS[go.gt].id] = go.rg || {};
   GR = S.mulberry32(G.online.seed);
-  closeModal('#onModal');
-  toast(`온라인 경기 시작! 상대: ${S.TEAMS[opp].city} ${S.TEAMS[opp].name}`, 2500);
-  startGame({ me, opp, home: mySide === 1, inn: go.inn, online: true });
+  if (go.night != null) applyTime(!!go.night);
+  toast(`온라인 경기 시작! 상대: ${G.online.oname ? G.online.oname + ' · ' : ''}${S.TEAMS[opp].city} ${S.TEAMS[opp].name}`, 2500);
+  startGame({ me, opp, home: mySide === 1, inn: go.inn, online: true, diff: DIFF[go.diff] ? go.diff : OPTS.diff });
 }
 function sendAct(a) {
   if (!G.online) return;
@@ -4745,7 +5601,7 @@ function onlineTick() {
   if (!G.online || !G.T) return;
   if (G.online.lost && clock - G.online.lost > 30) { onlineFail('상대가 돌아오지 않아서 경기를 끝냈어요'); return; }
   const a = ON.q[0]; if (!a) { waitHint(); return; }
-  if (a.k === 'quit') { ON.q.shift(); onlineFail('상대가 경기를 나갔어요'); return; }
+  if (a.k === 'quit') { ON.q.shift(); onlineResult('win'); onlineFail('상대가 경기를 나갔어요 (기권승)'); return; }
   if (a.k === 'sw') {
     const P = G.pitch;
     if (!P || P.pi < a.pi) return; // 아직 그 공을 안 던짐
@@ -4775,9 +5631,125 @@ function waitHint() {
   if (userBatting() && G.phase === 'ready') { _hintAt = clock; showPlayText('상대 투수가 공을 고르는 중…', 2000); }
   else if (userPitching() && P && P.released && !P.remoteIn && P.ft / P.pt.dur >= 1) { _hintAt = clock; showPlayText('상대 타자 반응 기다리는 중…', 2000); }
 }
-$('#onlineBtn').addEventListener('click', () => { AU.click(); openOnline(); });
-$('#onClose').addEventListener('click', () => { ON.ui = false; closeModal('#onModal'); });
+/* ===================== 홈 화면 탭 (경기 · 시즌 · 온라인 · 구단 · 내 정보) ===================== */
+const TAB_ENTER = {
+  home: () => renderTitle(),
+  season: () => { seaLoad(); renderSeason(); },
+  online: () => renderOnline(),
+  roster: () => { if (!ED.base) edLoad(OPTS.me); renderRoster(); },
+  me: () => renderMe(),
+};
+function showTab(k, quiet) {
+  if (!TAB_ENTER[k]) k = 'home';
+  if (TAB.cur === 'roster' && k !== 'roster' && ED.dirty) edSave();
+  if (TAB.cur === 'season' && k !== 'season') simBusy = false;
+  const changed = TAB.cur !== k;
+  TAB.cur = k; store.set('tab', k);
+  TAB.keys.forEach((x) => {
+    $('#pane-' + x).hidden = x !== k;
+    $('#tab-' + x).setAttribute('aria-selected', String(x === k));
+  });
+  if (changed) $('#panes').scrollTop = 0;
+  TAB_ENTER[k]();
+  updateOnlineBadge();
+  if (!quiet && changed) AU.click();
+}
+// 로그인 상태·접속 상태가 바뀌면 지금 보고 있는 탭만 다시 그림 (입력 중인 폼은 건드리지 않게 온라인/내 정보만)
+function tabRefresh() {
+  updateOnlineBadge();
+  if (UI.title.hidden) return;
+  if (TAB.cur === 'online') renderOnline();
+  else if (TAB.cur === 'me') renderMe();
+}
+$$('.tabbar .tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$('.tabbar').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const i = TAB.keys.indexOf(TAB.cur), n = TAB.keys[(i + (e.key === 'ArrowRight' ? 1 : TAB.keys.length - 1)) % TAB.keys.length];
+  showTab(n); $('#tab-' + n).focus();
+});
 
+/* ---------- 내 정보 ---------- */
+const ME = { pwOpen: false, delOpen: false, msg: '', err: '' };
+const fmtDate = (t) => { const d = new Date(t); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; };
+function localRec() {
+  const all = store.get('rec', {}); let w = 0, l = 0, d = 0;
+  Object.values(all).forEach((x) => { w += x.w; l += x.l; d += x.d; });
+  return { w, l, d };
+}
+function pct(w, l) { return w + l ? (w / (w + l)).toFixed(3).replace(/^0/, '') : '-'; }
+function renderMe() {
+  const B = $('#meBody'); if (!B) return;
+  const lr = localRec();
+  const offline = `<div class="rhead">이 기기 기록 (혼자 하기 · 시즌)</div>
+    <div class="stats" style="margin-top:0"><div><b>${lr.w}</b>승</div><div><b>${lr.l}</b>패</div><div><b>${pct(lr.w, lr.l)}</b>승률</div></div>`;
+  if (!NET.server) { B.innerHTML = `<p class="sub">계정 기능은 게임 서버 주소로 열었을 때 쓸 수 있어요.</p>` + offline; return; }
+  if (!NET.token) { renderAuth(B, '로그인하면 온라인 전적과 최근 경기가 계정에 저장돼요.'); B.insertAdjacentHTML('beforeend', offline); return; }
+  const u = NET.user;
+  if (!u) { B.innerHTML = `<div class="empty"><div class="spin"></div><p class="sub">계정 정보를 불러오는 중…</p></div>`; return; }
+  const fav = u.fav != null ? S.TEAMS[u.fav] : null, g = u.w + u.l + u.d;
+  let h = `<div class="prof">
+      <span class="av big" style="--tc:${fav ? fav.c1 : 'var(--accent)'};--tf:${fav ? (lum(fav.c1) > 0.6 ? '#111' : fav.c2) : 'var(--accent-ink)'}">${esc(u.name.slice(0, 1))}</span>
+      <div><div class="pn">${esc(u.name)}</div><div class="pm">${fav ? `${esc(fav.city)} ${esc(fav.name)} 팬 · ` : ''}${u.created ? fmtDate(u.created) + ' 가입' : ''}</div></div>
+      <span class="live" title="${NET.conn ? '온라인' : '연결 끊김'}"><i style="${NET.conn ? '' : 'background:#aab;animation:none'}"></i>${NET.conn ? '온라인' : '오프라인'}</span>
+    </div>
+    <div class="rhead">온라인 전적</div>
+    <div class="stats stats4" style="margin-top:0"><div><b>${g}</b>경기</div><div><b>${u.w}</b>승</div><div><b>${u.l}</b>패</div><div><b>${pct(u.w, u.l)}</b>승률</div></div>`;
+  h += `<div class="rhead">최근 온라인 경기</div>`;
+  if (!NET.hist.length) h += `<div class="empty sm"><p class="sub" style="margin:0">아직 경기가 없어요. <b>온라인</b> 탭에서 친구와 붙어 보세요!</p></div>`;
+  else h += `<div class="hist">${NET.hist.slice(0, 10).map((m) => {
+    const t = S.TEAMS[m.team] || null, o = S.TEAMS[m.oteam] || null, R = { w: ['승', 'w'], l: ['패', 'l'], d: ['무', 'd'] }[String(m.r).trim()] || ['-', 'd'];
+    return `<div class="hrow"><span class="res ${R[1]}">${R[0]}</span><span class="hm"><b>vs ${esc(m.oname || '상대')}</b><small>${t ? esc(t.city) : '?'} ${m.my != null ? m.my : '-'} : ${m.op != null ? m.op : '-'} ${o ? esc(o.city) : '?'}${m.inn ? ` · ${m.inn}이닝` : ''}</small></span><span class="hd">${m.at ? fmtDate(m.at).slice(5) : ''}</span></div>`;
+  }).join('')}</div>`;
+  h += `<div class="rhead">대표 팀 <span style="font-weight:500">· 프로필 색으로 쓰여요</span></div>
+    <div class="tpick" id="favPick">${S.TEAMS.map((t, i) => `<button type="button" data-fav="${i}" aria-checked="${u.fav === i}" role="radio" style="--tc:${t.c1};--tf:${lum(t.c1) > 0.6 && lum(t.c2) > 0.6 ? '#111' : t.c2}" title="${esc(t.city)} ${esc(t.name)}"><b>${esc(t.city)}</b></button>`).join('')}</div>`;
+  h += `<div class="rhead">계정 · 보안</div>
+    <div class="setlist">
+      <button class="setrow" id="meRefresh"><span>🔄 전적 새로고침</span><span>›</span></button>
+      <button class="setrow" id="mePwT" aria-expanded="${ME.pwOpen}"><span>🔑 비밀번호 변경</span><span>${ME.pwOpen ? '⌃' : '›'}</span></button>
+      ${ME.pwOpen ? `<form class="auth inset" id="mePw"><input type="text" name="username" autocomplete="username" value="${esc(u.name)}" hidden>
+        <label>현재 비밀번호<input type="password" id="mePwOld" autocomplete="current-password" maxlength="64" required></label>
+        <label>새 비밀번호<input type="password" id="mePwNew" autocomplete="new-password" maxlength="64" placeholder="4자 이상" required></label>
+        <button class="mbtn primary" type="submit">변경하기</button></form>` : ''}
+      <button class="setrow" id="meOut"><span>🚪 로그아웃</span><span>›</span></button>
+      <button class="setrow danger" id="meDelT" aria-expanded="${ME.delOpen}"><span>⚠ 회원 탈퇴</span><span>${ME.delOpen ? '⌃' : '›'}</span></button>
+      ${ME.delOpen ? `<form class="auth inset" id="meDel"><p class="sub" style="margin:0">계정과 온라인 전적이 모두 지워지고 되돌릴 수 없어요. 이 기기의 혼자 하기 기록은 남아요.</p>
+        <label>비밀번호 확인<input type="password" id="meDelPw" autocomplete="current-password" maxlength="64" required></label>
+        <button class="mbtn danger" type="submit" id="meDelGo">탈퇴하기</button></form>` : ''}
+    </div>
+    ${ME.err ? `<p class="err" role="alert" style="color:#d33;font-weight:700;font-size:13px">${esc(ME.err)}</p>` : ''}
+    <p class="fine" style="text-align:left">저장되는 정보: 아이디, 암호화된 비밀번호(원문은 서버도 몰라요), 대표 팀, 온라인 전적과 최근 ${20}경기. 이메일·전화번호·실명은 받지 않아요.</p>`;
+  B.innerHTML = h + offline;
+  const on = (id, fn) => { const e = B.querySelector(id); if (e) e.onclick = fn; };
+  on('#meRefresh', () => { refreshMe(); toast('새로고침했어요'); });
+  on('#mePwT', () => { ME.pwOpen = !ME.pwOpen; ME.delOpen = false; ME.err = ''; renderMe(); });
+  on('#meDelT', () => { ME.delOpen = !ME.delOpen; ME.pwOpen = false; ME.err = ''; renderMe(); });
+  on('#meOut', () => { if (G.online) return toast('경기 중엔 로그아웃할 수 없어요'); setAuth(null, null); ME.pwOpen = ME.delOpen = false; toast('로그아웃했어요'); renderMe(); });
+  B.querySelectorAll('[data-fav]').forEach((b) => (b.onclick = async () => {
+    const i = +b.dataset.fav, v = u.fav === i ? null : i;
+    try { NET.user = (await api('/api/profile', { fav: v })).user; renderMe(); AU.click(); } catch (e) { toast(e.msg || '저장 실패'); }
+  }));
+  const pf = B.querySelector('#mePw');
+  if (pf) pf.onsubmit = async (e) => {
+    e.preventDefault(); ME.err = '';
+    try { await api('/api/password', { old: $('#mePwOld').value, pw: $('#mePwNew').value }); ME.pwOpen = false; toast('비밀번호를 바꿨어요'); }
+    catch (x) { ME.err = x.msg || '변경 실패'; }
+    renderMe();
+  };
+  const df = B.querySelector('#meDel');
+  if (df) df.onsubmit = async (e) => {
+    e.preventDefault();
+    if (!confirmTwice('#meDelGo', '정말요? 한 번 더 누르면 탈퇴')) return;
+    ME.err = '';
+    try { await api('/api/delete', { old: $('#meDelPw').value }); ME.delOpen = false; setAuth(null, null); toast('탈퇴했어요. 그동안 고마웠어요!', 3000); }
+    catch (x) { ME.err = x.msg || '탈퇴 실패'; }
+    renderMe();
+  };
+}
+
+if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard });
+
+// 경기에서 돌아오면 보던 탭 그대로 (시즌 경기 → 시즌 탭, 온라인 경기 → 온라인 탭)
+showTab(store.get('tab', 'home'), true);
 })();</script>
 </body>
 </html>

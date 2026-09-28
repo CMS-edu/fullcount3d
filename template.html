@@ -43,9 +43,38 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
 /* ---------- 타이틀 ---------- */
-#title { position: fixed; inset: 0; display: grid; place-items: center; overflow-y: auto; z-index: 20;
-  padding: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 14px);
+#title { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
   background: radial-gradient(120% 80% at 50% 110%, transparent 40%, var(--scrim) 100%); }
+.panes { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) calc(env(safe-area-inset-right, 0px) + 14px) 14px calc(env(safe-area-inset-left, 0px) + 14px); }
+.pane { min-height: 100%; display: grid; place-items: center; }
+.pane > .card { min-width: 0; max-width: 100%; }
+@media (max-width: 400px) { .matchup { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 2px; } .picker .arrow { width: 34px; } .badge { width: 58px; height: 58px; } .card { padding: 14px; } }
+.pane > .card { animation: paneIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+.pane > .card.panel { align-self: start; width: min(520px, 100%); }
+@keyframes paneIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+.phead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 2px 10px; }
+.panel h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; letter-spacing: 0.02em; }
+.panel .sub { color: var(--ink-2); font-size: 13px; margin: -4px 0 12px; line-height: 1.5; }
+.live { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+.live i { width: 8px; height: 8px; border-radius: 50%; background: #1fc46a; box-shadow: 0 0 0 0 rgba(31, 196, 106, 0.6); animation: livePing 1.8s infinite; }
+.live b { color: var(--ink); }
+@keyframes livePing { 70% { box-shadow: 0 0 0 7px rgba(31, 196, 106, 0); } 100% { box-shadow: 0 0 0 0 rgba(31, 196, 106, 0); } }
+/* 하단 탭바 */
+.tabbar { flex: none; position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background: var(--panel); border-top: 1px solid var(--border);
+  padding: 6px calc(env(safe-area-inset-right, 0px) + 6px) calc(env(safe-area-inset-bottom, 0px) + 6px) calc(env(safe-area-inset-left, 0px) + 6px);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 -8px 30px rgba(5, 10, 30, 0.18); }
+@media (min-width: 700px) and (min-height: 560px) {
+  .tabbar { width: min(560px, calc(100% - 28px)); margin: 0 auto calc(env(safe-area-inset-bottom, 0px) + 14px); border: 1px solid var(--border); border-radius: 22px; padding: 6px; }
+}
+.tab { position: relative; isolation: isolate; min-height: 54px; border-radius: 14px; display: grid; justify-items: center; align-content: center; gap: 3px; color: var(--ink-2); font-size: 11.5px; font-weight: 700; transition: color 0.2s; }
+.tab svg { width: 24px; height: 24px; transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.tab::before { content: ""; position: absolute; inset: 4px 8%; border-radius: 12px; background: var(--panel-2); opacity: 0; transform: scale(0.8); transition: opacity 0.2s, transform 0.25s; z-index: -1; }
+.tab[aria-selected="true"] { color: var(--accent); }
+.tab[aria-selected="true"]::before { opacity: 1; transform: none; }
+.tab[aria-selected="true"] svg { transform: translateY(-1px) scale(1.12); }
+.tab:active svg { transform: scale(0.9); }
+.badge2 { position: absolute; top: 5px; left: calc(50% + 8px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #ff4b4b; color: #fff; font-size: 11px; font-style: normal; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--panel); }
 .card { width: min(460px, 100%); background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 16px;
   box-shadow: 0 24px 60px rgba(5, 10, 30, 0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .plate { position: relative; background: linear-gradient(180deg, #0a0f22, #070a17); border-radius: 14px; padding: 16px 14px 12px; text-align: center;
@@ -80,6 +109,9 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .cta { width: 100%; margin-top: 14px; min-height: 56px; border-radius: 16px; background: var(--cta); color: var(--cta-ink); font-family: var(--display);
   font-size: 24px; letter-spacing: 0.06em; box-shadow: 0 6px 0 #b77a00, 0 10px 24px rgba(255, 182, 39, 0.35); transition: transform 0.08s, box-shadow 0.08s; }
 .cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #b77a00; }
+.cta { position: relative; overflow: hidden; }
+.cta::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent); transform: skewX(-20deg); animation: ctaShine 3.6s ease-in-out infinite; pointer-events: none; }
+@keyframes ctaShine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
 .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 13px; color: var(--ink-2); gap: 8px; }
 .linkbtn { min-height: 44px; padding: 0 6px; font-weight: 700; color: var(--accent); }
 .howto { margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--ink-2); background: var(--panel-2); border-radius: 12px; padding: 10px 12px; }
@@ -132,11 +164,31 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 
 #call { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-family: var(--display); font-size: clamp(34px, 11vw, 58px); letter-spacing: 0.04em;
   text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 22px rgba(0, 0, 0, 0.5); white-space: nowrap; opacity: 0; transition: opacity 0.12s; text-align: center; }
-#call.show { opacity: 1; }
+#call.show { opacity: 1; animation: callPop 0.42s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes callPop { 0% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; filter: blur(6px); } 60% { transform: translate(-50%, -50%) scale(0.94); opacity: 1; filter: none; } 100% { transform: translate(-50%, -50%) scale(1); } }
 #call small { display: block; font-family: var(--ui); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; color: #dfe6ff; margin-top: 4px; }
 .abs { display: inline-block; font-family: var(--ui); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 1px 6px; border-radius: 5px; background: #1a2656; color: #7fe3ff; border: 1px solid #2c3a78; vertical-align: middle; margin-left: 6px; }
 #banner { position: absolute; left: 0; right: 0; top: 30%; display: grid; place-items: center; opacity: 0; transform: scaleY(0.6); transition: opacity 0.18s, transform 0.18s; }
 #banner.show { opacity: 1; transform: none; }
+#banner.show .big { animation: bigIn 0.5s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes bigIn { 0% { transform: scale(2.2); opacity: 0; letter-spacing: 0.4em; } 100% { transform: none; opacity: 1; } }
+#banner.hr .band { position: relative; overflow: hidden; isolation: isolate; padding: 22px 16px; border-width: 3px; border-color: #ffd84a;
+  background: linear-gradient(90deg, transparent, rgba(40, 18, 0, 0.9) 15%, rgba(60, 25, 0, 0.94) 50%, rgba(40, 18, 0, 0.9) 85%, transparent); }
+#banner.hr .band::before { content: ""; position: absolute; left: 50%; top: 50%; width: 180vmax; height: 180vmax; margin: -90vmax 0 0 -90vmax; z-index: -1;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 216, 74, 0.22) 0 8deg, transparent 8deg 20deg); animation: rays 6s linear infinite; }
+#banner.hr .big { font-size: clamp(46px, 15vw, 92px); color: transparent; background: linear-gradient(100deg, #fff3b0 20%, #ffb627 40%, #fff 50%, #ffb627 60%, #ff8a3d 80%) 0 0 / 250% 100%;
+  -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 0 16px rgba(255, 190, 40, 0.8)) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.5)); animation: bigIn 0.55s cubic-bezier(0.2, 1.5, 0.4, 1), shine 1.4s linear infinite; }
+@keyframes rays { to { transform: rotate(360deg); } }
+@keyframes shine { to { background-position: -250% 0; } }
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
+#fxFlash { position: fixed; inset: 0; pointer-events: none; z-index: 9; opacity: 0; background: radial-gradient(circle at 50% 45%, var(--fc, #fff) 0%, transparent 75%); }
+#fxFlash.go { animation: fxFlash var(--fd, 380ms) ease-out; }
+@keyframes fxFlash { 0% { opacity: var(--fs, 0.6); } 100% { opacity: 0; } }
+.bug.pulse { animation: bugPulse 0.9s ease-out; }
+@keyframes bugPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 216, 74, 0.9), 0 6px 18px rgba(0, 0, 0, 0.35); transform: scale(1.06); } 100% { box-shadow: 0 0 0 16px rgba(255, 216, 74, 0), 0 6px 18px rgba(0, 0, 0, 0.35); transform: none; } }
+.speed.fire { border-color: #ff8a3d; animation: speedFire 1.2s ease-out; }
+.speed.fire b { color: #ffcf6a; text-shadow: 0 0 10px #ff6a00, 0 0 22px #ff3d00; }
+@keyframes speedFire { 0% { transform: scale(1.25); box-shadow: 0 0 24px #ff6a00; } 100% { transform: none; box-shadow: none; } }
 #banner .band { width: 100%; padding: 14px 16px; text-align: center; background: linear-gradient(90deg, transparent, rgba(11, 21, 53, 0.92) 18%, rgba(11, 21, 53, 0.92) 82%, transparent); border-top: 2px solid var(--led); border-bottom: 2px solid var(--led); }
 #banner .big { font-family: var(--display); font-size: clamp(30px, 10vw, 56px); color: var(--led); letter-spacing: 0.05em; line-height: 1.05; text-shadow: 0 0 18px rgba(255, 182, 39, 0.45); }
 #banner .small { margin-top: 4px; font-size: 14px; font-weight: 500; color: #dfe6ff; }
@@ -229,7 +281,7 @@ body.no-webgl .nogl { display: grid; }
 .rtabs button { flex: 1; min-height: 42px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; }
 .rtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .rhead { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 12px 2px 6px; letter-spacing: 0.04em; }
-.rrow { display: grid; grid-template-columns: 30px 58px 1fr 44px; gap: 6px; align-items: center; padding: 5px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); margin-bottom: 6px; }
+.rrow { display: grid; grid-template-columns: 24px 54px 1fr 40px; gap: 6px; align-items: center; padding: 5px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel-2); margin-bottom: 6px; }
 .rrow.sel { outline: 3px solid var(--accent); outline-offset: -1px; }
 .rrow .no { font-family: var(--display); font-size: 19px; text-align: center; }
 .rrow .pos { min-height: 44px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border); font-weight: 700; font-size: 13px; }
@@ -246,7 +298,7 @@ body.no-webgl .nogl { display: grid; }
 .box td.n { text-align: left; white-space: nowrap; }
 #title .mbtn { margin-top: 10px; font-size: 14px; min-height: 46px; }
 
-.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 10px; }
 .modes .mbtn { margin: 0; font-size: 13px; padding: 6px 4px; min-height: 48px; }
 .stbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .stbl th, .stbl td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--border); }
@@ -262,8 +314,107 @@ body.no-webgl .nogl { display: grid; }
 .auth input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .auth .row2 .mbtn { margin-top: 4px; }
 .auth .err { color: #d33; font-size: 13px; font-weight: 700; margin: 0; }
-.acct { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); margin: -4px 0 8px; padding: 2px 4px 2px 12px; border-radius: 12px; background: var(--panel-2); }
+/* ---------- 선수 얼굴 ---------- */
+.ava { position: relative; display: inline-block; flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; vertical-align: middle;
+  background: #1a2656; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.28); }
+.ava img { position: absolute; display: block; max-width: none; height: auto; -webkit-user-drag: none; }
+.ava.xs { width: 22px; height: 22px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85); }
+.ava.xs2 { width: 26px; height: 26px; margin: -4px 4px -4px 0; box-shadow: 0 0 0 1.5px var(--border); }
+.ava.sm { width: 40px; height: 40px; }
+.ava.md { width: 64px; height: 64px; box-shadow: 0 0 0 3px var(--tc, var(--led)), 0 4px 14px rgba(0, 0, 0, 0.45); }
+.ava.lg { width: 92px; height: 92px; box-shadow: 0 0 0 3px var(--accent), 0 6px 18px rgba(0, 0, 0, 0.3); }
+.line .ava.xs { margin: -2px 0 -2px -5px; }
+.rrow .nm { flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; padding-left: 2px; }
+.rrow .nm .ava.sm { width: 38px; height: 38px; }
+.rrow .nm .nmt span { line-height: 1.35; }
+.rrow .nm .nmt { display: flex; flex-direction: column; min-width: 0; }
+.rrow .nm .ava { cursor: zoom-in; }
+.mvp .ava.md { --tc: var(--led); width: 52px; height: 52px; }
+#pcard { position: absolute; left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 124px); display: flex; gap: 12px; align-items: center;
+  max-width: min(340px, calc(100vw - 100px)); padding: 9px 14px 9px 9px; border-radius: 16px; background: linear-gradient(100deg, rgba(11, 21, 53, 0.95), rgba(18, 29, 68, 0.9));
+  border: 1px solid var(--bug-line); border-left: 4px solid var(--tc, var(--led)); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  opacity: 0; transform: translateX(-115%); transition: transform 0.4s cubic-bezier(0.2, 1.3, 0.4, 1), opacity 0.25s; pointer-events: none; }
+#pcard.show { opacity: 1; transform: none; }
+#pcard .pc-t { display: grid; gap: 1px; min-width: 0; }
+#pcard small { font-size: 11px; font-weight: 700; color: var(--bug-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pcard b { font-family: var(--display); font-weight: 400; font-size: 25px; line-height: 1.1; letter-spacing: 0.02em; }
+#pcard span { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+#pcard .hot { color: var(--led); font-weight: 700; }
+#pcard em { font-style: normal; font-size: 9.5px; color: var(--bug-muted); opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pcard em a { color: inherit; text-decoration: none; }
+@media (orientation: landscape) and (max-height: 520px) { #pcard { top: calc(env(safe-area-inset-top, 0px) + 116px); } #pcard .ava.md { width: 50px; height: 50px; } #pcard b { font-size: 21px; } }
+.phpanel { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 14px; margin-bottom: 10px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--border); animation: paneIn 0.3s ease-out; }
+.php-t { display: grid; gap: 4px; min-width: 0; }
+.php-t b { font-family: var(--display); font-weight: 400; font-size: 22px; }
+.php-t small { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.php-t .cr a, .credits a { color: var(--accent); }
+.php-t .row2 { flex-wrap: wrap; margin-top: 4px; }
+.php-t .row2 .mbtn { flex: 1 1 auto; min-height: 42px; font-size: 13.5px; padding: 0 10px; display: inline-grid; place-items: center; cursor: pointer; }
+.credits { margin-top: 14px; font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
+.credits > div:not(.rhead) { overflow-wrap: anywhere; }
+
+/* ---------- 온라인 · 내 정보 탭 ---------- */
+.rhead .cnt { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 9px; background: #ff4b4b; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.empty { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 18px 10px; border-radius: 16px; background: var(--panel-2); border: 1px dashed var(--border); }
+.empty.sm { padding: 12px; }
+.empty .big3 { font-size: 40px; }
+.spin { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.acct { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font-size: 13px; color: var(--ink-2); margin: 0 0 6px; padding: 8px 10px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); min-height: 50px; }
 .acct b { color: var(--ink); }
+.acct .go { margin-left: auto; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.av { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-size: 16px; background: var(--tc, var(--accent)); color: var(--tf, #fff); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+.av.big { width: 58px; height: 58px; font-size: 28px; border-radius: 18px; }
+.chipset { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chipset i { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border); color: var(--ink-2); }
+.roomcard { width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--border); color: var(--ink); transition: transform 0.12s, border-color 0.2s; animation: paneIn 0.3s ease-out; }
+.roomcard:not(:disabled):hover { border-color: var(--accent); }
+.roomcard:not(:disabled):active { transform: scale(0.98); }
+.roomcard:disabled { opacity: 0.6; cursor: default; }
+.rc-main { display: grid; gap: 1px; min-width: 0; }
+.rc-main b { font-size: 15px; } .rc-main small { font-size: 12px; color: var(--ink-2); }
+.rc-main .warn { color: #d33; font-weight: 700; margin-top: 3px; }
+.rc-go { font-weight: 700; color: var(--cta-ink); background: var(--cta); border-radius: 10px; padding: 8px 10px; font-size: 13px; white-space: nowrap; }
+.rc-go:empty { display: none; }
+.badge.sm { width: 46px; height: 46px; border-radius: 14px; font-size: 16px; }
+.tpick { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tpick button { min-height: 44px; border-radius: 12px; background: var(--tc); color: var(--tf); font-family: var(--display); font-size: 14px; border: 2px solid transparent; opacity: 0.72; transform: scale(0.94); transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18); }
+.tpick button[aria-checked="true"] { opacity: 1; transform: none; border-color: var(--ink); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.25); }
+.tpick button:disabled { cursor: default; }
+.ocfg { display: grid; gap: 8px; }
+.oseg { display: flex; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 3px; }
+.oseg button { flex: 1; min-height: 40px; border-radius: 9px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
+.oseg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
+.waitcard { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 18px 14px 14px; border-radius: 18px; background: var(--panel-2); border: 1px solid var(--border); }
+.waitcard .wt { font-weight: 700; font-size: 16px; } .waitcard .wt b { font-family: var(--display); font-size: 20px; color: var(--accent); letter-spacing: 0.06em; }
+.waitcard .chipset { justify-content: center; }
+.waitcard .row2 { width: 100%; }
+.radar { position: relative; width: 120px; height: 120px; display: grid; place-items: center; }
+.radar i { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; animation: radar 2.4s ease-out infinite; }
+.radar i:nth-child(2) { animation-delay: 0.8s; } .radar i:nth-child(3) { animation-delay: 1.6s; }
+@keyframes radar { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(1); opacity: 0; } }
+.who { display: flex; flex-wrap: wrap; gap: 6px; }
+.who span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); }
+.who i { width: 7px; height: 7px; border-radius: 50%; background: #1fc46a; }
+.who small { font-weight: 500; color: var(--ink-2); }
+.prof { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: linear-gradient(135deg, var(--panel-2), transparent); border: 1px solid var(--border); }
+.prof .pn { font-family: var(--display); font-size: 24px; line-height: 1.1; }
+.prof .pm { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+.prof .live { margin-left: auto; }
+.stats4 { grid-template-columns: repeat(4, 1fr); }
+.hist { display: grid; gap: 6px; }
+.hrow { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); }
+.hrow .res { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; background: #8a93b8; }
+.hrow .res.w { background: #1c9a55; } .hrow .res.l { background: #c43b3b; }
+.hm { display: grid; min-width: 0; } .hm b { font-size: 14px; } .hm small { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hd { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.setlist { display: grid; border-radius: 16px; overflow: hidden; border: 1px solid var(--border); background: var(--panel-2); }
+.setrow { display: flex; justify-content: space-between; align-items: center; min-height: 50px; padding: 0 14px; font-weight: 700; font-size: 15px; text-align: left; }
+.setrow + .setrow, .setlist .inset + .setrow, .setrow + .inset { border-top: 1px solid var(--border); }
+.setrow span:last-child { color: var(--ink-2); }
+.setrow.danger { color: #d33; }
+.auth.inset { padding: 12px 14px 14px; background: var(--panel); }
+.auth.inset .mbtn { margin-top: 2px; }
 .popt { margin: 10px 0; } .popt > span { display: block; font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 4px; }
 .popt .seg { display: flex; flex-wrap: wrap; gap: 4px; }
 .popt .seg button { flex: 1 1 auto; min-height: 42px; padding: 4px 8px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; font-size: 13px; }
@@ -277,52 +428,93 @@ body.no-webgl .nogl { display: grid; }
   #playText { bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }
   .dock .hint { display: none; }
   #tracker { top: calc(env(safe-area-inset-top, 0px) + 60px); }
-  .card { width: min(720px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
-  .card .plate { grid-column: 1; } .card .matchup { grid-column: 1; } .card .opts { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
-  .card .cta, .card .foot, .card .howto, .card .fine { grid-column: 1 / -1; }
+  #pane-home .card { width: min(720px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+  #pane-home .card .plate { grid-column: 1; } #pane-home .card .matchup { grid-column: 1; } #pane-home .card .opts { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+  #pane-home .card .cta, #pane-home .card .modes, #pane-home .card .foot, #pane-home .card .howto, #pane-home .card .fine { grid-column: 1 / -1; }
+  .tab { min-height: 42px; grid-auto-flow: column; gap: 6px; } .tab svg { width: 20px; height: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
 <canvas id="gl" aria-label="3D 야구장"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="fxFlash" aria-hidden="true"></div>
 <div id="loading">경기장 조명 켜는 중…</div>
 <div class="nogl"><div><p style="font-size:20px;font-weight:700">이 브라우저에서는 3D(WebGL)를 쓸 수 없어요</p><p>최신 Chrome, Safari, Edge에서 다시 열어 주세요.</p></div></div>
 
 <section id="title" aria-label="시작 화면">
-  <div class="card">
-    <div class="plate"><h1 class="led">풀카운트</h1><div class="led-sub"><b>3D</b> · 한국 프로야구 스타일</div></div>
-    <div class="matchup">
-      <div class="side" id="sideMe">
-        <span class="tag">내 팀</span>
-        <div class="picker"><button class="arrow" data-pick="me" data-d="-1" aria-label="이전 팀">◀</button><div class="badge" id="badgeMe"></div><button class="arrow" data-pick="me" data-d="1" aria-label="다음 팀">▶</button></div>
-        <div class="tname" id="nameMe"></div><div class="rec" id="recMe"></div>
+  <div class="panes" id="panes">
+    <div class="pane" id="pane-home" role="tabpanel" aria-labelledby="tab-home">
+      <div class="card">
+        <div class="plate"><h1 class="led">풀카운트</h1><div class="led-sub"><b>3D</b> · 한국 프로야구 스타일</div></div>
+        <div class="matchup">
+          <div class="side" id="sideMe">
+            <span class="tag">내 팀</span>
+            <div class="picker"><button class="arrow" data-pick="me" data-d="-1" aria-label="이전 팀">◀</button><div class="badge" id="badgeMe"></div><button class="arrow" data-pick="me" data-d="1" aria-label="다음 팀">▶</button></div>
+            <div class="tname" id="nameMe"></div><div class="rec" id="recMe"></div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="side" id="sideOpp">
+            <span class="tag">상대</span>
+            <div class="picker"><button class="arrow" data-pick="opp" data-d="-1" aria-label="이전 상대">◀</button><div class="badge" id="badgeOpp"></div><button class="arrow" data-pick="opp" data-d="1" aria-label="다음 상대">▶</button></div>
+            <div class="tname" id="nameOpp"></div><div class="rec" id="recOpp">&nbsp;</div>
+          </div>
+        </div>
+        <div class="opts">
+          <div class="opt"><span>내 위치</span><div class="seg" data-opt="home"><button data-v="0">원정 (선공)</button><button data-v="1">홈 (후공)</button></div></div>
+          <div class="opt"><span>이닝</span><div class="seg" data-opt="inn"><button data-v="3">3회</button><button data-v="5">5회</button><button data-v="9">9회</button></div></div>
+          <div class="opt"><span>난이도</span><div class="seg" data-opt="diff"><button data-v="rookie">루키</button><button data-v="pro">프로</button><button data-v="legend">레전드</button></div></div>
+          <div class="opt"><span>경기</span><div class="seg" data-opt="time"><button data-v="night">야간</button><button data-v="day">주간</button></div></div>
+        </div>
+        <button class="cta" id="playBtn">플레이볼!</button>
+        <div class="modes"><button class="mbtn" id="batPrBtn">🏏 타격 훈련</button><button class="mbtn" id="pitPrBtn">🎯 투구 훈련</button></div>
+        <div class="foot"><span id="recAll"></span><button class="linkbtn" id="howBtn" aria-expanded="false">조작법 보기</button></div>
+        <div class="howto" id="howto" hidden>
+          <p><b>타격</b> — 공이 날아오면 공이 지나갈 곳을 <b>탭</b>(PC는 클릭 / 마우스로 조준 후 스페이스). 타이밍이 빠르면 당겨치고, 늦으면 밀어쳐요. 공보다 위를 치면 땅볼, 아래를 치면 뜬공이 돼요.</p>
+          <p><b>투구</b> — 구종 선택 → 존 패드에서 코스 탭 → 움직이는 바늘을 <b>가운데 초록색</b>에서 탭하면 제구가 정확해져요.</p>
+          <p><b>감독 작전</b> — 경기 전 <b>구단 관리</b>에서 타순·수비 위치·선발투수·선수 이름을 정하고, 경기 중엔 공격 때 번트·도루·대타·대주자, 수비 때 투수 교체·수비 교체·고의4구. 파울 플라이 아웃, 실책(포구·악송구), 폭투·포일, 스트라이크 낫아웃, 인필드 플라이, 직선타 병살, 보크도 나와요. 내가 던질 땐 <b>피치클락</b>(주자 없음 18초·있음 23초)이 적용돼서 시간이 넘으면 자동 볼이에요 (메뉴에서 끌 수 있음). 연장은 규정대로 최대 <b>11회</b>, 그래도 같으면 무승부예요.</p>
+        </div>
+        <p class="fine">일부 선수 사진은 Wikimedia Commons의 자유 이용 사진이에요(저작자·라이선스는 구단 탭 맨 아래). 구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
       </div>
-      <div class="vs">VS</div>
-      <div class="side" id="sideOpp">
-        <span class="tag">상대</span>
-        <div class="picker"><button class="arrow" data-pick="opp" data-d="-1" aria-label="이전 상대">◀</button><div class="badge" id="badgeOpp"></div><button class="arrow" data-pick="opp" data-d="1" aria-label="다음 상대">▶</button></div>
-        <div class="tname" id="nameOpp"></div><div class="rec" id="recOpp">&nbsp;</div>
+    </div>
+    <div class="pane" id="pane-season" role="tabpanel" aria-labelledby="tab-season" hidden>
+      <div class="card panel">
+        <div class="phead"><h2 id="seasonH">시즌</h2></div>
+        <p class="sub" id="seasonSub"></p>
+        <div id="seasonBody"></div>
       </div>
     </div>
-    <div class="opts">
-      <div class="opt"><span>내 위치</span><div class="seg" data-opt="home"><button data-v="0">원정 (선공)</button><button data-v="1">홈 (후공)</button></div></div>
-      <div class="opt"><span>이닝</span><div class="seg" data-opt="inn"><button data-v="3">3회</button><button data-v="5">5회</button><button data-v="9">9회</button></div></div>
-      <div class="opt"><span>난이도</span><div class="seg" data-opt="diff"><button data-v="rookie">루키</button><button data-v="pro">프로</button><button data-v="legend">레전드</button></div></div>
-      <div class="opt"><span>경기</span><div class="seg" data-opt="time"><button data-v="night">야간</button><button data-v="day">주간</button></div></div>
+    <div class="pane" id="pane-online" role="tabpanel" aria-labelledby="tab-online" hidden>
+      <div class="card panel">
+        <div class="phead"><h2 id="onH">온라인 1:1</h2><span class="live" id="onLive" hidden><i></i><b id="onLiveN">0</b>명 접속</span></div>
+        <div id="onBody"></div>
+      </div>
     </div>
-    <button class="cta" id="playBtn">플레이볼!</button>
-    <div class="modes"><button class="mbtn" id="seasonBtn">🏆 시즌 · 리그</button><button class="mbtn" id="batPrBtn">🏏 타격 훈련</button><button class="mbtn" id="pitPrBtn">🎯 투구 훈련</button></div>
-    <button class="mbtn" id="onlineBtn" style="margin-top:6px;width:100%">🌐 친구와 온라인 1:1</button>
-    <button class="mbtn" id="rosterBtn">⚙ 구단 관리 · 타순 / 수비 / 선발 / 선수 이름</button>
-    <div class="foot"><span id="recAll"></span><button class="linkbtn" id="howBtn" aria-expanded="false">조작법 보기</button></div>
-    <div class="howto" id="howto" hidden>
-      <p><b>타격</b> — 공이 날아오면 공이 지나갈 곳을 <b>탭</b>(PC는 클릭 / 마우스로 조준 후 스페이스). 타이밍이 빠르면 당겨치고, 늦으면 밀어쳐요. 공보다 위를 치면 땅볼, 아래를 치면 뜬공이 돼요.</p>
-      <p><b>투구</b> — 구종 선택 → 존 패드에서 코스 탭 → 움직이는 바늘을 <b>가운데 초록색</b>에서 탭하면 제구가 정확해져요.</p>
-      <p><b>감독 작전</b> — 경기 전 <b>구단 관리</b>에서 타순·수비 위치·선발투수·선수 이름을 정하고, 경기 중엔 공격 때 번트·도루·대타·대주자, 수비 때 투수 교체·수비 교체·고의4구. 파울 플라이 아웃, 실책(포구·악송구), 폭투·포일, 스트라이크 낫아웃, 인필드 플라이, 직선타 병살, 보크도 나와요. 내가 던질 땐 <b>피치클락</b>(주자 없음 18초·있음 23초)이 적용돼서 시간이 넘으면 자동 볼이에요 (메뉴에서 끌 수 있음). 연장은 규정대로 최대 <b>11회</b>, 그래도 같으면 무승부예요.</p>
+    <div class="pane" id="pane-roster" role="tabpanel" aria-labelledby="tab-roster" hidden>
+      <div class="card panel">
+        <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
+        <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
+        <p class="sub" id="rosterHint"></p>
+        <div id="rosterList"></div>
+        <button class="mbtn primary" id="rosterSave">저장</button>
+        <button class="mbtn" id="rosterReset">기본값으로 되돌리기</button>
+      </div>
     </div>
-    <p class="fine">구단·선수 이름과 기록은 실제 2026 KBO 시즌 기록(아시안게임 대표팀 소집 전, 9월 13일 무렵 엔트리·타순 기준)이에요. 컨택·파워·구속 같은 능력치는 그 기록으로 계산한 게임용 추정치예요. 친구끼리 즐기려고 만든 비공식 팬 게임이고 KBO·구단·선수와 관련이 없어요.</p>
+    <div class="pane" id="pane-me" role="tabpanel" aria-labelledby="tab-me" hidden>
+      <div class="card panel">
+        <div class="phead"><h2>내 정보</h2></div>
+        <div id="meBody"></div>
+      </div>
+    </div>
   </div>
+  <nav class="tabbar" role="tablist" aria-label="메뉴">
+    <button class="tab" role="tab" id="tab-home" data-tab="home" aria-controls="pane-home" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.2 5.6c1.9 1.7 2.9 4 2.9 6.4s-1 4.7-2.9 6.4M16.8 5.6c-1.9 1.7-2.9 4-2.9 6.4s1 4.7 2.9 6.4"/></svg><span>경기</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-season" data-tab="season" aria-controls="pane-season" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/></svg><span>시즌</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-online" data-tab="online" aria-controls="pane-online" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17l-3 3V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/><path d="M20 21l-3-3h-6a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2z"/></svg><span>온라인</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-roster" data-tab="roster" aria-controls="pane-roster" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>구단</span><i class="badge2" hidden></i></button>
+    <button class="tab" role="tab" id="tab-me" data-tab="me" aria-controls="pane-me" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>내 정보</span><i class="badge2" hidden></i></button>
+  </nav>
 </section>
 
 <div id="hud" hidden>
@@ -344,6 +536,7 @@ body.no-webgl .nogl { display: grid; }
   </div>
   <div class="lines"><div class="line" id="batLine"></div><div class="line" id="pitLine"></div>
       <div class="line pe" id="pracLine" hidden><span class="k" id="pracK">훈련</span><span id="pracTxt" style="overflow:hidden;text-overflow:ellipsis"></span><button class="chip" id="pracSet" style="min-height:30px;padding:2px 10px;margin-left:auto">설정</button></div></div>
+  <div id="pcard" aria-hidden="true"></div>
   <canvas id="tracker" width="148" height="184" aria-hidden="true"></canvas>
   <div class="speed" id="speedBox" hidden><b id="speedV">—</b><span id="speedT">구속</span></div>
   <div id="call"></div>
@@ -404,17 +597,6 @@ body.no-webgl .nogl { display: grid; }
     <button class="mbtn" id="homeBtn">메인으로</button>
   </div>
 </div>
-<div class="modal" id="rosterModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rosterH">
-    <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
-    <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
-    <p class="sub" id="rosterHint"></p>
-    <div id="rosterList"></div>
-    <button class="mbtn primary" id="rosterSave">저장</button>
-    <button class="mbtn" id="rosterReset">기본값으로 되돌리기</button>
-    <button class="mbtn" id="rosterClose">닫기</button>
-  </div>
-</div>
 <div class="modal" id="subModal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="subH">
     <h2 id="subH">교체</h2>
@@ -423,27 +605,12 @@ body.no-webgl .nogl { display: grid; }
     <button class="mbtn" id="subClose">취소</button>
   </div>
 </div>
-<div class="modal" id="seasonModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="seasonH">
-    <h2 id="seasonH">시즌</h2>
-    <p class="sub" id="seasonSub"></p>
-    <div id="seasonBody"></div>
-    <button class="mbtn" id="seasonClose">닫기</button>
-  </div>
-</div>
 <div class="modal" id="pracModal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pracH">
     <h2 id="pracH">훈련 설정</h2>
     <div id="pracBody"></div>
     <button class="mbtn primary" id="pracGo">적용</button>
     <button class="mbtn" id="pracQuit">훈련 끝내기</button>
-  </div>
-</div>
-<div class="modal" id="onModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="onH">
-    <h2 id="onH">온라인 1:1</h2>
-    <div id="onBody" class="plist"></div>
-    <button class="mbtn" id="onClose">닫기</button>
   </div>
 </div>
 <div id="toast" role="status"></div>

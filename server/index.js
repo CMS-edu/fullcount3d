@@ -65,7 +65,8 @@ function readBody(req) {
     req.on('end', () => { try { ok(JSON.parse(s || '{}')); } catch (e) { bad(e); } });
   });
 }
-const userOut = (u) => ({ id: u.id, name: u.name, w: u.w | 0, l: u.l | 0, d: u.d | 0 });
+const userOut = (u) => ({ id: u.id, name: u.name, w: u.w | 0, l: u.l | 0, d: u.d | 0, fav: u.fav == null ? null : u.fav, created: u.created ? new Date(u.created).getTime() : null });
+const int = (v, lo, hi) => { v = Math.round(+v); return Number.isFinite(v) && v >= lo && v <= hi ? v : null; };
 const NAME_RE = /^[0-9A-Za-z가-힣_]{2,12}$/;
 
 async function api(req, res, store) {
@@ -88,9 +89,19 @@ async function api(req, res, store) {
   }
   const auth = verify((req.headers.authorization || '').replace(/^Bearer /, ''));
   if (!auth) return send(res, 401, { error: '로그인이 필요해요' });
-  if (req.method === 'GET' && url === '/api/me') {
-    const u = await store.byId(auth.id);
-    return u ? send(res, 200, { user: userOut(u) }) : send(res, 401, { error: '계정을 찾을 수 없어요' });
+  const me = await store.byId(auth.id);
+  if (!me) return send(res, 401, { error: '계정을 찾을 수 없어요' });
+  if (req.method === 'GET' && url === '/api/me') return send(res, 200, { user: userOut(me), hist: await store.history(me.id) });
+  if (req.method === 'POST' && (url === '/api/profile' || url === '/api/password' || url === '/api/delete')) {
+    let b; try { b = await readBody(req); } catch (e) { return send(res, 400, { error: '잘못된 요청' }); }
+    if (url === '/api/profile') { await store.update(me.id, { fav: int(b.fav, 0, 9) }); return send(res, 200, { user: userOut(await store.byId(me.id)) }); }
+    if (limited(ip)) return send(res, 429, { error: '시도가 너무 많아요. 10분 뒤에 다시 해 주세요' });
+    if (!checkPw(String(b.old || ''), me.pw)) return send(res, 403, { error: '현재 비밀번호가 틀렸어요' });
+    if (url === '/api/delete') { await store.remove(me.id); kick(me.id); return send(res, 200, { ok: 1 }); }
+    const pw = String(b.pw || '');
+    if (pw.length < 4 || pw.length > 64) return send(res, 400, { error: '새 비밀번호는 4~64자로 해 주세요' });
+    await store.setPw(me.id, hashPw(pw));
+    return send(res, 200, { ok: 1 });
   }
   if (req.method === 'POST' && url === '/api/result') {
     let b; try { b = await readBody(req); } catch (e) { return send(res, 400, { error: '잘못된 요청' }); }
@@ -100,12 +111,15 @@ async function api(req, res, store) {
     const key = auth.id + ':' + String(b.g || '').slice(0, 40);
     if (seenResults.has(key)) return send(res, 200, { ok: 1 });
     seenResults.add(key); if (seenResults.size > 5000) seenResults.clear();
-    await store.addResult(auth.id, r);
+    const m = { my: int(b.my, 0, 99), op: int(b.op, 0, 99), team: int(b.team, 0, 9), oteam: int(b.oteam, 0, 9), oname: String(b.oname || '').slice(0, 12) || null, inn: int(b.inn, 1, 9) };
+    await store.addResult(auth.id, r, m);
     return send(res, 200, { ok: 1 });
   }
   send(res, 404, { error: '없는 주소' });
 }
 const seenResults = new Set();
+// 탈퇴한 계정의 실시간 연결 끊기
+function kick(uid) { for (const P of peers.values()) if (P.uid === uid) try { P.ws.close(4001, 'deleted'); } catch (e) { /* */ } }
 
 function serveStatic(req, res) {
   let p = decodeURIComponent(req.url.split('?')[0]);

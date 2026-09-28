@@ -7,6 +7,7 @@ function contact(sw) {
   const tr = S.flyBall({ x: cp.x, y: cp.y, z: cp.z }, sw.ev, sw.la, sw.phi);
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
+  if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
   G.pitchLog.push({ x: P.cross.x, y: P.cross.y, res: tr.foul ? 'strike' : 'play' });
   if (userBatting() && sw.foul) showFeedback([['파울', 'm'], [`타이밍 ${sw.tl || ''}`, 'm']], 1000);
   startPlay(tr, sw);
@@ -193,13 +194,13 @@ function updatePlay(dt) {
   if (!play.ev.text && ((play.hr && t > 1.0) || (!play.hr && !play.foul && (t > Math.min(res.fieldT + 0.1, 2.2) || t > 1.4)))) {
     play.ev.text = true; showPlayText(res.text, 2600);
     if (res.kind === 'E') { boardFlash('실책!', fieldTeam().t.city, 2.5); AU.cheer(0.8, 1.6); crowdPulse(play.side, 1); }
-    if (['1B', '2B', '3B', 'IFH', 'BUNT_HIT'].includes(res.kind)) boardFlash(res.kind === '2B' ? '2루타!' : res.kind === '3B' ? '3루타!' : '안타!', curBatter().name, 3);
+    if (['1B', '2B', '3B', 'IFH', 'BUNT_HIT'].includes(res.kind)) { boardFlash(res.kind === '2B' ? '2루타!' : res.kind === '3B' ? '3루타!' : '안타!', curBatter().name, 3); fxHit(res.kind, batTeam()); }
   }
   if (play.hr && !play.ev.hr && t > 0.9) {
     play.ev.hr = true;
     showBanner('홈런!', res.text.split('!')[0] + '!', 2600);
     boardFlash('HOME RUN', curBatter().name, 6);
-    fireShow(5); AU.cheer(1.3, 4); crowdPulse(play.side, 2.5); AU.drum('x.x.xxx.x.x.xxx.', 170);
+    fxHomeRun(batTeam()); AU.cheer(1.3, 4); crowdPulse(play.side, 2.5); AU.drum('x.x.xxx.x.x.xxx.', 170);
   }
   if (play.foul && !play.ev.foul) { play.ev.foul = true; showCall('파울', '#ffffff', 700); }
   if (t >= play.dur) finishPlay();
@@ -225,6 +226,8 @@ function onThrowArrive(play, th) {
 function onScore(play, r) {
   void r;
   if (!play.ev.run) { play.ev.run = true; AU.cheer(1, 2.2); crowdPulse(play.side, 1.4); }
+  play.ev.nRun = (play.ev.nRun || 0) + 1; const n = play.ev.nRun;
+  setTimeout(() => { if (play.ev.nRun === n) fxScore(n, batTeam()); }, 250);
 }
 
 function finishPlay() {

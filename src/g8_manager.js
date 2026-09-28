@@ -21,7 +21,7 @@ function applyRoster(tm) {
 const ED = { team: 0, tab: 'bat', order: [], pos: {}, names: {}, sp: null, sel: null, posSel: null, editing: null, dirty: false };
 function edLoad(ti) {
   const r = LEAGUE[ti], cfg = rosterCfgAll()[S.TEAMS[ti].id] || {};
-  ED.team = ti; ED.sel = null; ED.posSel = null; ED.editing = null; ED.dirty = false;
+  ED.team = ti; ED.sel = null; ED.posSel = null; ED.editing = null; ED.dirty = false; ED.photo = null;
   ED.names = Object.assign({}, cfg.names || {}); ED.hands = Object.assign({}, cfg.hands || {});
   const tmp = { t: S.TEAMS[ti], ros: JSON.parse(JSON.stringify(r)), lineup: null, bench: null, pitcher: null, used: [] };
   tmp.lineup = tmp.ros.lineup.slice(); tmp.bench = tmp.ros.bench.slice();
@@ -37,18 +37,19 @@ function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}�
 function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · 구속·구종은 추정`; }
 function openRoster(ti) {
   edLoad(ti == null ? OPTS.me : ti); ED.tab = 'bat';
-  renderRoster(); openModal('#rosterModal');
+  showTab('roster');
 }
 function renderRoster() {
   const t = S.TEAMS[ED.team];
   $('#rosterH').textContent = `${t.city} ${t.name}${ED.team === OPTS.me ? ' (내 팀)' : ''}`;
   $$('.rtabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === ED.tab)));
   const L = $('#rosterList'); L.innerHTML = '';
+  if (ED.photo && ED.base[ED.photo] && ED.tab !== 'paste') photoPanel(L);
   const row = (html, cls) => { const d = document.createElement('div'); d.className = 'rrow' + (cls ? ' ' + cls : ''); d.innerHTML = html; L.appendChild(d); return d; };
   const head = (tx) => { const h = document.createElement('div'); h.className = 'rhead'; h.textContent = tx; L.appendChild(h); };
   const nameCell = (k, info) => ED.editing === k
     ? `<input maxlength="10" value="${esc(edName(k))}" aria-label="선수 이름" data-k="${k}">`
-    : `<button class="nm" data-k="${k}"><b>${esc(edName(k))} ${ED.base[k].num ? `<small style="opacity:.6">#${ED.base[k].num}</small>` : ''}</b><span>${info}</span></button>`;
+    : `<button class="nm" data-k="${k}">${avatarHTML(ED.base[k], 'sm')}<span class="nmt"><b>${esc(edName(k))} ${ED.base[k].num ? `<small style="opacity:.6">#${ED.base[k].num}</small>` : ''}</b><span>${info}</span></span></button>`;
   if (ED.tab === 'bat') {
     $('#rosterHint').textContent = ED.posSel ? '포지션을 바꿀 다른 선수의 포지션 칸을 누르세요' : ED.sel ? '바꿀 선수를 누르세요 (주전끼리 = 타순 교환, 벤치 선수 = 선발 투입)' : '선수를 누르고 다른 선수를 누르면 타순 교환 · 포지션 칸끼리 누르면 수비 위치 교환 · ✎ 이름 수정';
     head('선발 라인업');
@@ -78,7 +79,8 @@ function renderRoster() {
       row(`<span class="no" style="font-size:12px">${p.role === 'CL' ? '마무리' : '불펜'}</span><span></span>${nameCell(p.key, pitInfo(p))}<button class="ed" data-ek="${p.key}" aria-label="${esc(edName(p.key))} 이름 수정">✎</button>`);
     });
   }
-  const inp = L.querySelector('input');
+  if (ED.tab !== 'paste') photoCredits(L);
+  const inp = L.querySelector('input:not([type=file])');
   if (inp) {
     inp.focus(); inp.select();
     const done = () => { const v = inp.value.trim().slice(0, 10); if (v && v !== ED.base[inp.dataset.k].name) ED.names[inp.dataset.k] = v; else delete ED.names[inp.dataset.k]; ED.editing = null; ED.dirty = true; renderRoster(); };
@@ -87,6 +89,8 @@ function renderRoster() {
   }
 }
 $('#rosterList').addEventListener('click', (e) => {
+  const av = e.target.closest('.nm .ava');
+  if (av) { ED.photo = av.closest('.nm').dataset.k; ED.sel = null; ED.posSel = null; renderRoster(); $('#panes').scrollTop = 0; AU.click(); return; }
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.ek) { ED.editing = b.dataset.ek; ED.sel = null; ED.posSel = null; renderRoster(); return; }
   if (b.dataset.sp != null && b.classList.contains('sp')) { ED.sp = b.dataset.sp || null; ED.dirty = true; AU.click(); renderRoster(); return; }
@@ -114,6 +118,33 @@ $('#rosterList').addEventListener('click', (e) => {
     AU.click(); renderRoster();
   }
 });
+// 선수 사진 바꾸기 (명단에서 얼굴을 누르면 열림)
+function photoPanel(L) {
+  const k = ED.photo, pl = ED.base[k], mine = !!myPhoto(pl), cr = photoCredit(pl);
+  const d = document.createElement('div'); d.className = 'phpanel';
+  d.innerHTML = `${avatarHTML(pl, 'lg')}<div class="php-t"><b>${esc(edName(k))}</b>
+    <small>${mine ? '내가 올린 사진이에요 (이 기기에만 저장돼요)' : pl.ph ? '자유 이용 사진 (Wikimedia Commons)' : '공개된 자유 이용 사진이 없어서 그림으로 보여줘요'}</small>
+    ${cr ? `<small class="cr">${cr}</small>` : ''}
+    <div class="row2"><label class="mbtn primary">📷 사진 올리기<input type="file" accept="image/*" hidden></label>${mine ? '<button class="mbtn" data-phdel>원래대로</button>' : ''}<button class="mbtn" data-phx>닫기</button></div></div>`;
+  L.appendChild(d);
+  d.querySelector('input[type=file]').addEventListener('change', async (e) => {
+    try {
+      const url = await fileToAvatar(e.target.files[0]);
+      if (!setMyPhoto(pl, url)) { toast('저장 공간이 부족해요. 다른 선수 사진을 지워 주세요', 2800); return; }
+      toast('사진을 바꿨어요'); renderRoster(); if (G.T) updateLines();
+    } catch (x) { toast(x.message || '사진을 못 읽었어요'); }
+  });
+  const del = d.querySelector('[data-phdel]'); if (del) del.onclick = (e) => { e.stopPropagation(); setMyPhoto(pl, null); renderRoster(); };
+  d.querySelector('[data-phx]').onclick = (e) => { e.stopPropagation(); ED.photo = null; renderRoster(); };
+}
+// 이 팀 명단에 쓰인 Commons 사진의 저작자·라이선스
+function photoCredits(L) {
+  const ps = Object.values(ED.base).filter((p) => p.ph && !myPhoto(p));
+  const d = document.createElement('div'); d.className = 'credits';
+  d.innerHTML = `<div class="rhead">선수 사진 출처</div><p class="sub" style="margin:0 0 6px">얼굴을 누르면 내 사진으로 바꿀 수 있어요 (이 기기에만 저장). 사진이 없는 선수는 그림으로 보여줘요.</p>` +
+    (ps.length ? ps.map((p) => `<div>${esc(p.name)} — ${photoCredit(p)} · Wikimedia Commons</div>`).join('') : '<div>이 팀은 자유 이용 사진이 있는 선수가 없어요.</div>');
+  L.appendChild(d);
+}
 function edSave() {
   const all = rosterCfgAll(), id = S.TEAMS[ED.team].id;
   const pos = {}; ED.order.forEach((k) => (pos[k] = ED.pos[k]));
@@ -123,15 +154,13 @@ function edSave() {
 $$('.rtabs button').forEach((b) => b.addEventListener('click', () => { ED.tab = b.dataset.tab; ED.sel = null; ED.posSel = null; ED.editing = null; renderRoster(); }));
 $('#rtPrev').addEventListener('click', () => { if (ED.dirty) edSave(); edLoad((ED.team + 9) % 10); renderRoster(); AU.click(); });
 $('#rtNext').addEventListener('click', () => { if (ED.dirty) edSave(); edLoad((ED.team + 1) % 10); renderRoster(); AU.click(); });
-$('#rosterSave').addEventListener('click', () => { edSave(); toast('저장했어요! 다음 경기부터 적용돼요'); closeModal('#rosterModal'); renderTitle(); });
+$('#rosterSave').addEventListener('click', () => { edSave(); toast('저장했어요! 다음 경기부터 적용돼요'); renderTitle(); });
 $('#rosterReset').addEventListener('click', () => { const all = rosterCfgAll(); delete all[S.TEAMS[ED.team].id]; store.set('roster2', all); edLoad(ED.team); renderRoster(); toast('기본값으로 되돌렸어요'); });
-$('#rosterClose').addEventListener('click', () => { if (ED.dirty) edSave(); closeModal('#rosterModal'); });
-$('#rosterBtn').addEventListener('click', () => { AU.click(); openRoster(OPTS.me); });
 
 /* ---------- 경기 중 교체 (대타 · 대주자) ---------- */
 function subCard(p, extra) {
   const b = document.createElement('button'); b.className = 'pcard';
-  b.innerHTML = `<b>${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.num ? '#' + p.num + ' · ' : ''}${p.posK}</span></b><span class="role">${extra || '벤치'}</span><span class="r">${batInfo(p)}</span>`;
+  b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${p.num ? '#' + p.num + ' · ' : ''}${p.posK}</span></b><span class="role">${extra || '벤치'}</span><span class="r">${batInfo(p)}</span>`;
   return b;
 }
 function openPH() {
@@ -161,7 +190,7 @@ function openPR(k) {
     $('#subSub').textContent = '어느 주자를 바꿀까?';
     occ.forEach((i) => {
       const p = G.bases[i], b = document.createElement('button'); b.className = 'pcard';
-      b.innerHTML = `<b>${i + 1}루 주자 ${esc(p.name)}</b><span class="role">주력 ${p.spd}</span>`;
+      b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${i + 1}루 주자 ${esc(p.name)}</b><span class="role">주력 ${p.spd}</span>`;
       b.addEventListener('click', () => openPR(i)); L.appendChild(b);
     });
     paused = true; openModal('#subModal'); return;
@@ -285,7 +314,7 @@ function openDef(slot) {
     tm.lineup.forEach((p, i) => {
       if (p.pos === 'DH') return;
       const b = document.createElement('button'); b.className = 'pcard';
-      b.innerHTML = `<b>${esc(p.name)} <span style="font-weight:500;opacity:.7">${i + 1}번 · ${p.posK}</span></b><span class="role">주력 ${p.spd}</span><span class="r">${batInfo(p)}</span>`;
+      b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${i + 1}번 · ${p.posK}</span></b><span class="role">주력 ${p.spd}</span><span class="r">${batInfo(p)}</span>`;
       b.addEventListener('click', () => openDef(i)); L.appendChild(b);
     });
   } else {

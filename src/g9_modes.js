@@ -320,7 +320,6 @@ function myPair() {
 function playSeasonGame() {
   const pr = myPair(); if (!pr) return;
   const home = pr[0] === SEA.team ? 1 : 0, opp = home ? pr[1] : pr[0];
-  closeModal('#seasonModal');
   const hi = pr[0], ai = pr[1];
   startGame({ season: true, me: SEA.team, opp, home, inn: SEA.inn, sp: [rotIdx(ai), rotIdx(hi)] });
 }
@@ -342,7 +341,7 @@ function simToEnd() {
   if (simBusy || !SEA || SEA.over) return;
   simBusy = true;
   const step = () => {
-    if (!simBusy || !SEA || SEA.over || $('#seasonModal').hidden) { simBusy = false; seaSave(); renderSeason(); return; }
+    if (!simBusy || !SEA || SEA.over || TAB.cur !== 'season' || UI.title.hidden) { simBusy = false; seaSave(); renderSeason(); return; }
     simDay(false);
     $('#seasonSub').textContent = `자동 진행 중… ${SEA.day}/${SEA.len}경기`;
     if (SEA.day % 6 === 0) seaSave();
@@ -354,7 +353,7 @@ function simToEnd() {
 /* ---- 시즌 화면 ---- */
 let seaTab = 'home';
 function openSeason() {
-  seaLoad(); seaTab = 'home'; renderSeason(); openModal('#seasonModal');
+  seaTab = 'home'; showTab('season');
 }
 function fmtIP(o) { return `${Math.floor(o / 3)}${o % 3 ? '.' + (o % 3) : ''}`; }
 function leaders(kind) {
@@ -434,8 +433,6 @@ function confirmTwice(sel, msg) {
   setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = old; } }, 3000);
   return false;
 }
-$('#seasonBtn').addEventListener('click', () => { AU.click(); openSeason(); });
-$('#seasonClose').addEventListener('click', () => { simBusy = false; closeModal('#seasonModal'); });
 
 if (window.__fc) Object.assign(window.__fc, { simGame, newSeason, simDay, openSeason, startPractice, gameOver, sea: () => SEA });
 
