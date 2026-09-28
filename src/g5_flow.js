@@ -473,8 +473,11 @@ function stealBase() {
   return -1;
 }
 function startSteal(k) {
-  const r = G.bases[k], ft = fieldTeam(), cat = fieldersOf(ft)[1];
-  const pSucc = clamp(0.45 + (r.spd - 55) * 0.012 - ((cat && cat.spd) ? 0 : 0) - (k === 1 ? 0.05 : 0), 0.25, 0.92);
+  const r = G.bases[k];
+  // 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
+  // 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움
+  const P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : false;
+  const pSucc = clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0), 0.1, 0.85);
   G.steal = { k, who: r, fig: G.runFig[k], ok: (G.online && G.pitch ? onSeed(G.pitch.pi, 5)() : R()) < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
 }
 function handPos(f, left, out) { return (left ? f.lA : f.rA).hand.localToWorld(out.set(0, -0.3, 0)); }

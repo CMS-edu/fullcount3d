@@ -7,8 +7,11 @@ function camTo(p, l, fov, kp, kl, cut) {
 }
 // 타격 시점: 포수 뒤 한가운데(홈에서 7m쯤)에서 투구 방향 그대로 보되, 화각을 좁혀(망원) 스트라이크 존이 예전의 2배쯤 크게.
 // 각도는 예전 그대로이고 존이 아래 버튼에 가리지 않게 살짝 더 내려다보기만 함. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
+// 기기별 확대: 화면이 클수록 덜 당김 (확대 전 대비 폰 세로 1.5배 · 태블릿 세로 1.25배 · 폰 가로 1.3배 · 태블릿/PC 가로 1.15배)
 function viewPA() {
-  return userBatting() ? (portrait() ? [[0, 1.62, 7.0], [0, 0.67, -18.4], 22.4] : [[0, 1.5, 6.2], [0, 0.01, -18.4], 16]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
+  if (!userBatting()) return [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
+  if (portrait()) return [[0, 1.62, 7.0], [0, 0.92, -18.4], innerWidth >= 600 ? 34 : 28.5];
+  return innerHeight <= 520 ? [[0, 1.5, 6.2], [0, 0.53, -18.4], 19.5] : [[0, 1.5, 6.2], [0, 0.69, -18.4], 22];
 }
 function camForPA(cut) { CAM.mode = userBatting() ? 'bat' : 'pitch'; const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, cut); }
 function camIntro() {
