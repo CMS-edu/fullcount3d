@@ -112,6 +112,7 @@ function tickPitchClock(dt) {
   const pc = G.pclock; if (!pc) return;
   if (G.phase !== 'aim' && G.phase !== 'meter') return;
   if (!$('#penModal').hidden || !$('#subModal').hidden) return;
+  if (document.activeElement && document.activeElement.id === 'chatIn') return; // 채팅 입력 중엔 멈춤
   pc.left -= dt; renderPClock();
   if (pc.left <= 0) pitchClockViolation();
 }

@@ -39,6 +39,7 @@ const AU = {
   swish() { const t = this.now(); this.noise(t, 0.18, 1400, 0.7, 0.18, 'bandpass', 0.05); },
   click() { const t = this.now(); this.tone(t, 0.05, 1200, 900, 0.12, 'square'); },
   whistle() { const t = this.now(); this.tone(t, 0.25, 1800, 1700, 0.08, 'sine'); },
+  pop() { const t = this.now(); this.tone(t, 0.06, 880, 1320, 0.09, 'sine'); this.tone(t + 0.07, 0.08, 1320, 1760, 0.07, 'sine'); }, // 채팅 도착
   cheer(level = 1, dur = 2.4) {
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime;
     this.noise(t, dur, 900, 0.4, 0.22 * level, 'bandpass', 0.25);

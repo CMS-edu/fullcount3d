@@ -69,7 +69,7 @@ function onlineResult(r) {
 // claude.ai room과 같은 모양(presence / onPeers)의 WebSocket 방
 function makeNetRoom() {
   const peerId = 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-  let ws = null, my = {}, map = new Map(), hs = [], retry = 0, closed = false, timer = 0;
+  let ws = null, my = {}, map = new Map(), hs = [], chs = [], retry = 0, closed = false, timer = 0;
   const me = () => ({ peer: peerId, isMe: true, name: NET.user && NET.user.name, presence: Object.freeze(Object.assign({}, my)) });
   const fire = () => { map.set(peerId, me()); const ps = [...map.values()]; hs.forEach((h) => h({ peers: ps })); };
   const put = (m) => { if (m.peer !== peerId) map.set(m.peer, { peer: m.peer, isMe: false, name: m.name, uid: m.uid, presence: Object.freeze(m.presence || {}) }); };
@@ -80,9 +80,11 @@ function makeNetRoom() {
     ws.onopen = () => { retry = 0; NET.conn = true; ws.send(JSON.stringify({ t: 'pres', patch: my, reset: 1 })); tabRefresh(); };
     ws.onmessage = (e) => {
       let m; try { m = JSON.parse(e.data); } catch (x) { return; }
-      if (m.t === 'hello') { map.clear(); m.peers.forEach(put); fire(); }
+      if (m.t === 'hello') { map.clear(); m.peers.forEach(put); fire(); chs.forEach((h) => h({ hist: m.chat || [] })); }
       else if (m.t === 'peer') { put(m); fire(); }
       else if (m.t === 'leave') { map.delete(m.peer); fire(); }
+      else if (m.t === 'chat') chs.forEach((h) => h(m));
+      else if (m.t === 'chatErr') toast(m.text, 2500);
     };
     ws.onclose = (e) => {
       NET.conn = false;
@@ -104,12 +106,21 @@ function makeNetRoom() {
       map.set(peerId, me());
     },
     onPeers: (h) => { hs.push(h); fire(); return () => {}; },
+    // 채팅 (claude.ai room에는 없음 → 채팅 UI 숨김)
+    peerId,
+    onChat: (h) => { chs.push(h); },
+    chat: (ch, text, extra) => {
+      if (!ws || ws.readyState !== 1) return false;
+      ws.send(JSON.stringify(Object.assign({ t: 'chat', ch, text }, extra || {})));
+      return true;
+    },
     close: () => { closed = true; clearTimeout(timer); if (ws) ws.close(); },
   };
 }
 function useRoom(room) {
   ON.room = room;
   room.onPeers((ch) => { ON.peers = ch.peers; onRoomChange(); });
+  if (room.onChat) room.onChat(onChatMsg);
   pres(Object.assign({}, ON.my, { fc: 1 }));
   tabRefresh();
 }
@@ -155,7 +166,7 @@ function teamPickHTML(disabled) {
 }
 function renderOnline() {
   const B = $('#onBody'); if (!B) return;
-  updateOnlineBadge();
+  updateOnlineBadge(); renderLobbyChat();
   if (!NET.server && !ON.room) {
     B.innerHTML = `<div class="empty"><div class="big3">🌐</div><p class="sub">온라인 대전은 게임 서버(Render 등)에 올린 주소로 열었을 때만 돼요.</p></div>`;
     return;
@@ -281,6 +292,7 @@ function beginOnline(go, host, peer) {
   if (go.night != null) applyTime(!!go.night);
   toast(`온라인 경기 시작! 상대: ${G.online.oname ? G.online.oname + ' · ' : ''}${S.TEAMS[opp].city} ${S.TEAMS[opp].name}`, 2500);
   startGame({ me, opp, home: mySide === 1, inn: go.inn, online: true, diff: DIFF[go.diff] ? go.diff : OPTS.diff });
+  chatGameStart();
 }
 function sendAct(a) {
   if (!G.online) return;
@@ -297,6 +309,7 @@ function endOnline() {
   if (!G.online) return;
   G.online = null; G.onlineRC = null; GR = Math.random; ON.q = [];
   pres({ acts: null, g: null, go: null, join: null, lob: null });
+  chatGameEnd();
 }
 // 매 프레임: 받은 행동 처리
 function onlineTick() {

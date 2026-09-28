@@ -130,6 +130,29 @@ function serveStatic(req, res) {
   fs.createReadStream(f).pipe(res);
 }
 
+/* ---------- 채팅 ---------- */
+// 로비 채팅은 접속한 모두에게 + 최근 30개 보관, 경기 채팅은 상대 한 명에게만 (보관 안 함)
+const lobbyLog = [];
+let chatSeq = 0;
+function onChat(peer, P, m) {
+  const text = String(m.text || '').replace(/[\x00-\x1f\x7f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if (!text) return;
+  const now = Date.now();
+  P.chatT = (P.chatT || []).filter((t) => now - t < 10000);
+  if (P.chatT.length >= 8) { P.ws.send(JSON.stringify({ t: 'chatErr', text: '채팅이 너무 빨라요. 잠깐만 쉬었다가 보내 주세요' })); return; }
+  P.chatT.push(now);
+  const msg = { t: 'chat', ch: m.ch === 'game' ? 'game' : 'lobby', id: ++chatSeq, from: peer, name: P.name, uid: P.uid, text, at: now };
+  if (msg.ch === 'lobby') {
+    lobbyLog.push(msg); if (lobbyLog.length > 30) lobbyLog.shift();
+    broadcast(msg);
+  } else {
+    msg.g = String(m.g || '').slice(0, 12);
+    const to = peers.get(String(m.to || ''));
+    if (to && to.ws.readyState === 1) to.ws.send(JSON.stringify(msg));
+    P.ws.send(JSON.stringify(msg));
+  }
+}
+
 /* ---------- 실시간 방 ---------- */
 // peer id는 브라우저 탭마다 하나 (재접속해도 유지) → 잠깐 끊겼다 돌아와도 같은 사람으로 봄
 const peers = new Map(); // peer -> { ws, uid, name, presence }
@@ -151,13 +174,14 @@ function onConnection(ws, req) {
   peers.set(peer, P);
   ws.isAlive = true;
   ws.on('pong', () => (ws.isAlive = true));
-  ws.send(JSON.stringify({ t: 'hello', me: peer, peers: [...peers].map(([id, x]) => peerOut(id, x)) }));
+  ws.send(JSON.stringify({ t: 'hello', me: peer, peers: [...peers].map(([id, x]) => peerOut(id, x)), chat: lobbyLog }));
   broadcast({ t: 'peer', ...peerOut(peer, P) }, peer);
   ws.on('message', (raw) => {
     ws.isAlive = true;
     if (raw.length > 8192) return;
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (m.t === 'ping') return ws.send('{"t":"pong"}');
+    if (m.t === 'chat') return onChat(peer, P, m);
     if (m.t !== 'pres' || !m.patch || typeof m.patch !== 'object') return;
     const pr = m.reset ? {} : Object.assign({}, P.presence);
     for (const k in m.patch) { if (m.patch[k] === null) delete pr[k]; else pr[k] = m.patch[k]; }

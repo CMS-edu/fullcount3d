@@ -353,6 +353,58 @@ body.no-webgl .nogl { display: grid; }
 .credits { margin-top: 14px; font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
 .credits > div:not(.rhead) { overflow-wrap: anywhere; }
 
+/* ---------- 채팅 ---------- */
+input, textarea { -webkit-user-select: text; user-select: text; }
+.tb-right { display: flex; gap: 8px; align-items: flex-start; }
+.chat-btn { position: relative; }
+.chat-btn[aria-expanded="true"] { background: var(--led); color: #1c1405; border-color: var(--led); }
+.chat-btn .badge2 { top: -5px; left: auto; right: -5px; box-shadow: 0 0 0 2px #0b1535; }
+.chatbox { position: absolute; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 60px); width: min(420px, calc(100vw - 16px));
+  max-height: min(56vh, 430px); display: flex; flex-direction: column; overflow: hidden; color: var(--bug-text);
+  background: rgba(11, 21, 53, 0.93); border: 1px solid var(--bug-line); border-radius: 16px; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: paneIn 0.25s ease-out; }
+.cb-head { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-bottom: 1px solid var(--bug-line); font-size: 13px; }
+.cb-head span { flex: 1; min-width: 0; color: var(--bug-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-x { width: 40px; height: 40px; border-radius: 10px; color: var(--bug-text); font-size: 15px; }
+.cb-list { flex: 1; min-height: 90px; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; overscroll-behavior: contain; }
+.cm { max-width: 82%; align-self: flex-start; display: grid; gap: 1px; }
+.cm b { font-size: 11px; font-weight: 700; color: var(--bug-muted); padding-left: 4px; }
+.cm span { padding: 6px 10px; border-radius: 14px 14px 14px 4px; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; background: #22306a; color: #eef1ff; }
+.cm time { font-size: 10px; color: var(--bug-muted); padding: 0 4px; }
+.cm.me { align-self: flex-end; }
+.cm.me span { border-radius: 14px 14px 4px 14px; background: var(--led); color: #1c1405; }
+.cm.me time { text-align: right; }
+.cm.emo span { background: none !important; border: 0 !important; font-size: 30px; padding: 0 2px; line-height: 1.15; }
+.cm.sys { align-self: center; max-width: 100%; }
+.cm.sys span { border-radius: 999px; font-size: 12px; background: rgba(255, 255, 255, 0.08); color: var(--bug-muted); }
+.cb-quick { display: flex; gap: 6px; overflow-x: auto; padding: 6px 8px; border-top: 1px solid var(--bug-line); scrollbar-width: none; }
+.cb-quick::-webkit-scrollbar { display: none; }
+.qc { flex: none; min-height: 36px; padding: 0 12px; border-radius: 999px; font-size: 14px; font-weight: 700; color: var(--bug-text); background: rgba(255, 255, 255, 0.08); border: 1px solid var(--bug-line); }
+.qc:active { transform: scale(0.94); }
+.cb-form { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--bug-line); }
+.cb-form input { flex: 1; min-width: 0; min-height: 42px; padding: 0 12px; font: inherit; font-size: 16px; border-radius: 12px; border: 1px solid var(--bug-line); background: rgba(255, 255, 255, 0.07); color: var(--bug-text); }
+.cb-form input:focus { outline: 2px solid var(--led); outline-offset: 0; }
+.cb-send { width: 46px; min-height: 42px; border-radius: 12px; font-size: 18px; font-weight: 700; background: var(--led); color: #1c1405; }
+.chatbubble { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 64px); transform: translate(-50%, -12px); max-width: min(360px, 78vw); padding: 8px 14px;
+  border-radius: 14px; background: rgba(11, 21, 53, 0.94); border: 1px solid var(--led); color: var(--bug-text); font-size: 14px; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.25s; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35); }
+.chatbubble.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.chatbubble b { color: var(--led); margin-right: 6px; }
+/* PC: 경기 옆(왼쪽 아래)에 붙여 둠 */
+@media (min-width: 1100px) and (min-height: 600px) {
+  .chatbox { left: calc(env(safe-area-inset-left, 0px) + 12px); transform: none; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); width: 320px; max-height: 48vh; }
+}
+.lobbychat { margin-top: 16px; }
+.lobbychat .cb-list { max-height: 240px; min-height: 96px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); }
+.lobbychat .cm span { background: var(--panel); color: var(--ink); border: 1px solid var(--border); }
+.lobbychat .cm.me span { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.lobbychat .cm b, .lobbychat .cm time { color: var(--ink-2); }
+.lobbychat .cm.sys span { background: transparent; border: 0; color: var(--ink-2); }
+.lobbychat .cb-form { padding: 8px 0 0; border: 0; }
+.lobbychat .cb-form input { background: var(--panel-2); border-color: var(--border); color: var(--ink); }
+.lobbychat .cb-form input:focus { outline-color: var(--accent); }
+.lobbychat .cb-send { background: var(--cta); color: var(--cta-ink); }
+
 /* ---------- 온라인 · 내 정보 탭 ---------- */
 .rhead .cnt { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 9px; background: #ff4b4b; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
 .empty { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 18px 10px; border-radius: 16px; background: var(--panel-2); border: 1px dashed var(--border); }
@@ -489,6 +541,11 @@ body.no-webgl .nogl { display: grid; }
       <div class="card panel">
         <div class="phead"><h2 id="onH">온라인 1:1</h2><span class="live" id="onLive" hidden><i></i><b id="onLiveN">0</b>명 접속</span></div>
         <div id="onBody"></div>
+        <div class="lobbychat" id="onChat" hidden>
+          <div class="rhead">로비 채팅 <span style="font-weight:500">· 지금 접속한 사람 모두에게 보여요</span></div>
+          <div class="cb-list" id="lobbyList" aria-live="polite"></div>
+          <form class="cb-form" id="lobbyForm" autocomplete="off"><input id="lobbyIn" maxlength="120" placeholder="친구에게 한마디" enterkeyhint="send" aria-label="로비 채팅 메시지"><button class="cb-send" aria-label="보내기">➤</button></form>
+        </div>
       </div>
     </div>
     <div class="pane" id="pane-roster" role="tabpanel" aria-labelledby="tab-roster" hidden>
@@ -532,7 +589,10 @@ body.no-webgl .nogl { display: grid; }
         <div class="oo"><span>O</span><i></i><i></i></div>
       </div>
     </div>
-    <button class="icon-btn pe" id="menuBtn" aria-label="메뉴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="tb-right">
+      <button class="icon-btn pe chat-btn" id="chatBtn" aria-label="채팅" aria-expanded="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.2 7.5L4 20l1.2-4.3A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 11.5h.01M12.5 11.5h.01M16.5 11.5h.01"/></svg><i class="badge2" hidden></i></button>
+      <button class="icon-btn pe" id="menuBtn" aria-label="메뉴"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </div>
   </div>
   <div class="lines"><div class="line" id="batLine"></div><div class="line" id="pitLine"></div>
       <div class="line pe" id="pracLine" hidden><span class="k" id="pracK">훈련</span><span id="pracTxt" style="overflow:hidden;text-overflow:ellipsis"></span><button class="chip" id="pracSet" style="min-height:30px;padding:2px 10px;margin-left:auto">설정</button></div></div>
@@ -543,6 +603,13 @@ body.no-webgl .nogl { display: grid; }
   <div id="banner"><div class="band"><div class="big"></div><div class="small"></div></div></div>
   <div id="feedback"></div>
   <div id="playText"></div>
+  <button class="chatbubble pe" id="chatBubble" aria-label="채팅 열기"></button>
+  <section class="chatbox pe" id="chatBox" aria-label="채팅" hidden>
+    <div class="cb-head"><b>💬 채팅</b><span id="chatWho"></span><button class="cb-x" id="chatX" aria-label="채팅 닫기">✕</button></div>
+    <div class="cb-list" id="chatList" aria-live="polite"></div>
+    <div class="cb-quick" id="chatQuick"></div>
+    <form class="cb-form" id="chatForm" autocomplete="off"><input id="chatIn" maxlength="120" placeholder="메시지 보내기" enterkeyhint="send" aria-label="채팅 메시지"><button class="cb-send" aria-label="보내기">➤</button></form>
+  </section>
   <button class="skip pe" id="skipBtn" hidden>건너뛰기 ▸▸</button>
   <div id="pad" class="pe" hidden><div class="cap">코스를 탭하세요</div><canvas width="352" height="412"></canvas></div>
   <div id="meter" hidden><div class="track"><i class="needle"></i></div><p>가운데에서 탭!</p></div>
@@ -2416,6 +2483,7 @@ const AU = {
   swish() { const t = this.now(); this.noise(t, 0.18, 1400, 0.7, 0.18, 'bandpass', 0.05); },
   click() { const t = this.now(); this.tone(t, 0.05, 1200, 900, 0.12, 'square'); },
   whistle() { const t = this.now(); this.tone(t, 0.25, 1800, 1700, 0.08, 'sine'); },
+  pop() { const t = this.now(); this.tone(t, 0.06, 880, 1320, 0.09, 'sine'); this.tone(t + 0.07, 0.08, 1320, 1760, 0.07, 'sine'); }, // 채팅 도착
   cheer(level = 1, dur = 2.4) {
     const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime;
     this.noise(t, dur, 900, 0.4, 0.22 * level, 'bandpass', 0.25);
@@ -4168,6 +4236,7 @@ function tickPitchClock(dt) {
   const pc = G.pclock; if (!pc) return;
   if (G.phase !== 'aim' && G.phase !== 'meter') return;
   if (!$('#penModal').hidden || !$('#subModal').hidden) return;
+  if (document.activeElement && document.activeElement.id === 'chatIn') return; // 채팅 입력 중엔 멈춤
   pc.left -= dt; renderPClock();
   if (pc.left <= 0) pitchClockViolation();
 }
@@ -5622,7 +5691,7 @@ function onlineResult(r) {
 // claude.ai room과 같은 모양(presence / onPeers)의 WebSocket 방
 function makeNetRoom() {
   const peerId = 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-  let ws = null, my = {}, map = new Map(), hs = [], retry = 0, closed = false, timer = 0;
+  let ws = null, my = {}, map = new Map(), hs = [], chs = [], retry = 0, closed = false, timer = 0;
   const me = () => ({ peer: peerId, isMe: true, name: NET.user && NET.user.name, presence: Object.freeze(Object.assign({}, my)) });
   const fire = () => { map.set(peerId, me()); const ps = [...map.values()]; hs.forEach((h) => h({ peers: ps })); };
   const put = (m) => { if (m.peer !== peerId) map.set(m.peer, { peer: m.peer, isMe: false, name: m.name, uid: m.uid, presence: Object.freeze(m.presence || {}) }); };
@@ -5633,9 +5702,11 @@ function makeNetRoom() {
     ws.onopen = () => { retry = 0; NET.conn = true; ws.send(JSON.stringify({ t: 'pres', patch: my, reset: 1 })); tabRefresh(); };
     ws.onmessage = (e) => {
       let m; try { m = JSON.parse(e.data); } catch (x) { return; }
-      if (m.t === 'hello') { map.clear(); m.peers.forEach(put); fire(); }
+      if (m.t === 'hello') { map.clear(); m.peers.forEach(put); fire(); chs.forEach((h) => h({ hist: m.chat || [] })); }
       else if (m.t === 'peer') { put(m); fire(); }
       else if (m.t === 'leave') { map.delete(m.peer); fire(); }
+      else if (m.t === 'chat') chs.forEach((h) => h(m));
+      else if (m.t === 'chatErr') toast(m.text, 2500);
     };
     ws.onclose = (e) => {
       NET.conn = false;
@@ -5657,12 +5728,21 @@ function makeNetRoom() {
       map.set(peerId, me());
     },
     onPeers: (h) => { hs.push(h); fire(); return () => {}; },
+    // 채팅 (claude.ai room에는 없음 → 채팅 UI 숨김)
+    peerId,
+    onChat: (h) => { chs.push(h); },
+    chat: (ch, text, extra) => {
+      if (!ws || ws.readyState !== 1) return false;
+      ws.send(JSON.stringify(Object.assign({ t: 'chat', ch, text }, extra || {})));
+      return true;
+    },
     close: () => { closed = true; clearTimeout(timer); if (ws) ws.close(); },
   };
 }
 function useRoom(room) {
   ON.room = room;
   room.onPeers((ch) => { ON.peers = ch.peers; onRoomChange(); });
+  if (room.onChat) room.onChat(onChatMsg);
   pres(Object.assign({}, ON.my, { fc: 1 }));
   tabRefresh();
 }
@@ -5708,7 +5788,7 @@ function teamPickHTML(disabled) {
 }
 function renderOnline() {
   const B = $('#onBody'); if (!B) return;
-  updateOnlineBadge();
+  updateOnlineBadge(); renderLobbyChat();
   if (!NET.server && !ON.room) {
     B.innerHTML = `<div class="empty"><div class="big3">🌐</div><p class="sub">온라인 대전은 게임 서버(Render 등)에 올린 주소로 열었을 때만 돼요.</p></div>`;
     return;
@@ -5834,6 +5914,7 @@ function beginOnline(go, host, peer) {
   if (go.night != null) applyTime(!!go.night);
   toast(`온라인 경기 시작! 상대: ${G.online.oname ? G.online.oname + ' · ' : ''}${S.TEAMS[opp].city} ${S.TEAMS[opp].name}`, 2500);
   startGame({ me, opp, home: mySide === 1, inn: go.inn, online: true, diff: DIFF[go.diff] ? go.diff : OPTS.diff });
+  chatGameStart();
 }
 function sendAct(a) {
   if (!G.online) return;
@@ -5850,6 +5931,7 @@ function endOnline() {
   if (!G.online) return;
   G.online = null; G.onlineRC = null; GR = Math.random; ON.q = [];
   pres({ acts: null, g: null, go: null, join: null, lob: null });
+  chatGameEnd();
 }
 // 매 프레임: 받은 행동 처리
 function onlineTick() {
@@ -5886,6 +5968,106 @@ function waitHint() {
   if (userBatting() && G.phase === 'ready') { _hintAt = clock; showPlayText('상대 투수가 공을 고르는 중…', 2000); }
   else if (userPitching() && P && P.released && !P.remoteIn && P.ft / P.pt.dur >= 1) { _hintAt = clock; showPlayText('상대 타자 반응 기다리는 중…', 2000); }
 }
+/* ===================== 채팅 (온라인 경기 중 1:1 · 온라인 탭 로비) ===================== */
+// 서버(WebSocket)가 있을 때만 됨. 경기 채팅은 락스텝(acts)과 완전히 별개라 경기 진행에 영향 없음.
+const CHAT = { lobby: [], game: [], open: false, unread: 0 };
+const QUICK = ['👍', '🔥', '😂', '😱', '👏', 'ㅋㅋㅋ', '나이스!', '와 대박', '아 ㅠㅠ', '빨리 던져', 'GG'];
+const chatOK = () => !!(ON.room && ON.room.chat);
+const isMine = (m) => !!(ON.room && m.from && m.from === ON.room.peerId);
+const hhmm = (t) => { const d = new Date(t); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const emojiOnly = (s) => s.length <= 8 && /\p{Extended_Pictographic}/u.test(s) && /^[\p{Extended_Pictographic}\p{Emoji_Component}‍️\s]+$/u.test(s);
+const wideChat = () => matchMedia('(min-width: 1100px) and (min-height: 600px)').matches;
+
+function msgHTML(m) {
+  if (m.sys) return `<div class="cm sys"><span>${esc(m.text)}</span></div>`;
+  const me = isMine(m);
+  return `<div class="cm${me ? ' me' : ''}${emojiOnly(m.text) ? ' emo' : ''}">${me ? '' : `<b>${esc(m.name || '?')}</b>`}<span>${esc(m.text)}</span><time>${hhmm(m.at)}</time></div>`;
+}
+function renderList(el, list, empty) {
+  if (!el) return;
+  el.innerHTML = list.map(msgHTML).join('') || `<div class="cm sys"><span>${empty}</span></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+function sendChat(ch, text) {
+  text = String(text || '').trim();
+  if (!text) return false;
+  if (!chatOK()) { toast('채팅은 게임 서버에 연결됐을 때만 돼요'); return false; }
+  if (ch === 'game' && !G.online) return false;
+  const extra = ch === 'game' ? { to: G.online.peer, g: G.online.code } : null;
+  if (!ON.room.chat(ch, text, extra)) { toast('연결이 끊겨서 못 보냈어요. 잠시 뒤 다시 보내 주세요'); return false; }
+  return true;
+}
+// 서버에서 온 메시지 (hist = 접속할 때 받는 로비 기록)
+function onChatMsg(m) {
+  if (m.hist) { CHAT.lobby = m.hist.slice(-30); renderLobbyChat(); return; }
+  if (m.ch === 'lobby') {
+    CHAT.lobby.push(m); if (CHAT.lobby.length > 60) CHAT.lobby.shift();
+    renderLobbyChat();
+    if (!isMine(m) && onlineVisible()) AU.pop();
+    return;
+  }
+  // 경기 채팅: 지금 경기의 상대(또는 나)가 보낸 것만
+  if (!G.online || (!isMine(m) && m.from !== G.online.peer) || (m.g && m.g !== G.online.code)) return;
+  CHAT.game.push(m); if (CHAT.game.length > 80) CHAT.game.shift();
+  renderGameChat();
+  if (!isMine(m)) {
+    AU.pop();
+    if ($('#chatBox').hidden) { CHAT.unread++; updateChatBtn(); chatBubble(m); }
+  }
+}
+
+/* ---------- 경기 중 채팅 ---------- */
+function renderGameChat() { if (!$('#chatBox').hidden) renderList($('#chatList'), CHAT.game, ''); }
+function updateChatBtn() {
+  const bd = $('#chatBtn .badge2'); if (!bd) return;
+  bd.hidden = !CHAT.unread; bd.textContent = CHAT.unread > 9 ? '9+' : CHAT.unread;
+}
+function applyChatOpen() {
+  $('#chatBox').hidden = !CHAT.open;
+  $('#chatBtn').setAttribute('aria-expanded', String(CHAT.open));
+  if (CHAT.open) { CHAT.unread = 0; renderGameChat(); $('#chatBubble').classList.remove('show'); }
+  updateChatBtn();
+}
+function chatBubble(m) {
+  const el = $('#chatBubble');
+  el.innerHTML = `<b>${esc(m.name || '상대')}</b>${esc(m.text)}`;
+  el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 3500, 'chatb');
+}
+function chatGameStart() {
+  CHAT.game = [{ sys: 1, text: `${G.online.oname || '상대'}님과 경기 시작! 인사해 보세요 👋` }];
+  CHAT.unread = 0;
+  $('#chatBtn').hidden = !chatOK();
+  $('#chatWho').textContent = G.online.oname ? `vs ${G.online.oname}` : '';
+  CHAT.open = chatOK() && wideChat(); // 넓은 화면(PC)은 경기 옆에 처음부터 펼쳐 둠
+  applyChatOpen();
+}
+function chatGameEnd() {
+  CHAT.open = false; CHAT.unread = 0;
+  $('#chatBtn').hidden = true; $('#chatBox').hidden = true; $('#chatBubble').classList.remove('show');
+  const i = $('#chatIn'); if (document.activeElement === i) i.blur();
+}
+$('#chatQuick').innerHTML = QUICK.map((q) => `<button type="button" class="qc">${q}</button>`).join('');
+$('#chatQuick').addEventListener('click', (e) => { const b = e.target.closest('.qc'); if (b) sendChat('game', b.textContent); });
+$('#chatForm').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#chatIn'); if (sendChat('game', i.value)) i.value = ''; });
+$('#chatIn').addEventListener('keydown', (e) => {
+  e.stopPropagation(); // 채팅 치는 동안 게임 단축키(스페이스 = 스윙 등) 막기
+  if (e.key === 'Escape') { e.target.blur(); CHAT.open = false; applyChatOpen(); }
+});
+$('#chatBtn').addEventListener('click', () => {
+  CHAT.open = !CHAT.open; applyChatOpen(); AU.click();
+  if (CHAT.open && !isTouch) $('#chatIn').focus();
+});
+$('#chatX').addEventListener('click', () => { CHAT.open = false; applyChatOpen(); });
+$('#chatBubble').addEventListener('click', () => { CHAT.open = true; applyChatOpen(); });
+
+/* ---------- 온라인 탭 로비 채팅 ---------- */
+function renderLobbyChat() {
+  const box = $('#onChat'); if (!box) return;
+  box.hidden = !chatOK() || (NET.server && !NET.conn);
+  if (!box.hidden) renderList($('#lobbyList'), CHAT.lobby.slice(-30), '아직 메시지가 없어요. 먼저 인사해 보세요!');
+}
+$('#lobbyForm').addEventListener('submit', (e) => { e.preventDefault(); const i = $('#lobbyIn'); if (sendChat('lobby', i.value)) i.value = ''; });
+$('#lobbyIn').addEventListener('keydown', (e) => e.stopPropagation());
 /* ===================== 홈 화면 탭 (경기 · 시즌 · 온라인 · 구단 · 내 정보) ===================== */
 const TAB_ENTER = {
   home: () => renderTitle(),
