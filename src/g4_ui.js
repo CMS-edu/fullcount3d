@@ -54,6 +54,16 @@ function updateLines() {
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
 }
 
+// 핫존 색: 리그 평균 대비 타율 차이 d (+면 빨강 = 강함, -면 파랑 = 약함)
+function heatCol(d, max) { const a = Math.min(max || 0.85, Math.abs(d) * 5 + 0.08); return d >= 0 ? `rgba(255,64,64,${a.toFixed(2)})` : `rgba(64,140,255,${a.toFixed(2)})`; }
+// 타자 성향 글: "당겨 47% · 밀어 22% · 땅볼 52%"
+function tendText(b) { return b.spray ? `당겨 ${Math.round(b.spray[0] * 100)}% · 밀어 ${Math.round(b.spray[2] * 100)}% · 땅볼 ${Math.round(b.gb * 100)}%` : ''; }
+// 작은 핫존 (포수 시점: 우타자는 몸쪽이 왼쪽)
+function miniHeat(b) {
+  if (!b.tz) return '';
+  const cols = b.hand === 'R' ? [0, 1, 2] : [2, 1, 0];
+  return `<div class="hz" aria-hidden="true">${[0, 1, 2].map((r) => cols.map((c) => { const i = r * 3 + c; return `<i style="background:${heatCol(b.tz[i][2] - BAT_LG.cells[i][2])}"></i>`; }).join('')).join('')}</div>`;
+}
 // 실제 구종 구사율 글: "직구 48% · 슬라이더 27% · 포크 15%"
 function mixText(p, n) { return p.mix ? p.mix.slice(0, n || 6).map(([t, sh]) => { const g = mvTag(p, t); return `${S.PITCHES[t].name} ${Math.round(sh * 100)}%${g ? `(${g})` : ''}`; }).join(' · ') : ''; }
 // 리그 평균보다 눈에 띄게 움직이는 공에 붙이는 말 (가로: 팔 쪽 +, 세로: 위 +, 단위 인치)
@@ -73,8 +83,8 @@ function playerCard(pl, tm, pit) {
   const today = !pit && pl.g && pl.g.pa ? `<span class="hot">오늘 ${pl.g.ab}타수 ${pl.g.h}안타${pl.g.hr ? ` ${pl.g.hr}홈런` : ''}</span>` : '';
   const cr = photoCredit(pl);
   el.style.setProperty('--tc', tm.t.c1);
-  const mix = pit && pl.mix ? `<span class="mixl">${mixText(pl, 4)}</span>` : '';
-  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${mix}${today}${cr ? `<em>${cr}</em>` : ''}</div>`;
+  const mix = pit && pl.mix ? `<span class="mixl">${mixText(pl, 4)}</span>` : !pit && pl.spray ? `<span class="mixl">${tendText(pl)}</span>` : '';
+  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${mix}${today}${cr ? `<em>${cr}</em>` : ''}</div>${pit ? '' : miniHeat(pl)}`;
   el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 2900, 'pcard');
 }
 
@@ -186,6 +196,19 @@ function drawPad(sel) {
   // 존
   const x0 = X(z.half), x1 = X(-z.half), y0 = Y(z.top), y1 = Y(z.bot);
   g.fillStyle = 'rgba(255,201,60,0.12)'; g.fillRect(x0, y0, x1 - x0, y1 - y0);
+  // 타자 핫존 (실제 기록): 칸마다 이 타자의 타율 — 리그 같은 칸 평균보다 높으면 빨강(강함), 낮으면 파랑(약함)
+  if (b.tz) {
+    const xs = [z.half, z.half / 3, -z.half / 3, -z.half]; // 몸쪽(타자 쪽)부터 칸 경계, bx를 곱해서 월드 x로
+    g.textAlign = 'center'; g.font = `bold 21px ${FONT_UI}`;
+    for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
+      const i = r * 3 + col, avg = b.tz[i][2], d = avg - BAT_LG.cells[i][2];
+      const xa = X(bx * xs[col]), xb = X(bx * xs[col + 1]), ya = Y(z.top - ((z.top - z.bot) * r) / 3), yb = Y(z.top - ((z.top - z.bot) * (r + 1)) / 3);
+      const L = Math.min(xa, xb), wd = Math.abs(xb - xa);
+      g.fillStyle = heatCol(d, 0.62); g.fillRect(L, ya, wd, yb - ya);
+      g.fillStyle = 'rgba(255,255,255,0.93)'; g.fillText(fmtAvg(avg), L + wd / 2, (ya + yb) / 2 + 7);
+    }
+  }
+  const cap = $('#pad .cap'); if (cap) cap.textContent = b.tz ? '코스 탭 · 빨강 = 이 타자가 강한 곳' : '코스를 탭하세요';
   g.strokeStyle = 'rgba(255,255,255,0.9)'; g.lineWidth = 3; g.strokeRect(x0, y0, x1 - x0, y1 - y0);
   g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 1.5;
   for (let k = 1; k < 3; k++) {

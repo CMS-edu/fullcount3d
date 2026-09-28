@@ -55,6 +55,21 @@ function applyPitchMix(p) {
   //   리그 가운데값이 5.9ft쯤, 사이드암 4.6ft쯤, 잠수함(고영표) 2.9ft
   if (mx[2]) { const z = mx[2][1]; p.relH = z; p.slot = z >= 4.6 ? clamp(5.6 - z, 0, 1) : clamp(1 + (4.6 - z) / 1.6, 1, 2); }
 }
+// 실제 타자 성향 (tools/batter_tend.js): 코스별 스윙·헛스윙·타율, 당겨치기, 땅볼 → CPU 타자의 스윙·컨택·타구 방향에 반영
+function applyBatTend(b) {
+  const t = b.kbo && BAT_TEND[b.kbo];
+  if (!t) return;
+  const [pa, spray, gb, cells] = t;
+  b.tz = cells; b.spray = spray; b.gb = gb; b.tzN = pa;
+  // 리그 평균만큼 당겨치면 기존 기본값 7°, 더 당기면 더 크게
+  b.pullDeg = clamp(7 + ((spray[0] - spray[2]) - (BAT_LG.pull - BAT_LG.oppo)) * 45, -8, 22);
+  b.laAdj = clamp((BAT_LG.gb - gb) * 30, -5, 5); // 땅볼 타자는 발사각 낮게
+  // 코스별 [스윙 배율, 컨택 배율, 타율 차이]. 얼마나 잘 치는 타자인지는 능력치(컨택·파워·선구)에 이미 들어 있으니
+  // 두 번 세지 않도록 13칸 평균을 빼서 "어느 코스가 상대적으로 강하고 약한지" 모양만 남김
+  const raw = cells.map(([sw, wh, avg], i) => { const L = BAT_LG.cells[i]; return [sw / L[0], (1 - wh) / (1 - L[1]), avg - L[2]]; });
+  const mean = [0, 1, 2].map((k) => raw.reduce((s, r) => s + r[k], 0) / raw.length);
+  b.zm = raw.map((r) => [r[0] / mean[0], r[1] / mean[1], r[2] - mean[2]]);
+}
 // "사이드암" 같은 투구 폼 이름 (오버핸드·스리쿼터는 따로 안 붙임)
 function armSlotName(p) { return !p.slot || p.slot < 0.8 ? '' : p.slot < 1.6 ? '사이드암' : '언더핸드'; }
 const LEAGUE = REAL.map((t, ti) => {
@@ -64,6 +79,7 @@ const LEAGUE = REAL.map((t, ti) => {
   // 팀 번호·사진 (이름을 바꿔도 사진은 원래 선수 것 그대로)
   r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => { p.ti = ti; p.kbo = KBO_PH[ti + '|' + p.name] || null; p.ph = PHOTO_DB[ti + '|' + p.name] || null; });
   r.rotation.concat(r.bullpen).forEach(applyPitchMix);
+  r.lineup.concat(r.bench).forEach(applyBatTend);
   return r;
 });
 

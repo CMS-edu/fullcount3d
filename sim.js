@@ -464,21 +464,37 @@
     if (Math.abs(e) > Wf || d > rf) return { miss: true, tl };
     const qa = 1 - d / rf, qt = 1 - Math.abs(e) / Wf;
     const q = Math.pow(qa, 0.8) * Math.pow(qt, 0.8);
-    const phi = -pullSign * (e / Wf) * 44 + randn() * 6;
+    const phi = -pullSign * (e / Wf) * 44 + randn() * 6 + pullSign * ((batter.pullDeg != null ? batter.pullDeg : 7) - 7) * 0.6;
+    const m = batter.zm ? batter.zm[zoneCell(batter, ball)] : null;
     if (q < 0.16 || (q < 0.3 && R() < 0.55)) {
       return { foul: true, tl, ev: 70 + q * 100, la: 25 + randn() * 25, phi: (Math.abs(phi) > 45 ? phi : Math.sign(phi || 1) * (50 + R() * 30)) };
     }
     const plat = batter.hand !== pitcherHand ? 1.03 : 1;
-    const ev = Math.min(186, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat);
+    const ev = Math.min(186, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat + (m ? clamp(m[2], -0.15, 0.15) * 30 : 0));
     const dy = aim.y - ball.y;
-    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12, -40, 75);
+    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5, -40, 75);
     const cl = q > 0.85 ? '정타!' : q > 0.6 ? '잘 맞음' : q > 0.35 ? '보통' : '빗맞음';
     return { ev, la, phi, q, tl, cl };
+  }
+
+  /* ---------- 타자 성향: 코스 칸 ---------- */
+  // 0~8 존 안 3×3 (위→아래 줄, 몸쪽→바깥쪽 칸), 9 위 · 10 아래 · 11 몸쪽 · 12 바깥쪽 (존 밖) — tools/batter_tend.js와 같은 규칙
+  function zoneCell(batter, t) {
+    const z = zoneOf(batter.height), xi = t.x * (batter.hand === 'R' ? -1 : 1); // + = 몸쪽 (우타자는 월드 -x에 섬)
+    const top = z.top + BALL_R, bot = z.bot - BALL_R, h = z.half;
+    if (Math.abs(t.x) <= h && t.y >= bot && t.y <= top) {
+      const col = xi > h / 3 ? 0 : xi < -h / 3 ? 2 : 1, row = t.y > bot + ((top - bot) * 2) / 3 ? 0 : t.y < bot + (top - bot) / 3 ? 2 : 1;
+      return row * 3 + col;
+    }
+    const dx = Math.abs(t.x) - h, du = t.y - top, dd = bot - t.y, m = Math.max(dx, du, dd);
+    return m === du ? 9 : m === dd ? 10 : xi > 0 ? 11 : 12;
   }
 
   /* ---------- CPU 타자 반응 (유저 투구) ---------- */
   function cpuSwing(batter, pitch, zi, count, diff, pitcherHand, quality) {
     const brk = PITCHES[pitch.type].brk;
+    // 실제 기록이 있으면 코스별 [스윙 배율, 컨택 배율, 타율 차이] (리그 평균 대비)
+    const m = batter.zm && pitch.target ? batter.zm[zoneCell(batter, pitch.target)] : null;
     let ps;
     if (zi.inside) {
       ps = 0.66 + (count.s === 2 ? 0.2 : 0) - (count.b === 3 && count.s < 2 ? 0.18 : 0) + (zi.corner < 0.5 ? 0.1 : 0) - (count.b === 0 && count.s === 0 ? 0.12 : 0);
@@ -486,18 +502,20 @@
       ps = Math.max(0, 0.4 - zi.out * 2.9) * (1.12 - batter.eye / 120) * (brk ? 1.3 : 1) + (count.s === 2 ? 0.08 : 0);
       if (count.b === 3 && count.s < 2) ps *= 0.35;
     }
+    if (m) ps *= clamp(m[0], 0.55, 1.6); // 잘 참는 코스·잘 따라가는 코스
     if (R() > ps) return { swing: false };
     const plat = batter.hand !== pitcherHand ? 0.03 : 0;
     let pc = 0.765 + (batter.con - 60) / 220 + plat - (quality - 0.75) * 0.45 + diff.cpuCon;
     pc -= zi.inside ? Math.max(0, zi.corner - 0.4) * 0.22 : 0.12 + zi.out * 1.4;
+    if (m) pc *= clamp(m[1], 0.75, 1.25); // 헛스윙이 많은 코스
     if (R() > pc) return { swing: true, contact: false };
     const pFoul = 0.4 + (zi.inside ? 0 : 0.12) + Math.max(0, zi.corner - 0.5) * 0.15 + (count.s === 2 ? 0.06 : 0);
     const pullSign = batter.hand === 'R' ? -1 : 1;
     if (R() < pFoul) return { swing: true, contact: true, foul: true, ev: 90 + R() * 50, la: 20 + randn() * 25, phi: (R() < 0.5 ? -1 : 1) * (48 + R() * 30) };
-    const evMean = 112.5 + batter.pow * 0.36 - Math.max(0, zi.corner - 0.3) * 12 - zi.out * 45 - (quality - 0.75) * 10 + diff.cpuPow;
+    const evMean = 112.5 + batter.pow * 0.36 - Math.max(0, zi.corner - 0.3) * 12 - zi.out * 45 - (quality - 0.75) * 10 + diff.cpuPow + (m ? clamp(m[2], -0.15, 0.15) * 70 : 0); // 강한 코스는 더 세게
     const ev = clamp(evMean + randn() * 21, 45, 184);
-    const la = clamp(10.5 + (batter.pow - 60) * 0.17 + (zi.low ? -6 : 5) + (brk && zi.low ? -5 : 0) + randn() * 25, -45, 80);
-    const phi = pullSign * 7 + randn() * 22;
+    const la = clamp(10.5 + (batter.pow - 60) * 0.17 + (zi.low ? -6 : 5) + (brk && zi.low ? -5 : 0) + (batter.laAdj || 0) + randn() * 25, -45, 80);
+    const phi = pullSign * (batter.pullDeg != null ? batter.pullDeg : 7) + randn() * 22; // 당겨치기/밀어치기 성향
     return { swing: true, contact: true, foul: Math.abs(phi) > 45, ev, la, phi };
   }
 
@@ -627,7 +645,7 @@
   const api = {
     D2R, BASE, FENCE_H, BALL_R, PITCHES, TEAMS, POS_NAME, FIELD_HOME,
     mulberry32, setRng, randn, clamp, pick, R,
-    basePos, polar, phiOf, fenceDist, zoneOf, inZone, zoneInfo,
+    basePos, polar, phiOf, fenceDist, zoneOf, inZone, zoneInfo, zoneCell,
     makePitch, pitchPos, flyBall, makeFielders, findIntercept, resolvePlay, runV, FT, US,
     userSwing, cpuSwing, buildRoster, buildLeague, dirText, sideText,
     cpuPitchPlan, fatigueOf, pitchSigma, pitchSpeed, pitchQuality,

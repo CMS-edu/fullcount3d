@@ -413,6 +413,10 @@ body.no-webgl .nogl { display: grid; }
 #pcard span { font-size: 12.5px; font-variant-numeric: tabular-nums; }
 #pcard .hot { color: var(--led); font-weight: 700; }
 #pcard .mixl { font-size: 11.5px; color: #bcd6ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pcard .hz { flex: none; align-self: center; display: grid; grid-template-columns: repeat(3, 13px); grid-auto-rows: 13px; gap: 2px; padding: 3px; border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.06); position: relative; margin-left: 2px; }
+#pcard .hz i { border-radius: 2px; }
+#pcard .hz::after { content: "핫존"; position: absolute; left: 0; right: 0; bottom: -15px; text-align: center; font-size: 9.5px; font-weight: 700; color: var(--bug-muted); }
 #pcard em { font-style: normal; font-size: 9.5px; color: var(--bug-muted); opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pcard em a { color: inherit; text-decoration: none; }
 @media (orientation: landscape) and (max-height: 520px) { #pcard { top: calc(env(safe-area-inset-top, 0px) + 116px); } #pcard .ava.md { width: 50px; height: 50px; } #pcard b { font-size: 21px; } }

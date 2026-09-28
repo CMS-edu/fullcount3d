@@ -8,34 +8,13 @@
 const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
-const CACHE = path.join(__dirname, '.cache', 'relay');
-const H = { 'User-Agent': 'Mozilla/5.0 (fullcount3d fan game; pitch mix)', Referer: 'https://m.sports.naver.com/' };
-const OPENING = '2026-03-28', LAST = '2026-09-27'; // 정규시즌 (시범경기 제외)
+const { games: loadGames, gameData, OPENING, LAST } = require('./relay'); // 경기 목록·문자중계 요약 (tools/.cache/relay2)
 const TARGET = 250, MAX_GAMES = 480, MIN_PITCHES = 40;
 // 문자중계 구종 이름 → 게임 구종
 const STUFF = {
   직구: 'FB', 투심: 'TS', 싱커: 'TS', 커터: 'CT', 슬라이더: 'SL', 슬러브: 'SL', 스위퍼: 'ST',
   커브: 'CB', 너클커브: 'CB', 체인지업: 'CH', 서클체인지업: 'CH', 포크: 'FK', 스플리터: 'FK',
 };
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function J(u) {
-  for (let t = 0; t < 4; t++) {
-    try { const r = await fetch(u, { headers: H }); if (r.ok) return await r.json(); } catch (e) { /* 재시도 */ }
-    await sleep(800 * (t + 1));
-  }
-  throw new Error('요청 실패: ' + u);
-}
-const day = (d) => d.toISOString().slice(0, 10);
-// PITCHf/x식 무브먼트(인치): 홈 40피트 앞 ~ 홈플레이트 사이에서 회전 때문에 생긴 휘어짐 (중력은 뺌)
-function pfx(q) {
-  const { vy0, ay, ax, az } = q, y0 = Number.isFinite(q.y0) ? q.y0 : 50;
-  if (![vy0, ay, ax, az].every(Number.isFinite) || vy0 >= 0 || ay <= 0) return null;
-  const tAt = (y) => { const d = vy0 * vy0 - 2 * ay * (y0 - y); return d < 0 ? NaN : (-vy0 - Math.sqrt(d)) / ay; };
-  const t40 = tAt(40), tp = tAt(17 / 12);
-  if (!(tp > t40)) return null;
-  const dt2 = (tp - t40) ** 2;
-  return { x: 0.5 * ax * dt2 * 12, z: 0.5 * (az + 32.174) * dt2 * 12 };
-}
 const r1 = (v) => Math.round(v * 10) / 10;
 
 (async () => {
@@ -44,37 +23,12 @@ const r1 = (v) => Math.round(v * 10) / 10;
   const want = {}, hand = {}; // KBO ID → 이름, 투구 손
   REAL.forEach((t, ti) => ['rotation', 'bullpen'].forEach((k) => (t[k] || []).forEach((p) => { const id = KBO_PH[ti + '|' + p.n]; if (id) { want[id] = ti + '|' + p.n; hand[id] = p.t; } })));
   console.log('투수', Object.keys(want).length, '명');
-  fs.mkdirSync(CACHE, { recursive: true });
 
-  // 1) 날짜별 경기 목록 (한 번에 여러 날을 물으면 10경기에서 잘림)
-  const games = [];
-  for (let d = new Date(LAST); day(d) >= OPENING; d.setDate(d.getDate() - 1)) {
-    const g = await J(`https://api-gw.sports.naver.com/schedule/games?fields=basic&upperCategoryId=kbaseball&categoryId=kbo&fromDate=${day(d)}&toDate=${day(d)}`);
-    (g.result.games || []).filter((x) => x.statusCode === 'RESULT' && !x.cancel).forEach((x) => games.push({ id: x.gameId, inn: +((x.statusInfo || '').match(/(\d+)회/) || [0, 9])[1] || 9 }));
-    await sleep(60);
-  }
+  // 1) 경기 목록 (relay.js)
+  const games = await loadGames();
   console.log('정규시즌 경기', games.length);
-
-  // 2) 경기별 공 목록: [투수ID, 구종이름, 구속, 가로무브(인치,포수 기준 +오른쪽), 세로무브(인치), 릴리스x(ft), 릴리스높이(ft)]
-  async function gamePitches(g) {
-    const cf = path.join(CACHE, g.id + '.json');
-    if (fs.existsSync(cf)) return JSON.parse(fs.readFileSync(cf, 'utf8'));
-    const list = [];
-    for (let inn = 1; inn <= Math.max(9, g.inn); inn++) {
-      const j = await J(`https://api-gw.sports.naver.com/schedule/games/${g.id}/relay?inning=${inn}`);
-      const rel = (j.result && j.result.textRelayData && j.result.textRelayData.textRelays) || [];
-      const pts = {};
-      rel.forEach((r) => (r.ptsOptions || []).forEach((q) => (pts[q.pitchId] = q)));
-      for (const r of rel) for (const o of r.textOptions || []) {
-        if (!o.stuff || !o.currentGameState) continue;
-        const q = o.ptsPitchId && pts[o.ptsPitchId], m = q && pfx(q);
-        list.push([String(o.currentGameState.pitcher || ''), o.stuff, +o.speed || 0, m ? r1(m.x) : null, m ? r1(m.z) : null,
-          m && Number.isFinite(q.x0) ? Math.round(q.x0 * 100) / 100 : null, m && Number.isFinite(q.z0) ? Math.round(q.z0 * 100) / 100 : null]);
-      }
-    }
-    fs.writeFileSync(cf, JSON.stringify(list));
-    return list;
-  }
+  // 2) 경기별 공 목록: [투수ID, 구종이름, 구속, 가로무브, 세로무브, 릴리스x, 릴리스높이] (relay.js 요약의 앞 7칸)
+  const gamePitches = async (g) => (await gameData(g)).pa.flatMap((pa) => pa.p.map((q) => q.slice(0, 7)));
 
   // 3) 투수별 · 구종별로 모으기 (+ 리그 전체 구종별 평균 무브먼트)
   const acc = {}, lg = {}; // lg[구종] = [팔쪽 가로 합, 세로 합, 개수]
