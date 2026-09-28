@@ -49,7 +49,7 @@ function updateIdle(dt) {
   // 투수
   if (!pitching && !playing) {
     if (ph === 'call' || ph === 'after') idleTo(FIG.P, POSE.stand, dt, 3);
-    else pitcherPose(FIG.P, 0, G.T ? fieldTeam().pitcher.hand : 'R');
+    else pitcherPose(FIG.P, 0, G.T ? fieldTeam().pitcher.hand : 'R', G.T && fieldTeam().pitcher.slot);
   }
   // 야수
   if (!playing) {

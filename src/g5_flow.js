@@ -43,7 +43,20 @@ function applyPitchMix(p) {
   const fb = p.spd.FB || p.spd.TS || (p.spd.CT && p.spd.CT / 0.955);
   if (fb) p.vel = Math.round(fb * 10) / 10;
   p.mixN = mx[0];
+  // 실제 무브먼트: 리그 평균보다 몇 인치 더/덜 휘고 떨어지는지 → 게임 기본 휘어짐에 그만큼(1인치 = 2.54cm) 더함
+  p.mv = {}; p.mvIn = {};
+  mx[1].forEach(([t, , , hb, vb]) => {
+    const L = PITCH_MV_AVG[t], base = S.PITCHES[t];
+    if (hb == null || !L || !base) return;
+    p.mv[t] = [base.arm + (hb - L[0]) * 0.0254, base.drop - (vb - L[1]) * 0.0254];
+    p.mvIn[t] = [hb - L[0], vb - L[1]];
+  });
+  // 팔 높이: 실제 릴리스 높이(ft)로 오버핸드(0) · 사이드암(1) · 언더핸드(2)
+  //   리그 가운데값이 5.9ft쯤, 사이드암 4.6ft쯤, 잠수함(고영표) 2.9ft
+  if (mx[2]) { const z = mx[2][1]; p.relH = z; p.slot = z >= 4.6 ? clamp(5.6 - z, 0, 1) : clamp(1 + (4.6 - z) / 1.6, 1, 2); }
 }
+// "사이드암" 같은 투구 폼 이름 (오버핸드·스리쿼터는 따로 안 붙임)
+function armSlotName(p) { return !p.slot || p.slot < 0.8 ? '' : p.slot < 1.6 ? '사이드암' : '언더핸드'; }
 const LEAGUE = REAL.map((t, ti) => {
   const r = { lineup: t.lineup.map(rateHitter), bench: t.bench.map(rateHitter), rotation: t.rotation.map(ratePitcher), bullpen: t.bullpen.map(ratePitcher), date: t.date };
   r.lineup.concat(r.bench).forEach((b, i) => (b.key = 'B' + i));
@@ -163,8 +176,8 @@ function resetField() {
     if (i === 1) { f.root.rotation.y = Math.PI; f.tp = POSE.catcher; } else { faceTo(f, 0, -2); f.tp = POSE.stand; }
     f.mode = 'idle'; Object.assign(f.P, f.tp); applyPose(f);
   }
-  const hand = G.T ? fieldTeam().pitcher.hand : 'R';
-  showFigure(FIG.P, true); FIG.P.mode = 'pitch'; pitcherPose(FIG.P, 0, hand);
+  const pp = G.T ? fieldTeam().pitcher : null;
+  showFigure(FIG.P, true); FIG.P.mode = 'pitch'; pitcherPose(FIG.P, 0, pp ? pp.hand : 'R', pp && pp.slot);
   FIG.coach.forEach((c, i) => { showFigure(c, true); placeFig(c, COACH_SPOT[i].x, COACH_SPOT[i].z); faceTo(c, 0, -8); c.tp = POSE.coach; c.mode = 'idle'; Object.assign(c.P, c.tp); applyPose(c); });
   FIG.ump.forEach((u, i) => { showFigure(u, true); placeFig(u, UMP_SPOT[i].x, UMP_SPOT[i].z); if (i === 0) u.root.rotation.y = Math.PI; else faceTo(u, 0, -12); u.tp = i === 0 ? POSE.ump : POSE.ready; u.mode = 'idle'; Object.assign(u.P, u.tp); applyPose(u); });
 }
@@ -420,7 +433,7 @@ function windup(type, target, meter) {
   const p = fieldTeam().pitcher, fat = S.fatigueOf(p, p.g.pc), sig = S.pitchSigma(p, fat, meter);
   const tgt = { x: target.x + S.randn() * sig, y: target.y + S.randn() * sig };
   const kmh = S.pitchSpeed(p, type, fat, meter) * ((G.prac && G.prac.spd) || 1), q = S.pitchQuality(p, fat, meter);
-  G.pitch = { pt: S.makePitch(p, type, tgt, kmh), type, kmh, q, meter, aim: target, w: 0, ft: 0, released: false, swung: false, launched: false, done: false, cross: tgt, uEnd: 1.06, hand: p.hand, pi };
+  G.pitch = { pt: S.makePitch(p, type, tgt, kmh), type, kmh, q, meter, aim: target, w: 0, ft: 0, released: false, swung: false, launched: false, done: false, cross: tgt, uEnd: 1.06, hand: p.hand, slot: p.slot || 0, pi };
   G.phase = 'windup';
   hideDocks(); if (userBatting()) showDocks();
   if (userPitching()) { targetMark.position.set(target.x, target.y, 0.02); targetMark.visible = true; }
@@ -480,7 +493,7 @@ function updatePitch(dt) {
   if (G.phase === 'windup') {
     P.w += dt;
     const u = P.w / WIND;
-    pitcherPose(FIG.P, u, P.hand);
+    pitcherPose(FIG.P, u, P.hand, P.slot);
     if (G.bs && G.bs.mode === 'stance') G.bs.load = clamp((u - 0.35) / 0.4, 0, 1);
     FIG.P.root.updateMatrixWorld(true);
     handPos(FIG.P, left, _hp); ball.set(_hp.x, _hp.y, _hp.z, 1); ball.pushTrail(false);
@@ -489,7 +502,7 @@ function updatePitch(dt) {
   }
   if (G.phase !== 'flight') return;
   // 투수 팔로스루
-  P.w += dt; pitcherPose(FIG.P, Math.min(P.w / WIND, 1), P.hand);
+  P.w += dt; pitcherPose(FIG.P, Math.min(P.w / WIND, 1), P.hand, P.slot);
   const ts = timeScale();
   P.ft += dt * ts;
   const dur = P.pt.dur;
@@ -833,7 +846,7 @@ function openPen() {
 function changePitcher(tm, p, remote) {
   if (G.online && !remote) sendAct({ k: 'pc', key: p.key });
   tm.pitcher = p; tm.used.push(p);
-  dressField(); pitcherPose(FIG.P, 0, p.hand);
+  dressField(); pitcherPose(FIG.P, 0, p.hand, p.slot);
   G.selType = p.pitches[0]; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
   toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);
   if (G.phase === 'meter') { G.phase = 'aim'; G.meter = null; UI.meter.hidden = true; G.aimTarget = null; }

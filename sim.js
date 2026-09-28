@@ -67,7 +67,8 @@
     const p = PITCHES[type];
     const armSign = pitcher.hand === 'R' ? -1 : 1;
     const rel = { x: 0.55 * armSign, y: 1.78, z: -16.9 };
-    const bx = p.arm * armSign, by = -p.drop;
+    const mv = pitcher.mv && pitcher.mv[type]; // 투수마다 실제 무브먼트 [가로(팔 쪽 +), 떨어짐] (m)
+    const bx = (mv ? mv[0] : p.arm) * armSign, by = -(mv ? mv[1] : p.drop);
     const dur = Math.abs(rel.z) / (kmh / 3.6);
     return { type, kmh, rel, target, bx, by, arc: p.arc * (145 / kmh), dur };
   }

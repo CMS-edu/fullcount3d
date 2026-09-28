@@ -55,11 +55,20 @@ function updateLines() {
 }
 
 // 실제 구종 구사율 글: "직구 48% · 슬라이더 27% · 포크 15%"
-function mixText(p, n) { return p.mix ? p.mix.slice(0, n || 6).map(([t, sh]) => `${S.PITCHES[t].name} ${Math.round(sh * 100)}%`).join(' · ') : ''; }
+function mixText(p, n) { return p.mix ? p.mix.slice(0, n || 6).map(([t, sh]) => { const g = mvTag(p, t); return `${S.PITCHES[t].name} ${Math.round(sh * 100)}%${g ? `(${g})` : ''}`; }).join(' · ') : ''; }
+// 리그 평균보다 눈에 띄게 움직이는 공에 붙이는 말 (가로: 팔 쪽 +, 세로: 위 +, 단위 인치)
+function mvTag(p, t) {
+  const d = p.mvIn && p.mvIn[t]; if (!d) return '';
+  const [h, v] = d, run = t === 'FB' || t === 'TS' || t === 'CH';
+  if (t === 'FB' && v >= 1.8) return '솟아오름';
+  if ((t === 'FK' || t === 'CH' || t === 'CB') && v <= -2) return '뚝 떨어짐';
+  if (run ? h >= 2.5 : h <= -2.5) return '많이 휨';
+  return '';
+}
 // 타석에 들어서는 타자 / 새로 올라온 투수 소개 카드 (사진 + 기록)
 function playerCard(pl, tm, pit) {
   const el = $('#pcard'); if (!el || !pl || !tm) return;
-  const role = pit ? `${pl.role === 'SP' ? '선발' : pl.role === 'CL' ? '마무리' : '불펜'} · ${pl.hand === 'L' ? '좌' : '우'}투` : `${tm.order + 1}번 타자 · ${pl.posK || ''} · ${pl.hand === 'L' ? '좌' : '우'}타`;
+  const role = pit ? `${pl.role === 'SP' ? '선발' : pl.role === 'CL' ? '마무리' : '불펜'} · ${pl.hand === 'L' ? '좌' : '우'}투${armSlotName(pl) ? ' ' + armSlotName(pl) : ''}` : `${tm.order + 1}번 타자 · ${pl.posK || ''} · ${pl.hand === 'L' ? '좌' : '우'}타`;
   const stat = pit ? `ERA ${pl.era.toFixed(2)} · ${Math.round(pl.ip)}이닝 · ${pl.k}K` : `타율 ${fmtAvg(pl.avg)} · ${pl.hr}홈런 · OPS ${(pl.obp + pl.slg).toFixed(3)}`;
   const today = !pit && pl.g && pl.g.pa ? `<span class="hot">오늘 ${pl.g.ab}타수 ${pl.g.h}안타${pl.g.hr ? ` ${pl.g.hr}홈런` : ''}</span>` : '';
   const cr = photoCredit(pl);

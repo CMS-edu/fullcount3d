@@ -3,3 +3,4 @@ dist/index.html
 build_game.js
 data_server/
 __pycache__/
+tools/.cache/

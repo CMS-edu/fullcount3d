@@ -378,9 +378,24 @@ function mirrorPose(p) {
   o.lLz = -p.rLz; o.rLz = -p.lLz; o.lSz = -p.rSz; o.rSz = -p.lSz; o.spY = -p.spY; o.spZ = -p.spZ; o.hdY = -p.hdY;
   return o;
 }
-const PITCH_KF_L = PITCH_KF.map((k) => ({ u: k.u, rot: -k.rot, dz: k.dz, p: mirrorPose(k.p) }));
-function pitcherPose(f, u, hand) {
-  const K = hand === 'L' ? PITCH_KF_L : PITCH_KF;
+// 팔 높이(slot): 0 = 오버핸드·스리쿼터(기본), 1 = 사이드암, 2 = 언더핸드(잠수함). 실제 릴리스 높이로 정함 (tools/pitch_mix.js)
+// 릴리스 순간 자세만 바꾸면 공도 그 손 위치에서 나감 (릴리스 지점 = 3D 투수의 손)
+const REL_SIDE = pose({ hipY: -0.22, spX: 0.42, spZ: 0.22, lLx: -0.8, lK: 0.5, rLx: 0.6, rK: 0.62, rSx: -1.3, rSz: -1.32, rE: -0.18, lSx: -0.6, lE: -1.8, lSz: 0.3, hdX: -0.2 });
+const REL_SUB = pose({ hipY: -0.3, spX: 0.85, spZ: 0.36, lLx: -1.05, lK: 0.95, rLx: 0.7, rK: 1.0, rSx: -0.6, rSz: -1.05, rE: -0.12, lSx: -0.5, lE: -1.7, lSz: 0.3, hdX: -0.6 });
+const PITCH_KF_SLOT = {};
+function pitchKF(hand, slot) {
+  const s = Math.round(clamp(slot || 0, 0, 2) * 10) / 10, key = hand + s;
+  if (PITCH_KF_SLOT[key]) return PITCH_KF_SLOT[key];
+  let K = PITCH_KF;
+  if (s > 0) {
+    const rel = s <= 1 ? blendPose(pose({}), PITCH_KF[3].p, REL_SIDE, s) : blendPose(pose({}), REL_SIDE, REL_SUB, s - 1);
+    K = PITCH_KF.map((k, i) => (i === 3 ? { u: k.u, rot: k.rot, dz: k.dz, p: rel } : k));
+  }
+  if (hand === 'L') K = K.map((k) => ({ u: k.u, rot: -k.rot, dz: k.dz, p: mirrorPose(k.p) }));
+  return (PITCH_KF_SLOT[key] = K);
+}
+function pitcherPose(f, u, hand, slot) {
+  const K = pitchKF(hand, slot);
   u = clamp(u, 0, 1);
   let i = 0; while (i < K.length - 2 && u > K[i + 1].u) i++;
   const a = K[i], b = K[i + 1], t = smooth((u - a.u) / (b.u - a.u));
