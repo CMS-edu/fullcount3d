@@ -177,12 +177,26 @@ const whiteMat = new T.MeshLambertMaterial({ color: 0xffffff });
 }
 
 /* ---------- 스트라이크존 가이드 (타격 시점) ---------- */
+// 타격 스트라이크 존 표시: 굵은 테두리 + 아주 옅은 바탕 + 3×3 칸선 (1픽셀 선은 폰에서 잘 안 보여서 얇은 면으로 그림)
 const zoneGuide = (() => {
-  const g = new T.BufferGeometry().setFromPoints([new T.Vector3(-1, -1, 0), new T.Vector3(1, -1, 0), new T.Vector3(1, 1, 0), new T.Vector3(-1, 1, 0), new T.Vector3(-1, -1, 0)]);
-  const l = new T.Line(g, new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthTest: false }));
-  l.renderOrder = 20; l.visible = false; scene.add(l); return l;
+  const g = new T.Group(); g.visible = false;
+  const m = (op) => new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op, depthTest: false, depthWrite: false });
+  const sq = new T.PlaneGeometry(1, 1), frame = m(0.75), grid = m(0.22);
+  const mk = (mat) => { const x = new T.Mesh(sq, mat); x.renderOrder = 20; g.add(x); return x; };
+  g.fill = mk(m(0.045)); g.bars = [mk(frame), mk(frame), mk(frame), mk(frame)]; g.lines = [mk(grid), mk(grid), mk(grid), mk(grid)];
+  scene.add(g); return g;
 })();
-function setZoneGuide(z) { zoneGuide.scale.set(0.216, (z.top - z.bot) / 2, 1); zoneGuide.position.set(0, (z.top + z.bot) / 2, -0.2); }
+function setZoneGuide(z) {
+  const G = zoneGuide, w = 0.432, h = z.top - z.bot, t = 0.011, t2 = 0.005;
+  G.position.set(0, (z.top + z.bot) / 2, -0.2);
+  G.fill.scale.set(w, h, 1);
+  const [top, bot, lft, rgt] = G.bars;
+  top.scale.set(w + t, t, 1); top.position.set(0, h / 2, 0); bot.scale.set(w + t, t, 1); bot.position.set(0, -h / 2, 0);
+  lft.scale.set(t, h + t, 1); lft.position.set(-w / 2, 0, 0); rgt.scale.set(t, h + t, 1); rgt.position.set(w / 2, 0, 0);
+  const [v1, v2, h1, h2] = G.lines;
+  v1.scale.set(t2, h, 1); v1.position.set(-w / 6, 0, 0); v2.scale.set(t2, h, 1); v2.position.set(w / 6, 0, 0);
+  h1.scale.set(w, t2, 1); h1.position.set(0, h / 6, 0); h2.scale.set(w, t2, 1); h2.position.set(0, -h / 6, 0);
+}
 
 /* ---------- 펜스 & 광고 ---------- */
 const ADS = [['홈런통신', '#e8412c', '#fff'], ['구름우유', '#f7f7f2', '#1f5fbf'], ['번개택배', '#ffcf1a', '#1b1b1b'], ['도루모터스', '#1c2f6b', '#fff'], ['스윙전자', '#0f9d7a', '#fff'], ['만루라면', '#d8261d', '#ffe36b'], ['직구은행', '#233a8c', '#ffd23f'], ['커브카드', '#161616', '#ff7ab8']];

@@ -302,7 +302,7 @@ function startGame(ov) {
   const away = o.home ? o.opp : o.me, home = o.home ? o.me : o.opp;
   G.T = [makeTeamState(away), makeTeamState(home)];
   if (ov.sp) G.T.forEach((tm, i) => { if (ov.sp[i] != null) { tm.pitcher = tm.ros.rotation[ov.sp[i] % tm.ros.rotation.length]; tm.used = [tm.pitcher]; } });
-  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null;
+  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null; G.paId = 0;
   paintCrowd(G.T[1].t, G.T[0].t); paintLed(G.T[1].t, G.T[0].t);
   UI.title.hidden = true; UI.hud.hidden = false; $('#overModal').hidden = true;
   $('#pracLine').hidden = !G.prac;
@@ -330,6 +330,7 @@ function startHalf() {
 function startPA() {
   if (G.phase === 'over') return;
   if (G.prac) return pracPA();
+  G.paId = (G.paId || 0) + 1;
   G.awaitPitch = false;
   G.b = 0; G.s = 0; G.pitchLog = []; G.bunt = false; G.stealReq = false; G.cpuBunt = false; G.steal = null;
   UI.bunt.setAttribute('aria-pressed', 'false'); UI.steal.setAttribute('aria-pressed', 'false');
@@ -441,6 +442,7 @@ function windup(type, target, meter) {
   let pi = 0; G.awaitPitch = false;
   if (G.online) {
     target = { x: r4(target.x), y: r4(target.y) }; meter = meter == null ? null : r4(meter);
+    if (userPitching()) flushSubsIn();
     pi = ++G.online.pi; S.setRng(onSeed(pi, 1));
     if (userPitching()) sendAct({ k: 'p', pi, t: type, x: target.x, y: target.y, m: meter });
   }
@@ -455,12 +457,14 @@ function windup(type, target, meter) {
   if (userPitching()) { targetMark.position.set(target.x, target.y, 0.02); targetMark.visible = true; }
   // 도루 결정
   let k = -1;
-  if (userBatting() && G.stealReq) k = stealBase();
-  else if (userPitching() && !G.online) {
+  if (G.online) { if (G.stealReq) k = stealBase(); }
+  else if (userBatting() && G.stealReq) k = stealBase();
+  else if (userPitching()) {
     const sb = stealBase();
     if (sb >= 0) { const r = G.bases[sb]; const pr = sb === 0 ? (r.spd >= 68 ? 0.14 : r.spd >= 60 ? 0.05 : 0) : (r.spd >= 75 ? 0.06 : 0); if (G.s < 2 && G.outs < 2 && R() < pr) k = sb; }
   }
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false');
+  if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false; // 아직 전달 중인 도루 요청이 있으면 버튼 유지
   if (k >= 0) startSteal(k);
 }
 function stealBase() {
@@ -471,7 +475,7 @@ function stealBase() {
 function startSteal(k) {
   const r = G.bases[k], ft = fieldTeam(), cat = fieldersOf(ft)[1];
   const pSucc = clamp(0.45 + (r.spd - 55) * 0.012 - ((cat && cat.spd) ? 0 : 0) - (k === 1 ? 0.05 : 0), 0.25, 0.92);
-  G.steal = { k, who: r, fig: G.runFig[k], ok: R() < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
+  G.steal = { k, who: r, fig: G.runFig[k], ok: (G.online && G.pitch ? onSeed(G.pitch.pi, 5)() : R()) < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
 }
 function handPos(f, left, out) { return (left ? f.lA : f.rA).hand.localToWorld(out.set(0, -0.3, 0)); }
 function gloveOf(f, out) { return f.lA.hand.localToWorld(out.set(0, -0.33, 0.02)); }
@@ -780,7 +784,7 @@ function endHalf() {
   later(1.3, () => { if (gen === G.gen) startHalf(); });
 }
 function gameOver() {
-  if (G.online) { const on = G.online; setTimeout(() => { if (G.online === on) endOnline(); }, 9000); }
+  if (G.online) { const on = G.online; on.done = 1; setTimeout(() => { if (G.online === on) endOnline(); }, 9000); }
   G.phase = 'over'; hideDocks(); UI.skip.hidden = true;
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const r = me.runs > op.runs ? 'win' : me.runs < op.runs ? 'lose' : 'draw';
@@ -879,13 +883,14 @@ function showDocks() {
   if (bat) {
     const canPre = G.phase === 'ready';
     UI.bunt.disabled = !canPre; UI.steal.disabled = !canPre || stealBase() < 0 || G.outs >= 2 && false;
-    $('#phBtn').hidden = $('#prBtn').hidden = UI.steal.hidden = !!G.prac || !!G.online;
+    $('#phBtn').hidden = $('#prBtn').hidden = UI.steal.hidden = !!G.prac;
+    if (G.online) UI.steal.setAttribute('aria-pressed', String(!!ON.stealWant));
     $('#phBtn').disabled = !canPre || !batTeam().bench.length; $('#prBtn').disabled = !canPre || !batTeam().bench.length || !G.bases.some(Boolean);
     $('#batHint').textContent = G.bunt ? '번트 자세! 공이 오면 탭해서 갖다 대기' : isTouch ? '공이 오면 칠 곳을 탭!' : '공이 오면 칠 곳을 클릭 (조준 후 스페이스)';
   }
   zoneGuide.visible = bat && G.zoneOn;
 }
-function pracChips() { const pr = !!G.prac; $('#ibbBtn').hidden = pr; $('#defBtn').hidden = pr || !!G.online; }
+function pracChips() { const pr = !!G.prac; $('#ibbBtn').hidden = pr; $('#defBtn').hidden = pr; }
 function hideDocks() {
   UI.dockBat.hidden = true; UI.dockPit.hidden = true; UI.pad.hidden = true; UI.meter.hidden = true;
   zoneGuide.visible = false;

@@ -5,8 +5,11 @@ function camTo(p, l, fov, kp, kl, cut) {
   CAM.tp.set(p[0], p[1], p[2]); CAM.tl.set(l[0], l[1], l[2]); CAM.tfov = fov; CAM.kp = kp; CAM.kl = kl || kp;
   if (cut) { CAM.p.copy(CAM.tp); CAM.l.copy(CAM.tl); CAM.fov = fov; }
 }
+// 타격 시점: 포수 뒤 가까이(홈에서 3m 남짓)에서 타자 쪽으로 살짝 비켜서 봄 → 스트라이크 존이 크게(예전 7m 뒤보다 2배쯤) 보이고
+// 타자의 팔·배트는 화면 가장자리에 남음. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
 function viewPA() {
-  return userBatting() ? (portrait() ? [[0, 1.62, 7.0], [0, 0.92, -18.4], 42] : [[0, 1.5, 6.2], [0, 1.0, -18.4], 25]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
+  const b = curBatter(), s = b && b.hand === 'L' ? 1 : -1; // 좌타자는 +x 쪽에 섬
+  return userBatting() ? (portrait() ? [[s * 0.26, 1.22, 3.15], [-s * 0.02, 1.0, -18.4], 46] : [[s * 0.35, 1.25, 3.6], [0, -0.4, -18.4], 26]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
 }
 function camForPA(cut) { CAM.mode = userBatting() ? 'bat' : 'pitch'; const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, cut); }
 function camIntro() {
@@ -155,6 +158,7 @@ UI.bunt.addEventListener('click', () => {
 UI.steal.addEventListener('click', () => {
   if (G.phase !== 'ready' || !userBatting()) return;
   if (stealBase() < 0) { toast('도루할 수 있는 주자가 없어요'); return; }
+  if (G.online) { if (subBusy()) return; ON.stealWant = !ON.stealWant; UI.steal.setAttribute('aria-pressed', String(ON.stealWant)); AU.click(); requestSub({ t: 'st', on: ON.stealWant }, ON.stealWant ? `${stealBase() + 2}루 도루` : '도루 취소'); return; }
   G.stealReq = !G.stealReq; UI.steal.setAttribute('aria-pressed', String(G.stealReq)); AU.click();
   if (G.stealReq) toast(`다음 투구에 ${stealBase() + 2}루 도루!`, 1400);
 });
@@ -190,7 +194,8 @@ function quitToTitle() {
   renderTitle(); dressTitle(); drawBoard(); camOrbit();
   showTab(TAB.cur, true);
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused) openMenu(); });
+// 앱 전환 시 일시정지 메뉴 — 온라인은 상대가 기다리고 있으니 메뉴 없이 돌아오자마자 이어서 (화면이 꺼진 동안엔 어차피 멈춤)
+document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused && !G.online) openMenu(); });
 
 /* ===================== 루프 ===================== */
 function resize() {

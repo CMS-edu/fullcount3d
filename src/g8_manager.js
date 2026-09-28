@@ -166,7 +166,7 @@ function subCard(p, extra) {
   return b;
 }
 function openPH() {
-  if (!userBatting() || G.phase !== 'ready') return;
+  if (!userBatting() || G.phase !== 'ready' || subBusy('ph')) return;
   const tm = batTeam(), cur = curBatter();
   $('#subH').textContent = '대타';
   $('#subSub').textContent = `${tm.order + 1}번 ${cur.name} (${fmtAvg(cur.avg)} · 오늘 ${cur.g.ab}타수 ${cur.g.h}안타) 대신 누구를 낼까?`;
@@ -175,7 +175,8 @@ function openPH() {
   tm.bench.forEach((p) => { const b = subCard(p, p.pow >= 60 ? '장타' : p.con >= 60 ? '컨택' : '벤치'); b.addEventListener('click', () => { pinchHit(p); closeSub(); }); L.appendChild(b); });
   paused = true; openModal('#subModal');
 }
-function pinchHit(sub) {
+function pinchHit(sub, remote) {
+  if (G.online && !remote) { requestSub({ t: 'ph', slot: batTeam().order, key: sub.key }, `대타 ${sub.name}`); return; }
   const tm = batTeam(), i = tm.order, old = tm.lineup[i];
   sub.pos = old.pos; sub.posK = old.posK;
   tm.lineup[i] = sub; tm.bench.splice(tm.bench.indexOf(sub), 1); tm.out.push(old);
@@ -184,7 +185,7 @@ function pinchHit(sub) {
   boardFlash('대타', sub.name, 2.2); toast(`대타 ${sub.name}! (${old.name} 교체)`); AU.whistle();
 }
 function openPR(k) {
-  if (!userBatting() || G.phase !== 'ready') return;
+  if (!userBatting() || G.phase !== 'ready' || (k == null && subBusy('pr'))) return;
   const tm = batTeam(), L = $('#subList'); L.innerHTML = '';
   $('#subH').textContent = '대주자';
   const occ = [0, 1, 2].filter((i) => G.bases[i]);
@@ -203,7 +204,8 @@ function openPR(k) {
   tm.bench.slice().sort((a, b) => b.spd - a.spd).forEach((p) => { const b = subCard(p, `주력 ${p.spd}`); b.addEventListener('click', () => { pinchRun(k, p); closeSub(); }); L.appendChild(b); });
   paused = true; openModal('#subModal');
 }
-function pinchRun(k, sub) {
+function pinchRun(k, sub, remote) {
+  if (G.online && !remote) { requestSub({ t: 'pr', base: k, key: sub.key }, `대주자 ${sub.name}`); return; }
   const tm = batTeam(), old = G.bases[k], i = tm.lineup.indexOf(old);
   if (i < 0) return;
   sub.pos = old.pos; sub.posK = old.posK;
@@ -329,7 +331,8 @@ function openDef(slot) {
   }
   paused = true; openModal('#subModal');
 }
-function defSub(tm, i, sub) {
+function defSub(tm, i, sub, remote) {
+  if (G.online && !remote) sendAct({ k: 'def', slot: i, key: sub.key }); // 상대 기기는 다음 공 신호 전에 적용
   const old = tm.lineup[i];
   sub.pos = old.pos; sub.posK = old.posK;
   tm.lineup[i] = sub; tm.bench.splice(tm.bench.indexOf(sub), 1); tm.out.push(old);

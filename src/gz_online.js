@@ -4,6 +4,8 @@
 const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [],
   cfg: Object.assign({ inn: 3, side: 1, night: 1, diff: 'pro' }, store.get('oncfg', {})) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
+const PROTO = 2; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
+const LOST_WAIT = 90; // 상대 연결이 끊겼을 때 기다리는 시간(초) — 메신저 잠깐 다녀오는 정도는 버팀
 function hashSeed(a, b, c) { let h = (a ^ 0x9e3779b9) >>> 0; h = Math.imul(h ^ (b + 0x7f4a7c15), 2654435761) >>> 0; h = Math.imul(h ^ (c * 40503 + 17), 2246822519) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
 function onSeed(pi, tag) { return S.mulberry32(hashSeed(G.online.seed, pi, tag)); }
 
@@ -96,6 +98,8 @@ function makeNetRoom() {
     };
   }
   setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); }, 20000);
+  // 무료 서버는 HTTP 요청이 15분 없으면 잠들 수 있음(웹소켓만으로는 부족) → 화면을 보고 있는 동안 4분마다 가볍게 깨워 둠
+  setInterval(() => { if (!closed && !document.hidden) fetch('/healthz', { cache: 'no-store' }).catch(() => {}); }, 240000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !closed && (!ws || ws.readyState > 1)) { retry = 0; connect(); } });
   connect();
   return {
@@ -192,13 +196,13 @@ function renderOnline() {
     if (!rooms.length) h += `<div class="empty sm"><p class="sub" style="margin:0">아직 열린 방이 없어요. 아래에서 방을 만들거나, 친구가 만들 때까지 기다려 주세요.</p></div>`;
     h += '<div class="plist">';
     rooms.forEach((p) => {
-      const L = p.presence.lob, t = S.TEAMS[L.team] || me, same = L.team === OPTS.me;
+      const L = p.presence.lob, t = S.TEAMS[L.team] || me, same = L.team === OPTS.me, old = L.v !== PROTO;
       const fg = lum(t.c1) > 0.6 ? '#111' : t.c2;
-      h += `<button class="roomcard" data-join="${esc(String(L.code))}" ${same ? 'disabled' : ''}>
+      h += `<button class="roomcard" data-join="${esc(String(L.code))}" ${same || old ? 'disabled' : ''}>
         <span class="badge sm" style="background:${t.c1};color:${fg}">${esc(t.city)}</span>
         <span class="rc-main"><b>${p.name ? esc(p.name) + '의 방' : '방 ' + esc(String(L.code))}</b><small>${esc(t.city)} ${esc(t.name)}</small>${cfgChips({ inn: L.inn, side: L.side === 2 ? 2 : 1 - L.side, night: L.night, diff: L.diff }, false)}
-        ${same ? '<small class="warn">같은 팀이라 참가 불가 — 아래에서 내 팀을 바꿔 주세요</small>' : ''}</span>
-        <span class="rc-go">${same ? '' : '참가 ›'}</span></button>`;
+        ${old ? '<small class="warn">게임 버전이 서로 달라요 — 둘 다 새로고침해 주세요</small>' : same ? '<small class="warn">같은 팀이라 참가 불가 — 아래에서 내 팀을 바꿔 주세요</small>' : ''}</span>
+        <span class="rc-go">${same || old ? '' : '참가 ›'}</span></button>`;
     });
     h += '</div>';
     h += `<div class="rhead">내 팀 <span style="font-weight:500">· ${esc(me.city)} ${esc(me.name)}</span></div>${teamPickHTML(false)}`;
@@ -211,7 +215,7 @@ function renderOnline() {
       </div>
       <button class="cta" id="onHost" style="font-size:20px;min-height:52px">방 만들기</button>`;
     const os = others();
-    if (os.length) h += `<div class="rhead">지금 접속 중</div><div class="who">${os.map((p) => `<span><i></i>${esc(p.name || '손님')}${p.presence.g ? ' <small>경기 중</small>' : p.presence.lob ? ' <small>방 대기</small>' : ''}</span>`).join('')}</div>`;
+    if (os.length) h += `<div class="rhead">지금 접속 중</div><div class="who">${os.map((p) => `<span><i></i>${esc(p.name || '손님')}${p.presence.g && p.presence.fin !== p.presence.g ? ' <small>경기 중</small>' : p.presence.lob ? ' <small>방 대기</small>' : ''}</span>`).join('')}</div>`;
   }
   B.innerHTML = h;
   bindOnline(B);
@@ -222,7 +226,7 @@ function bindOnline(B) {
   on('#onHost', () => {
     ON.host = String(1000 + Math.floor(Math.random() * 9000));
     const c = ON.cfg; store.set('oncfg', c);
-    pres({ lob: { code: ON.host, team: OPTS.me, side: c.side, inn: c.inn, night: c.night, diff: c.diff } });
+    pres({ lob: { code: ON.host, team: OPTS.me, side: c.side, inn: c.inn, night: c.night, diff: c.diff, v: PROTO } });
     renderOnline(); AU.click();
   });
   on('#onCancel', () => { ON.host = null; ON.joinCode = null; pres({ lob: null, join: null }); renderOnline(); });
@@ -232,7 +236,7 @@ function bindOnline(B) {
     try { await navigator.clipboard.writeText(text + '\n' + url); toast('초대 문구를 복사했어요. 메신저에 붙여 넣어 보내세요'); } catch (e) { toast(url); }
   });
   B.querySelectorAll('[data-join]').forEach((b) => (b.onclick = () => {
-    ON.joinCode = b.dataset.join; pres({ join: { code: ON.joinCode, team: OPTS.me, rc: myRC() } }); renderOnline(); AU.click();
+    ON.joinCode = b.dataset.join; pres({ join: { code: ON.joinCode, team: OPTS.me, rc: myRC(), v: PROTO } }); renderOnline(); AU.click();
   }));
   B.querySelectorAll('.oseg').forEach((sg) => sg.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
@@ -250,7 +254,9 @@ function onRoomChange() {
   if (!G.online) {
     if (ON.host) {
       const g = os.find((p) => p.presence.join && String(p.presence.join.code) === ON.host);
-      if (g) {
+      if (g && g.presence.join.v !== PROTO) {
+        if (ON.oldWarn !== g.peer) { ON.oldWarn = g.peer; toast(`${g.name || '친구'} 님의 게임 버전이 달라요. 둘 다 새로고침한 뒤 다시 들어와 주세요`, 4000); }
+      } else if (g) {
         const j = g.presence.join, c = ON.cfg;
         const hs = c.side === 2 ? (Math.random() < 0.5 ? 1 : 0) : c.side;
         const go = { code: ON.host, seed: (Math.random() * 2147483647) | 0, hs, inn: c.inn, ht: OPTS.me, gt: j.team, rh: myRC(), rg: j.rc || {}, diff: c.diff, night: c.night };
@@ -268,23 +274,32 @@ function onRoomChange() {
     return;
   }
   const P = os.find((p) => p.peer === G.online.peer);
-  if (!P) { if (!G.online.lost) { G.online.lost = clock; toast('상대 연결이 끊겼어요… 30초 기다려 볼게', 3000); } return; }
-  if (G.online.lost) { G.online.lost = 0; toast('상대가 다시 연결됐어요'); }
+  if (!P) {
+    if (!G.online.lost) { G.online.lost = clock; toast(NET.server && !NET.conn ? '서버 연결이 끊겼어요… 다시 연결하는 중' : '상대 연결이 끊겼어요… 돌아올 때까지 기다릴게요', 3000); }
+    return;
+  }
+  if (G.online.lost) { G.online.lost = 0; toast('다시 연결됐어요! 이어서 해요'); }
   // 정리: 상대가 게임에 들어오면 시작 정보 삭제
   if (G.online.host && P.presence.g === G.online.code && ON.my.go) pres({ go: null });
   if (!G.online.host && ON.my.join) pres({ join: null });
   const acts = Array.isArray(P.presence.acts) && P.presence.g === G.online.code ? P.presence.acts : [];
-  acts.forEach((a) => {
-    if (!a || typeof a.n !== 'number' || a.n <= ON.seen) return;
+  for (const a of acts) {
+    if (!a || typeof a.n !== 'number' || a.n <= ON.seen) continue;
     if (a.n !== ON.seen + 1) { onlineFail('통신이 밀려서 경기가 어긋났어요'); return; }
     ON.seen = a.n; ON.q.push(a);
-  });
+  }
+  // 상대가 경기를 끝내고 나감 (재접속 순간에는 presence가 잠깐 비므로 g 대신 명시적인 left 표시로 판단)
+  if (P.presence.left === G.online.code && G.phase !== 'over') {
+    if (ON.q.some((a) => a.k === 'quit')) { onlineResult('win'); onlineFail('상대가 경기를 나갔어요 (기권승)'); }
+    else onlineFail('상대가 경기를 나갔어요');
+  }
 }
 function beginOnline(go, host, peer) {
   const op = ON.peers.find((p) => p.peer === peer);
   G.online = { host, peer, code: String(go.code), seed: go.seed >>> 0, pi: 0, lost: 0, oname: op && op.name ? String(op.name) : null };
   ON.acts = []; ON.n = 0; ON.seen = 0; ON.q = [];
-  pres({ acts: [], g: G.online.code });
+  ON.subOut = []; ON.subIn = []; ON.stealWant = false;
+  pres({ acts: [], g: G.online.code, left: null, fin: null });
   const mySide = host ? go.hs : 1 - go.hs;
   const me = host ? go.ht : go.gt, opp = host ? go.gt : go.ht;
   G.onlineRC = {}; G.onlineRC[S.TEAMS[go.ht].id] = go.rh || {}; G.onlineRC[S.TEAMS[go.gt].id] = go.rg || {};
@@ -294,10 +309,41 @@ function beginOnline(go, host, peer) {
   startGame({ me, opp, home: mySide === 1, inn: go.inn, online: true, diff: DIFF[go.diff] ? go.diff : OPTS.diff });
   chatGameStart();
 }
+/* ---------- 타자 쪽 교체·작전 (대타·대주자·도루) ----------
+   두 기기가 같은 공부터 똑같이 바뀌도록: 요청은 상대(투수 쪽) 기기가 공과 공 사이(조준·제구 중, 늦어도 던지기 직전)에
+   적용하고 "적용함(subok)" 신호를 보냄 → 내 기기는 그 신호를 받을 때 적용. 투수 쪽 신호는 순서대로 처리되므로
+   두 기기 모두 같은 공 직전에 바뀜. 그 사이에 타석이 끝나면(타석 번호가 다르면) 양쪽 다 똑같이 버림. */
+function requestSub(s, label) {
+  s.pa = G.paId; s.hi = G.inning * 2 + G.half;
+  const a = Object.assign({ k: 'sub' }, s); sendAct(a); s.id = a.n; ON.subOut.push(s);
+  toast(`${label} 요청 — 상대 기기에 전달되면 바로 바뀌어요`, 1800);
+}
+// 같은 타석에 같은 종류 요청이 아직 전달 중이거나 요청이 너무 쌓였으면 막음 (연타·느린 연결에서 중복 교체 방지, 행동 버퍼 넘침 방지)
+function subBusy(t) {
+  if (!G.online) return false;
+  if (ON.subOut.length >= 6 || (t && ON.subOut.some((s) => s.t === t && s.pa === G.paId))) { toast('요청을 상대에게 보내는 중이에요 — 잠깐만요', 1500); return true; }
+  return false;
+}
+function applySub(s) {
+  if (!G.T || s.pa !== G.paId) return false;
+  const tm = batTeam();
+  if (s.t === 'ph') { const sub = tm.bench.find((p) => p.key === s.key); if (!sub || s.slot !== tm.order) return false; pinchHit(sub, true); return true; }
+  if (s.t === 'pr') { const sub = tm.bench.find((p) => p.key === s.key), old = G.bases[s.base]; if (!sub || !old || tm.lineup.indexOf(old) < 0) return false; pinchRun(s.base, sub, true); return true; }
+  if (s.t === 'st') { G.stealReq = !!s.on; return true; }
+  return false;
+}
+function flushSubsIn() { // 투수 쪽: 공과 공 사이, 또는 던지기 직전
+  while (ON.subIn.length) { const a = ON.subIn.shift(); applySub(a); sendAct({ k: 'subok', id: a.n }); }
+}
+function subOk(id) { // 타자 쪽: 상대 기기가 적용했다는 신호 → 나도 여기서 적용
+  const i = ON.subOut.findIndex((s) => s.id === id); if (i < 0) return;
+  const s = ON.subOut.splice(i, 1)[0];
+  if (!applySub(s) && s.t !== 'st' && s.hi === G.inning * 2 + G.half) toast(s.pa !== G.paId ? '교체 요청이 늦어서 적용되지 않았어요 (타석이 이미 끝남)' : '교체를 적용하지 못했어요 (그 사이 주자·타자가 바뀜)', 2600);
+}
 function sendAct(a) {
   if (!G.online) return;
   a.n = ++ON.n; ON.acts.push(a);
-  if (ON.acts.length > 8) ON.acts.shift();
+  if (ON.acts.length > 24) ON.acts.shift();
   pres({ acts: ON.acts.slice() });
 }
 function onlineFail(msg) {
@@ -307,16 +353,21 @@ function onlineFail(msg) {
 }
 function endOnline() {
   if (!G.online) return;
+  const on = G.online;
   G.online = null; G.onlineRC = null; GR = Math.random; ON.q = [];
-  pres({ acts: null, g: null, go: null, join: null, lob: null });
+  // 마지막 행동(acts)은 지우지 않고 남겨 둠 → 앱 전환 등으로 늦게 따라오는 상대도 끝까지(기권 신호까지) 받아서 결과를 볼 수 있게.
+  // fin = 이 경기에서 나감(로비 '경기 중' 표시 해제), left = 끝나기 전에 나감(상대 화면에서 경기 종료)
+  pres({ go: null, join: null, lob: null, fin: on.code, left: on.done ? null : on.code });
   chatGameEnd();
 }
 // 매 프레임: 받은 행동 처리
 function onlineTick() {
   if (!G.online || !G.T) return;
-  if (G.online.lost && clock - G.online.lost > 30) { onlineFail('상대가 돌아오지 않아서 경기를 끝냈어요'); return; }
+  if (G.online.lost && clock - G.online.lost > LOST_WAIT) { onlineFail(NET.server && !NET.conn ? '서버에 다시 연결하지 못해서 경기를 끝냈어요' : '상대가 돌아오지 않아서 경기를 끝냈어요'); return; }
+  if (ON.subIn.length && userPitching() && (G.phase === 'aim' || G.phase === 'meter')) flushSubsIn();
   const a = ON.q[0]; if (!a) { waitHint(); return; }
   if (a.k === 'quit') { ON.q.shift(); onlineResult('win'); onlineFail('상대가 경기를 나갔어요 (기권승)'); return; }
+  if (a.k === 'sub') { ON.q.shift(); ON.subIn.push(a); return; } // 상대(타자 쪽) 교체·도루 요청 → 공과 공 사이에 적용 (위)
   if (a.k === 'sw') {
     const P = G.pitch;
     if (!P || P.pi < a.pi) return; // 아직 그 공을 안 던짐
@@ -332,6 +383,11 @@ function onlineTick() {
   if (!userBatting() || G.phase !== 'ready' || !G.awaitPitch) { waitHint(); return; }
   ON.q.shift();
   if (a.k === 'p') windup(a.t, { x: a.x, y: a.y }, a.m == null ? null : a.m);
+  else if (a.k === 'subok') subOk(a.id);
+  else if (a.k === 'def') {
+    const tm = fieldTeam(), sub = tm.bench.find((x) => x.key === a.key);
+    if (sub && tm.lineup[a.slot]) defSub(tm, a.slot, sub, true);
+  }
   else if (a.k === 'pcv') { showFeedback([['상대 투수 피치클락 위반', 'bad'], ['자동 볼', 'm']], 1500); G.lastDirt = false; G.pendingWP = null; call('ball'); }
   else if (a.k === 'ibb') { G.phase = 'call'; hideDocks(); showCall('고의4구', '#37d67a', 1200); toast(`상대가 ${curBatter().name} 고의4구`); walk('IBB'); }
   else if (a.k === 'pc') {
@@ -342,6 +398,7 @@ function onlineTick() {
 let _hintAt = 0;
 function waitHint() {
   if (!G.online || !G.T || clock - _hintAt < 2.5) return;
+  if (G.online.lost) { _hintAt = clock; showPlayText(NET.server && !NET.conn ? '서버에 다시 연결하는 중…' : `상대 재접속 기다리는 중… ${Math.max(0, Math.ceil(LOST_WAIT - (clock - G.online.lost)))}초`, 2000); return; }
   const P = G.pitch;
   if (userBatting() && G.phase === 'ready') { _hintAt = clock; showPlayText('상대 투수가 공을 고르는 중…', 2000); }
   else if (userPitching() && P && P.released && !P.remoteIn && P.ft / P.pt.dur >= 1) { _hintAt = clock; showPlayText('상대 타자 반응 기다리는 중…', 2000); }

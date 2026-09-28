@@ -1730,12 +1730,26 @@ const whiteMat = new T.MeshLambertMaterial({ color: 0xffffff });
 }
 
 /* ---------- 스트라이크존 가이드 (타격 시점) ---------- */
+// 타격 스트라이크 존 표시: 굵은 테두리 + 아주 옅은 바탕 + 3×3 칸선 (1픽셀 선은 폰에서 잘 안 보여서 얇은 면으로 그림)
 const zoneGuide = (() => {
-  const g = new T.BufferGeometry().setFromPoints([new T.Vector3(-1, -1, 0), new T.Vector3(1, -1, 0), new T.Vector3(1, 1, 0), new T.Vector3(-1, 1, 0), new T.Vector3(-1, -1, 0)]);
-  const l = new T.Line(g, new T.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthTest: false }));
-  l.renderOrder = 20; l.visible = false; scene.add(l); return l;
+  const g = new T.Group(); g.visible = false;
+  const m = (op) => new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op, depthTest: false, depthWrite: false });
+  const sq = new T.PlaneGeometry(1, 1), frame = m(0.75), grid = m(0.22);
+  const mk = (mat) => { const x = new T.Mesh(sq, mat); x.renderOrder = 20; g.add(x); return x; };
+  g.fill = mk(m(0.045)); g.bars = [mk(frame), mk(frame), mk(frame), mk(frame)]; g.lines = [mk(grid), mk(grid), mk(grid), mk(grid)];
+  scene.add(g); return g;
 })();
-function setZoneGuide(z) { zoneGuide.scale.set(0.216, (z.top - z.bot) / 2, 1); zoneGuide.position.set(0, (z.top + z.bot) / 2, -0.2); }
+function setZoneGuide(z) {
+  const G = zoneGuide, w = 0.432, h = z.top - z.bot, t = 0.011, t2 = 0.005;
+  G.position.set(0, (z.top + z.bot) / 2, -0.2);
+  G.fill.scale.set(w, h, 1);
+  const [top, bot, lft, rgt] = G.bars;
+  top.scale.set(w + t, t, 1); top.position.set(0, h / 2, 0); bot.scale.set(w + t, t, 1); bot.position.set(0, -h / 2, 0);
+  lft.scale.set(t, h + t, 1); lft.position.set(-w / 2, 0, 0); rgt.scale.set(t, h + t, 1); rgt.position.set(w / 2, 0, 0);
+  const [v1, v2, h1, h2] = G.lines;
+  v1.scale.set(t2, h, 1); v1.position.set(-w / 6, 0, 0); v2.scale.set(t2, h, 1); v2.position.set(w / 6, 0, 0);
+  h1.scale.set(w, t2, 1); h1.position.set(0, h / 6, 0); h2.scale.set(w, t2, 1); h2.position.set(0, -h / 6, 0);
+}
 
 /* ---------- 펜스 & 광고 ---------- */
 const ADS = [['홈런통신', '#e8412c', '#fff'], ['구름우유', '#f7f7f2', '#1f5fbf'], ['번개택배', '#ffcf1a', '#1b1b1b'], ['도루모터스', '#1c2f6b', '#fff'], ['스윙전자', '#0f9d7a', '#fff'], ['만루라면', '#d8261d', '#ffe36b'], ['직구은행', '#233a8c', '#ffd23f'], ['커브카드', '#161616', '#ff7ab8']];
@@ -3995,7 +4009,7 @@ function startGame(ov) {
   const away = o.home ? o.opp : o.me, home = o.home ? o.me : o.opp;
   G.T = [makeTeamState(away), makeTeamState(home)];
   if (ov.sp) G.T.forEach((tm, i) => { if (ov.sp[i] != null) { tm.pitcher = tm.ros.rotation[ov.sp[i] % tm.ros.rotation.length]; tm.used = [tm.pitcher]; } });
-  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null;
+  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null; G.paId = 0;
   paintCrowd(G.T[1].t, G.T[0].t); paintLed(G.T[1].t, G.T[0].t);
   UI.title.hidden = true; UI.hud.hidden = false; $('#overModal').hidden = true;
   $('#pracLine').hidden = !G.prac;
@@ -4023,6 +4037,7 @@ function startHalf() {
 function startPA() {
   if (G.phase === 'over') return;
   if (G.prac) return pracPA();
+  G.paId = (G.paId || 0) + 1;
   G.awaitPitch = false;
   G.b = 0; G.s = 0; G.pitchLog = []; G.bunt = false; G.stealReq = false; G.cpuBunt = false; G.steal = null;
   UI.bunt.setAttribute('aria-pressed', 'false'); UI.steal.setAttribute('aria-pressed', 'false');
@@ -4134,6 +4149,7 @@ function windup(type, target, meter) {
   let pi = 0; G.awaitPitch = false;
   if (G.online) {
     target = { x: r4(target.x), y: r4(target.y) }; meter = meter == null ? null : r4(meter);
+    if (userPitching()) flushSubsIn();
     pi = ++G.online.pi; S.setRng(onSeed(pi, 1));
     if (userPitching()) sendAct({ k: 'p', pi, t: type, x: target.x, y: target.y, m: meter });
   }
@@ -4148,12 +4164,14 @@ function windup(type, target, meter) {
   if (userPitching()) { targetMark.position.set(target.x, target.y, 0.02); targetMark.visible = true; }
   // 도루 결정
   let k = -1;
-  if (userBatting() && G.stealReq) k = stealBase();
-  else if (userPitching() && !G.online) {
+  if (G.online) { if (G.stealReq) k = stealBase(); }
+  else if (userBatting() && G.stealReq) k = stealBase();
+  else if (userPitching()) {
     const sb = stealBase();
     if (sb >= 0) { const r = G.bases[sb]; const pr = sb === 0 ? (r.spd >= 68 ? 0.14 : r.spd >= 60 ? 0.05 : 0) : (r.spd >= 75 ? 0.06 : 0); if (G.s < 2 && G.outs < 2 && R() < pr) k = sb; }
   }
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false');
+  if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false; // 아직 전달 중인 도루 요청이 있으면 버튼 유지
   if (k >= 0) startSteal(k);
 }
 function stealBase() {
@@ -4164,7 +4182,7 @@ function stealBase() {
 function startSteal(k) {
   const r = G.bases[k], ft = fieldTeam(), cat = fieldersOf(ft)[1];
   const pSucc = clamp(0.45 + (r.spd - 55) * 0.012 - ((cat && cat.spd) ? 0 : 0) - (k === 1 ? 0.05 : 0), 0.25, 0.92);
-  G.steal = { k, who: r, fig: G.runFig[k], ok: R() < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
+  G.steal = { k, who: r, fig: G.runFig[k], ok: (G.online && G.pitch ? onSeed(G.pitch.pi, 5)() : R()) < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
 }
 function handPos(f, left, out) { return (left ? f.lA : f.rA).hand.localToWorld(out.set(0, -0.3, 0)); }
 function gloveOf(f, out) { return f.lA.hand.localToWorld(out.set(0, -0.33, 0.02)); }
@@ -4473,7 +4491,7 @@ function endHalf() {
   later(1.3, () => { if (gen === G.gen) startHalf(); });
 }
 function gameOver() {
-  if (G.online) { const on = G.online; setTimeout(() => { if (G.online === on) endOnline(); }, 9000); }
+  if (G.online) { const on = G.online; on.done = 1; setTimeout(() => { if (G.online === on) endOnline(); }, 9000); }
   G.phase = 'over'; hideDocks(); UI.skip.hidden = true;
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const r = me.runs > op.runs ? 'win' : me.runs < op.runs ? 'lose' : 'draw';
@@ -4572,13 +4590,14 @@ function showDocks() {
   if (bat) {
     const canPre = G.phase === 'ready';
     UI.bunt.disabled = !canPre; UI.steal.disabled = !canPre || stealBase() < 0 || G.outs >= 2 && false;
-    $('#phBtn').hidden = $('#prBtn').hidden = UI.steal.hidden = !!G.prac || !!G.online;
+    $('#phBtn').hidden = $('#prBtn').hidden = UI.steal.hidden = !!G.prac;
+    if (G.online) UI.steal.setAttribute('aria-pressed', String(!!ON.stealWant));
     $('#phBtn').disabled = !canPre || !batTeam().bench.length; $('#prBtn').disabled = !canPre || !batTeam().bench.length || !G.bases.some(Boolean);
     $('#batHint').textContent = G.bunt ? '번트 자세! 공이 오면 탭해서 갖다 대기' : isTouch ? '공이 오면 칠 곳을 탭!' : '공이 오면 칠 곳을 클릭 (조준 후 스페이스)';
   }
   zoneGuide.visible = bat && G.zoneOn;
 }
-function pracChips() { const pr = !!G.prac; $('#ibbBtn').hidden = pr; $('#defBtn').hidden = pr || !!G.online; }
+function pracChips() { const pr = !!G.prac; $('#ibbBtn').hidden = pr; $('#defBtn').hidden = pr; }
 function hideDocks() {
   UI.dockBat.hidden = true; UI.dockPit.hidden = true; UI.pad.hidden = true; UI.meter.hidden = true;
   zoneGuide.visible = false;
@@ -5028,8 +5047,11 @@ function camTo(p, l, fov, kp, kl, cut) {
   CAM.tp.set(p[0], p[1], p[2]); CAM.tl.set(l[0], l[1], l[2]); CAM.tfov = fov; CAM.kp = kp; CAM.kl = kl || kp;
   if (cut) { CAM.p.copy(CAM.tp); CAM.l.copy(CAM.tl); CAM.fov = fov; }
 }
+// 타격 시점: 포수 뒤 가까이(홈에서 3m 남짓)에서 타자 쪽으로 살짝 비켜서 봄 → 스트라이크 존이 크게(예전 7m 뒤보다 2배쯤) 보이고
+// 타자의 팔·배트는 화면 가장자리에 남음. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
 function viewPA() {
-  return userBatting() ? (portrait() ? [[0, 1.62, 7.0], [0, 0.92, -18.4], 42] : [[0, 1.5, 6.2], [0, 1.0, -18.4], 25]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
+  const b = curBatter(), s = b && b.hand === 'L' ? 1 : -1; // 좌타자는 +x 쪽에 섬
+  return userBatting() ? (portrait() ? [[s * 0.26, 1.22, 3.15], [-s * 0.02, 1.0, -18.4], 46] : [[s * 0.35, 1.25, 3.6], [0, -0.4, -18.4], 26]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
 }
 function camForPA(cut) { CAM.mode = userBatting() ? 'bat' : 'pitch'; const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, cut); }
 function camIntro() {
@@ -5178,6 +5200,7 @@ UI.bunt.addEventListener('click', () => {
 UI.steal.addEventListener('click', () => {
   if (G.phase !== 'ready' || !userBatting()) return;
   if (stealBase() < 0) { toast('도루할 수 있는 주자가 없어요'); return; }
+  if (G.online) { if (subBusy()) return; ON.stealWant = !ON.stealWant; UI.steal.setAttribute('aria-pressed', String(ON.stealWant)); AU.click(); requestSub({ t: 'st', on: ON.stealWant }, ON.stealWant ? `${stealBase() + 2}루 도루` : '도루 취소'); return; }
   G.stealReq = !G.stealReq; UI.steal.setAttribute('aria-pressed', String(G.stealReq)); AU.click();
   if (G.stealReq) toast(`다음 투구에 ${stealBase() + 2}루 도루!`, 1400);
 });
@@ -5213,7 +5236,8 @@ function quitToTitle() {
   renderTitle(); dressTitle(); drawBoard(); camOrbit();
   showTab(TAB.cur, true);
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused) openMenu(); });
+// 앱 전환 시 일시정지 메뉴 — 온라인은 상대가 기다리고 있으니 메뉴 없이 돌아오자마자 이어서 (화면이 꺼진 동안엔 어차피 멈춤)
+document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused && !G.online) openMenu(); });
 
 /* ===================== 루프 ===================== */
 function resize() {
@@ -5489,7 +5513,7 @@ function subCard(p, extra) {
   return b;
 }
 function openPH() {
-  if (!userBatting() || G.phase !== 'ready') return;
+  if (!userBatting() || G.phase !== 'ready' || subBusy('ph')) return;
   const tm = batTeam(), cur = curBatter();
   $('#subH').textContent = '대타';
   $('#subSub').textContent = `${tm.order + 1}번 ${cur.name} (${fmtAvg(cur.avg)} · 오늘 ${cur.g.ab}타수 ${cur.g.h}안타) 대신 누구를 낼까?`;
@@ -5498,7 +5522,8 @@ function openPH() {
   tm.bench.forEach((p) => { const b = subCard(p, p.pow >= 60 ? '장타' : p.con >= 60 ? '컨택' : '벤치'); b.addEventListener('click', () => { pinchHit(p); closeSub(); }); L.appendChild(b); });
   paused = true; openModal('#subModal');
 }
-function pinchHit(sub) {
+function pinchHit(sub, remote) {
+  if (G.online && !remote) { requestSub({ t: 'ph', slot: batTeam().order, key: sub.key }, `대타 ${sub.name}`); return; }
   const tm = batTeam(), i = tm.order, old = tm.lineup[i];
   sub.pos = old.pos; sub.posK = old.posK;
   tm.lineup[i] = sub; tm.bench.splice(tm.bench.indexOf(sub), 1); tm.out.push(old);
@@ -5507,7 +5532,7 @@ function pinchHit(sub) {
   boardFlash('대타', sub.name, 2.2); toast(`대타 ${sub.name}! (${old.name} 교체)`); AU.whistle();
 }
 function openPR(k) {
-  if (!userBatting() || G.phase !== 'ready') return;
+  if (!userBatting() || G.phase !== 'ready' || (k == null && subBusy('pr'))) return;
   const tm = batTeam(), L = $('#subList'); L.innerHTML = '';
   $('#subH').textContent = '대주자';
   const occ = [0, 1, 2].filter((i) => G.bases[i]);
@@ -5526,7 +5551,8 @@ function openPR(k) {
   tm.bench.slice().sort((a, b) => b.spd - a.spd).forEach((p) => { const b = subCard(p, `주력 ${p.spd}`); b.addEventListener('click', () => { pinchRun(k, p); closeSub(); }); L.appendChild(b); });
   paused = true; openModal('#subModal');
 }
-function pinchRun(k, sub) {
+function pinchRun(k, sub, remote) {
+  if (G.online && !remote) { requestSub({ t: 'pr', base: k, key: sub.key }, `대주자 ${sub.name}`); return; }
   const tm = batTeam(), old = G.bases[k], i = tm.lineup.indexOf(old);
   if (i < 0) return;
   sub.pos = old.pos; sub.posK = old.posK;
@@ -5652,7 +5678,8 @@ function openDef(slot) {
   }
   paused = true; openModal('#subModal');
 }
-function defSub(tm, i, sub) {
+function defSub(tm, i, sub, remote) {
+  if (G.online && !remote) sendAct({ k: 'def', slot: i, key: sub.key }); // 상대 기기는 다음 공 신호 전에 적용
   const old = tm.lineup[i];
   sub.pos = old.pos; sub.posK = old.posK;
   tm.lineup[i] = sub; tm.bench.splice(tm.bench.indexOf(sub), 1); tm.out.push(old);
@@ -6105,6 +6132,8 @@ if (window.__fc) Object.assign(window.__fc, { simGame, newSeason, simDay, openSe
 const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [],
   cfg: Object.assign({ inn: 3, side: 1, night: 1, diff: 'pro' }, store.get('oncfg', {})) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
+const PROTO = 2; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
+const LOST_WAIT = 90; // 상대 연결이 끊겼을 때 기다리는 시간(초) — 메신저 잠깐 다녀오는 정도는 버팀
 function hashSeed(a, b, c) { let h = (a ^ 0x9e3779b9) >>> 0; h = Math.imul(h ^ (b + 0x7f4a7c15), 2654435761) >>> 0; h = Math.imul(h ^ (c * 40503 + 17), 2246822519) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
 function onSeed(pi, tag) { return S.mulberry32(hashSeed(G.online.seed, pi, tag)); }
 
@@ -6197,6 +6226,8 @@ function makeNetRoom() {
     };
   }
   setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); }, 20000);
+  // 무료 서버는 HTTP 요청이 15분 없으면 잠들 수 있음(웹소켓만으로는 부족) → 화면을 보고 있는 동안 4분마다 가볍게 깨워 둠
+  setInterval(() => { if (!closed && !document.hidden) fetch('/healthz', { cache: 'no-store' }).catch(() => {}); }, 240000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !closed && (!ws || ws.readyState > 1)) { retry = 0; connect(); } });
   connect();
   return {
@@ -6293,13 +6324,13 @@ function renderOnline() {
     if (!rooms.length) h += `<div class="empty sm"><p class="sub" style="margin:0">아직 열린 방이 없어요. 아래에서 방을 만들거나, 친구가 만들 때까지 기다려 주세요.</p></div>`;
     h += '<div class="plist">';
     rooms.forEach((p) => {
-      const L = p.presence.lob, t = S.TEAMS[L.team] || me, same = L.team === OPTS.me;
+      const L = p.presence.lob, t = S.TEAMS[L.team] || me, same = L.team === OPTS.me, old = L.v !== PROTO;
       const fg = lum(t.c1) > 0.6 ? '#111' : t.c2;
-      h += `<button class="roomcard" data-join="${esc(String(L.code))}" ${same ? 'disabled' : ''}>
+      h += `<button class="roomcard" data-join="${esc(String(L.code))}" ${same || old ? 'disabled' : ''}>
         <span class="badge sm" style="background:${t.c1};color:${fg}">${esc(t.city)}</span>
         <span class="rc-main"><b>${p.name ? esc(p.name) + '의 방' : '방 ' + esc(String(L.code))}</b><small>${esc(t.city)} ${esc(t.name)}</small>${cfgChips({ inn: L.inn, side: L.side === 2 ? 2 : 1 - L.side, night: L.night, diff: L.diff }, false)}
-        ${same ? '<small class="warn">같은 팀이라 참가 불가 — 아래에서 내 팀을 바꿔 주세요</small>' : ''}</span>
-        <span class="rc-go">${same ? '' : '참가 ›'}</span></button>`;
+        ${old ? '<small class="warn">게임 버전이 서로 달라요 — 둘 다 새로고침해 주세요</small>' : same ? '<small class="warn">같은 팀이라 참가 불가 — 아래에서 내 팀을 바꿔 주세요</small>' : ''}</span>
+        <span class="rc-go">${same || old ? '' : '참가 ›'}</span></button>`;
     });
     h += '</div>';
     h += `<div class="rhead">내 팀 <span style="font-weight:500">· ${esc(me.city)} ${esc(me.name)}</span></div>${teamPickHTML(false)}`;
@@ -6312,7 +6343,7 @@ function renderOnline() {
       </div>
       <button class="cta" id="onHost" style="font-size:20px;min-height:52px">방 만들기</button>`;
     const os = others();
-    if (os.length) h += `<div class="rhead">지금 접속 중</div><div class="who">${os.map((p) => `<span><i></i>${esc(p.name || '손님')}${p.presence.g ? ' <small>경기 중</small>' : p.presence.lob ? ' <small>방 대기</small>' : ''}</span>`).join('')}</div>`;
+    if (os.length) h += `<div class="rhead">지금 접속 중</div><div class="who">${os.map((p) => `<span><i></i>${esc(p.name || '손님')}${p.presence.g && p.presence.fin !== p.presence.g ? ' <small>경기 중</small>' : p.presence.lob ? ' <small>방 대기</small>' : ''}</span>`).join('')}</div>`;
   }
   B.innerHTML = h;
   bindOnline(B);
@@ -6323,7 +6354,7 @@ function bindOnline(B) {
   on('#onHost', () => {
     ON.host = String(1000 + Math.floor(Math.random() * 9000));
     const c = ON.cfg; store.set('oncfg', c);
-    pres({ lob: { code: ON.host, team: OPTS.me, side: c.side, inn: c.inn, night: c.night, diff: c.diff } });
+    pres({ lob: { code: ON.host, team: OPTS.me, side: c.side, inn: c.inn, night: c.night, diff: c.diff, v: PROTO } });
     renderOnline(); AU.click();
   });
   on('#onCancel', () => { ON.host = null; ON.joinCode = null; pres({ lob: null, join: null }); renderOnline(); });
@@ -6333,7 +6364,7 @@ function bindOnline(B) {
     try { await navigator.clipboard.writeText(text + '\n' + url); toast('초대 문구를 복사했어요. 메신저에 붙여 넣어 보내세요'); } catch (e) { toast(url); }
   });
   B.querySelectorAll('[data-join]').forEach((b) => (b.onclick = () => {
-    ON.joinCode = b.dataset.join; pres({ join: { code: ON.joinCode, team: OPTS.me, rc: myRC() } }); renderOnline(); AU.click();
+    ON.joinCode = b.dataset.join; pres({ join: { code: ON.joinCode, team: OPTS.me, rc: myRC(), v: PROTO } }); renderOnline(); AU.click();
   }));
   B.querySelectorAll('.oseg').forEach((sg) => sg.addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
@@ -6351,7 +6382,9 @@ function onRoomChange() {
   if (!G.online) {
     if (ON.host) {
       const g = os.find((p) => p.presence.join && String(p.presence.join.code) === ON.host);
-      if (g) {
+      if (g && g.presence.join.v !== PROTO) {
+        if (ON.oldWarn !== g.peer) { ON.oldWarn = g.peer; toast(`${g.name || '친구'} 님의 게임 버전이 달라요. 둘 다 새로고침한 뒤 다시 들어와 주세요`, 4000); }
+      } else if (g) {
         const j = g.presence.join, c = ON.cfg;
         const hs = c.side === 2 ? (Math.random() < 0.5 ? 1 : 0) : c.side;
         const go = { code: ON.host, seed: (Math.random() * 2147483647) | 0, hs, inn: c.inn, ht: OPTS.me, gt: j.team, rh: myRC(), rg: j.rc || {}, diff: c.diff, night: c.night };
@@ -6369,23 +6402,32 @@ function onRoomChange() {
     return;
   }
   const P = os.find((p) => p.peer === G.online.peer);
-  if (!P) { if (!G.online.lost) { G.online.lost = clock; toast('상대 연결이 끊겼어요… 30초 기다려 볼게', 3000); } return; }
-  if (G.online.lost) { G.online.lost = 0; toast('상대가 다시 연결됐어요'); }
+  if (!P) {
+    if (!G.online.lost) { G.online.lost = clock; toast(NET.server && !NET.conn ? '서버 연결이 끊겼어요… 다시 연결하는 중' : '상대 연결이 끊겼어요… 돌아올 때까지 기다릴게요', 3000); }
+    return;
+  }
+  if (G.online.lost) { G.online.lost = 0; toast('다시 연결됐어요! 이어서 해요'); }
   // 정리: 상대가 게임에 들어오면 시작 정보 삭제
   if (G.online.host && P.presence.g === G.online.code && ON.my.go) pres({ go: null });
   if (!G.online.host && ON.my.join) pres({ join: null });
   const acts = Array.isArray(P.presence.acts) && P.presence.g === G.online.code ? P.presence.acts : [];
-  acts.forEach((a) => {
-    if (!a || typeof a.n !== 'number' || a.n <= ON.seen) return;
+  for (const a of acts) {
+    if (!a || typeof a.n !== 'number' || a.n <= ON.seen) continue;
     if (a.n !== ON.seen + 1) { onlineFail('통신이 밀려서 경기가 어긋났어요'); return; }
     ON.seen = a.n; ON.q.push(a);
-  });
+  }
+  // 상대가 경기를 끝내고 나감 (재접속 순간에는 presence가 잠깐 비므로 g 대신 명시적인 left 표시로 판단)
+  if (P.presence.left === G.online.code && G.phase !== 'over') {
+    if (ON.q.some((a) => a.k === 'quit')) { onlineResult('win'); onlineFail('상대가 경기를 나갔어요 (기권승)'); }
+    else onlineFail('상대가 경기를 나갔어요');
+  }
 }
 function beginOnline(go, host, peer) {
   const op = ON.peers.find((p) => p.peer === peer);
   G.online = { host, peer, code: String(go.code), seed: go.seed >>> 0, pi: 0, lost: 0, oname: op && op.name ? String(op.name) : null };
   ON.acts = []; ON.n = 0; ON.seen = 0; ON.q = [];
-  pres({ acts: [], g: G.online.code });
+  ON.subOut = []; ON.subIn = []; ON.stealWant = false;
+  pres({ acts: [], g: G.online.code, left: null, fin: null });
   const mySide = host ? go.hs : 1 - go.hs;
   const me = host ? go.ht : go.gt, opp = host ? go.gt : go.ht;
   G.onlineRC = {}; G.onlineRC[S.TEAMS[go.ht].id] = go.rh || {}; G.onlineRC[S.TEAMS[go.gt].id] = go.rg || {};
@@ -6395,10 +6437,41 @@ function beginOnline(go, host, peer) {
   startGame({ me, opp, home: mySide === 1, inn: go.inn, online: true, diff: DIFF[go.diff] ? go.diff : OPTS.diff });
   chatGameStart();
 }
+/* ---------- 타자 쪽 교체·작전 (대타·대주자·도루) ----------
+   두 기기가 같은 공부터 똑같이 바뀌도록: 요청은 상대(투수 쪽) 기기가 공과 공 사이(조준·제구 중, 늦어도 던지기 직전)에
+   적용하고 "적용함(subok)" 신호를 보냄 → 내 기기는 그 신호를 받을 때 적용. 투수 쪽 신호는 순서대로 처리되므로
+   두 기기 모두 같은 공 직전에 바뀜. 그 사이에 타석이 끝나면(타석 번호가 다르면) 양쪽 다 똑같이 버림. */
+function requestSub(s, label) {
+  s.pa = G.paId; s.hi = G.inning * 2 + G.half;
+  const a = Object.assign({ k: 'sub' }, s); sendAct(a); s.id = a.n; ON.subOut.push(s);
+  toast(`${label} 요청 — 상대 기기에 전달되면 바로 바뀌어요`, 1800);
+}
+// 같은 타석에 같은 종류 요청이 아직 전달 중이거나 요청이 너무 쌓였으면 막음 (연타·느린 연결에서 중복 교체 방지, 행동 버퍼 넘침 방지)
+function subBusy(t) {
+  if (!G.online) return false;
+  if (ON.subOut.length >= 6 || (t && ON.subOut.some((s) => s.t === t && s.pa === G.paId))) { toast('요청을 상대에게 보내는 중이에요 — 잠깐만요', 1500); return true; }
+  return false;
+}
+function applySub(s) {
+  if (!G.T || s.pa !== G.paId) return false;
+  const tm = batTeam();
+  if (s.t === 'ph') { const sub = tm.bench.find((p) => p.key === s.key); if (!sub || s.slot !== tm.order) return false; pinchHit(sub, true); return true; }
+  if (s.t === 'pr') { const sub = tm.bench.find((p) => p.key === s.key), old = G.bases[s.base]; if (!sub || !old || tm.lineup.indexOf(old) < 0) return false; pinchRun(s.base, sub, true); return true; }
+  if (s.t === 'st') { G.stealReq = !!s.on; return true; }
+  return false;
+}
+function flushSubsIn() { // 투수 쪽: 공과 공 사이, 또는 던지기 직전
+  while (ON.subIn.length) { const a = ON.subIn.shift(); applySub(a); sendAct({ k: 'subok', id: a.n }); }
+}
+function subOk(id) { // 타자 쪽: 상대 기기가 적용했다는 신호 → 나도 여기서 적용
+  const i = ON.subOut.findIndex((s) => s.id === id); if (i < 0) return;
+  const s = ON.subOut.splice(i, 1)[0];
+  if (!applySub(s) && s.t !== 'st' && s.hi === G.inning * 2 + G.half) toast(s.pa !== G.paId ? '교체 요청이 늦어서 적용되지 않았어요 (타석이 이미 끝남)' : '교체를 적용하지 못했어요 (그 사이 주자·타자가 바뀜)', 2600);
+}
 function sendAct(a) {
   if (!G.online) return;
   a.n = ++ON.n; ON.acts.push(a);
-  if (ON.acts.length > 8) ON.acts.shift();
+  if (ON.acts.length > 24) ON.acts.shift();
   pres({ acts: ON.acts.slice() });
 }
 function onlineFail(msg) {
@@ -6408,16 +6481,21 @@ function onlineFail(msg) {
 }
 function endOnline() {
   if (!G.online) return;
+  const on = G.online;
   G.online = null; G.onlineRC = null; GR = Math.random; ON.q = [];
-  pres({ acts: null, g: null, go: null, join: null, lob: null });
+  // 마지막 행동(acts)은 지우지 않고 남겨 둠 → 앱 전환 등으로 늦게 따라오는 상대도 끝까지(기권 신호까지) 받아서 결과를 볼 수 있게.
+  // fin = 이 경기에서 나감(로비 '경기 중' 표시 해제), left = 끝나기 전에 나감(상대 화면에서 경기 종료)
+  pres({ go: null, join: null, lob: null, fin: on.code, left: on.done ? null : on.code });
   chatGameEnd();
 }
 // 매 프레임: 받은 행동 처리
 function onlineTick() {
   if (!G.online || !G.T) return;
-  if (G.online.lost && clock - G.online.lost > 30) { onlineFail('상대가 돌아오지 않아서 경기를 끝냈어요'); return; }
+  if (G.online.lost && clock - G.online.lost > LOST_WAIT) { onlineFail(NET.server && !NET.conn ? '서버에 다시 연결하지 못해서 경기를 끝냈어요' : '상대가 돌아오지 않아서 경기를 끝냈어요'); return; }
+  if (ON.subIn.length && userPitching() && (G.phase === 'aim' || G.phase === 'meter')) flushSubsIn();
   const a = ON.q[0]; if (!a) { waitHint(); return; }
   if (a.k === 'quit') { ON.q.shift(); onlineResult('win'); onlineFail('상대가 경기를 나갔어요 (기권승)'); return; }
+  if (a.k === 'sub') { ON.q.shift(); ON.subIn.push(a); return; } // 상대(타자 쪽) 교체·도루 요청 → 공과 공 사이에 적용 (위)
   if (a.k === 'sw') {
     const P = G.pitch;
     if (!P || P.pi < a.pi) return; // 아직 그 공을 안 던짐
@@ -6433,6 +6511,11 @@ function onlineTick() {
   if (!userBatting() || G.phase !== 'ready' || !G.awaitPitch) { waitHint(); return; }
   ON.q.shift();
   if (a.k === 'p') windup(a.t, { x: a.x, y: a.y }, a.m == null ? null : a.m);
+  else if (a.k === 'subok') subOk(a.id);
+  else if (a.k === 'def') {
+    const tm = fieldTeam(), sub = tm.bench.find((x) => x.key === a.key);
+    if (sub && tm.lineup[a.slot]) defSub(tm, a.slot, sub, true);
+  }
   else if (a.k === 'pcv') { showFeedback([['상대 투수 피치클락 위반', 'bad'], ['자동 볼', 'm']], 1500); G.lastDirt = false; G.pendingWP = null; call('ball'); }
   else if (a.k === 'ibb') { G.phase = 'call'; hideDocks(); showCall('고의4구', '#37d67a', 1200); toast(`상대가 ${curBatter().name} 고의4구`); walk('IBB'); }
   else if (a.k === 'pc') {
@@ -6443,6 +6526,7 @@ function onlineTick() {
 let _hintAt = 0;
 function waitHint() {
   if (!G.online || !G.T || clock - _hintAt < 2.5) return;
+  if (G.online.lost) { _hintAt = clock; showPlayText(NET.server && !NET.conn ? '서버에 다시 연결하는 중…' : `상대 재접속 기다리는 중… ${Math.max(0, Math.ceil(LOST_WAIT - (clock - G.online.lost)))}초`, 2000); return; }
   const P = G.pitch;
   if (userBatting() && G.phase === 'ready') { _hintAt = clock; showPlayText('상대 투수가 공을 고르는 중…', 2000); }
   else if (userPitching() && P && P.released && !P.remoteIn && P.ft / P.pt.dur >= 1) { _hintAt = clock; showPlayText('상대 타자 반응 기다리는 중…', 2000); }
@@ -6662,7 +6746,7 @@ function renderMe() {
   };
 }
 
-if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE });
+if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam });
 
 // 경기에서 돌아오면 보던 탭 그대로 (시즌 경기 → 시즌 탭, 온라인 경기 → 온라인 탭)
 showTab(store.get('tab', 'home'), true);
