@@ -173,6 +173,7 @@ function openMenu() {
   paused = true;
   $('#sndSw').setAttribute('aria-checked', String(AU.on));
   $('#zoneSw').setAttribute('aria-checked', String(G.zoneOn));
+  $('#heatSw').setAttribute('aria-checked', String(G.heatOn));
   $('#boxNow').innerHTML = `<div class="lswrap" style="margin:10px 0"><table class="lscore">${lineScoreHTML()}</table></div>` + boxHTML(G.T[G.userSide]);
   openModal('#menuModal');
 }
@@ -181,6 +182,7 @@ $('#menuBtn').addEventListener('click', () => { AU.click(); openMenu(); });
 $('#resumeBtn').addEventListener('click', closeMenu);
 $('#sndSw').addEventListener('click', (e) => { const v = !AU.on; AU.init(); AU.setOn(v); e.currentTarget.setAttribute('aria-checked', String(v)); });
 $('#zoneSw').addEventListener('click', (e) => { G.zoneOn = !G.zoneOn; store.set('zone', G.zoneOn); e.currentTarget.setAttribute('aria-checked', String(G.zoneOn)); zoneGuide.visible = G.zoneOn && userBatting() && G.phase !== 'play'; });
+$('#heatSw').addEventListener('click', (e) => { G.heatOn = !G.heatOn; store.set('heat', G.heatOn); e.currentTarget.setAttribute('aria-checked', String(G.heatOn)); drawZoneHeat(); });
 $('#quitBtn').addEventListener('click', quitToTitle);
 $('#againBtn').addEventListener('click', () => { $('#overModal').hidden = true; if (G.season) { quitToTitle(); openSeason(); } else startGame(); });
 $('#homeBtn').addEventListener('click', quitToTitle);
@@ -215,6 +217,7 @@ function cosmetics(dt) {
   cheerU.uCH.value = Math.max(0.06, cheerU.uCH.value - dt * 0.32);
   cheerU.uCA.value = Math.max(0.06, cheerU.uCA.value - dt * 0.32);
   if (ledRibbon.tex) ledRibbon.tex.offset.x = (ledRibbon.tex.offset.x + dt * 0.012) % 1;
+  if (zoneGuide.visible && zoneGuide.heat.visible && zoneGuide.heatNums !== (G.phase !== 'flight')) drawZoneHeat(); // 공이 날아오는 동안엔 타율 숫자 숨김
   if (board.flash > 0) {
     board.flash -= dt;
     const k = Math.floor(board.flash * 4);

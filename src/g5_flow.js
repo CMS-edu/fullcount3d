@@ -89,7 +89,7 @@ const POS_IDX = { C: 1, '1B': 2, '2B': 3, '3B': 4, SS: 5, LF: 6, CF: 7, RF: 8 };
 const G = {
   phase: 'title', T: null, inning: 1, half: 0, outs: 0, b: 0, s: 0, bases: [null, null, null],
   maxInn: 9, limitInn: 11, userSide: 1, pitchLog: [], selType: 'FB', aimTarget: null, lastSpeed: 0,
-  diff: DIFF.rookie, zoneOn: store.get('zone', true), bunt: false, stealReq: false, steal: null, pitch: null, play: null,
+  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), bunt: false, stealReq: false, steal: null, pitch: null, play: null,
   runFig: [null, null, null], batFig: null, bs: null, meter: null, gen: 0, cpuBunt: false,
 };
 function batTeam() { return G.T ? G.T[G.half] : null; }
@@ -886,7 +886,7 @@ function showDocks() {
     $('#phBtn').hidden = $('#prBtn').hidden = UI.steal.hidden = !!G.prac;
     if (G.online) UI.steal.setAttribute('aria-pressed', String(!!ON.stealWant));
     $('#phBtn').disabled = !canPre || !batTeam().bench.length; $('#prBtn').disabled = !canPre || !batTeam().bench.length || !G.bases.some(Boolean);
-    $('#batHint').textContent = G.bunt ? '번트 자세! 공이 오면 탭해서 갖다 대기' : isTouch ? '공이 오면 칠 곳을 탭!' : '공이 오면 칠 곳을 클릭 (조준 후 스페이스)';
+    $('#batHint').textContent = (G.bunt ? '번트 자세! 공이 오면 탭해서 갖다 대기' : isTouch ? '공이 오면 칠 곳을 탭!' : '공이 오면 칠 곳을 클릭 (조준 후 스페이스)') + (G.zoneOn && zoneGuide.heat.visible ? ' · 빨강 = 강한 코스' : '');
   }
   zoneGuide.visible = bat && G.zoneOn;
 }

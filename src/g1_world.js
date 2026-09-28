@@ -178,24 +178,30 @@ const whiteMat = new T.MeshLambertMaterial({ color: 0xffffff });
 
 /* ---------- 스트라이크존 가이드 (타격 시점) ---------- */
 // 타격 스트라이크 존 표시: 굵은 테두리 + 아주 옅은 바탕 + 3×3 칸선 (1픽셀 선은 폰에서 잘 안 보여서 얇은 면으로 그림)
+// + 타자 핫·콜드 존(칸별 색·타율을 캔버스 한 장에, drawZoneHeat).
+// 불투명 단계(renderOrder 7~8)에서 섞기만 켜서 그림 → 공(renderOrder 10)이 항상 존 위에 그려져서 색에 물들지 않음
 const zoneGuide = (() => {
   const g = new T.Group(); g.visible = false;
-  const m = (op) => new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op, depthTest: false, depthWrite: false });
+  const m = (op, map) => new T.MeshBasicMaterial({ color: 0xffffff, map: map || null, transparent: false, blending: T.CustomBlending, opacity: op, depthTest: false, depthWrite: false });
   const sq = new T.PlaneGeometry(1, 1), frame = m(0.75), grid = m(0.22);
-  const mk = (mat) => { const x = new T.Mesh(sq, mat); x.renderOrder = 20; g.add(x); return x; };
-  g.fill = mk(m(0.045)); g.bars = [mk(frame), mk(frame), mk(frame), mk(frame)]; g.lines = [mk(grid), mk(grid), mk(grid), mk(grid)];
+  const mk = (mat, ro) => { const x = new T.Mesh(sq, mat); x.renderOrder = ro; g.add(x); return x; };
+  g.fill = mk(m(0.045), 7);
+  g.heatCanvas = makeCanvas(256, 320); g.heatTex = canvasTex(g.heatCanvas, { nomip: true });
+  g.heat = mk(m(1, g.heatTex), 7); g.heat.visible = false;
+  g.bars = [mk(frame, 8), mk(frame, 8), mk(frame, 8), mk(frame, 8)]; g.lines = [mk(grid, 8), mk(grid, 8), mk(grid, 8), mk(grid, 8)];
   scene.add(g); return g;
 })();
 function setZoneGuide(z) {
   const G = zoneGuide, w = 0.432, h = z.top - z.bot, t = 0.011, t2 = 0.005;
   G.position.set(0, (z.top + z.bot) / 2, -0.2);
-  G.fill.scale.set(w, h, 1);
+  G.fill.scale.set(w, h, 1); G.heat.scale.set(w, h, 1);
   const [top, bot, lft, rgt] = G.bars;
   top.scale.set(w + t, t, 1); top.position.set(0, h / 2, 0); bot.scale.set(w + t, t, 1); bot.position.set(0, -h / 2, 0);
   lft.scale.set(t, h + t, 1); lft.position.set(-w / 2, 0, 0); rgt.scale.set(t, h + t, 1); rgt.position.set(w / 2, 0, 0);
   const [v1, v2, h1, h2] = G.lines;
   v1.scale.set(t2, h, 1); v1.position.set(-w / 6, 0, 0); v2.scale.set(t2, h, 1); v2.position.set(w / 6, 0, 0);
   h1.scale.set(w, t2, 1); h1.position.set(0, h / 6, 0); h2.scale.set(w, t2, 1); h2.position.set(0, -h / 6, 0);
+  drawZoneHeat(); // 타자가 바뀔 때마다 (새 타석·대타·훈련) 이 자리를 지나감
 }
 
 /* ---------- 펜스 & 광고 ---------- */

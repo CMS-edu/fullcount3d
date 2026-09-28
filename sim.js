@@ -44,7 +44,7 @@
   const PITCHES = {
     FB: { name: '직구', ratio: 1.0, arm: 0.05, drop: -0.05, arc: 0.1, brk: false },
     TS: { name: '투심', ratio: 0.975, arm: 0.17, drop: 0.07, arc: 0.1, brk: false },
-    CT: { name: '커터', ratio: 0.955, arm: -0.09, drop: 0.03, arc: 0.1, brk: false },
+    CT: { name: '커터', ratio: 0.955, arm: -0.16, drop: 0.07, arc: 0.1, brk: false }, // 예전 -0.09/0.03은 직구와 거의 구별이 안 돼서 키움
     SL: { name: '슬라이더', ratio: 0.9, arm: -0.22, drop: 0.1, arc: 0.14, brk: true },
     ST: { name: '스위퍼', ratio: 0.89, arm: -0.36, drop: 0.06, arc: 0.15, brk: true },
     CB: { name: '커브', ratio: 0.8, arm: -0.14, drop: 0.36, arc: 0.34, brk: true },

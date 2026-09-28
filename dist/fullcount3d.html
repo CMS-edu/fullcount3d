@@ -724,6 +724,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <div class="toggle-row"><span>효과음·응원</span><button class="switch" id="sndSw" role="switch" aria-checked="true" aria-label="효과음"></button></div>
     <div class="toggle-row"><span>피치클락 <small style="opacity:.7">(주자 없음 18초 · 있음 23초, 넘기면 자동 볼)</small></span><button class="switch" id="pcSw" role="switch" aria-checked="true" aria-label="피치클락"></button></div>
     <div class="toggle-row"><span>스트라이크존 가이드</span><button class="switch" id="zoneSw" role="switch" aria-checked="true" aria-label="존 가이드"></button></div>
+    <div class="toggle-row"><span>핫·콜드 존 <small style="opacity:.7">(칠 때 존에 표시 · 빨강 = 강한 코스, 파랑 = 약한 코스)</small></span><button class="switch" id="heatSw" role="switch" aria-checked="true" aria-label="핫콜드 존"></button></div>
     <div id="boxNow"></div>
     <button class="mbtn primary" id="resumeBtn">계속하기</button>
     <button class="mbtn danger" id="quitBtn">경기 포기하고 나가기</button>
@@ -824,7 +825,7 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
   const PITCHES = {
     FB: { name: '직구', ratio: 1.0, arm: 0.05, drop: -0.05, arc: 0.1, brk: false },
     TS: { name: '투심', ratio: 0.975, arm: 0.17, drop: 0.07, arc: 0.1, brk: false },
-    CT: { name: '커터', ratio: 0.955, arm: -0.09, drop: 0.03, arc: 0.1, brk: false },
+    CT: { name: '커터', ratio: 0.955, arm: -0.16, drop: 0.07, arc: 0.1, brk: false }, // 예전 -0.09/0.03은 직구와 거의 구별이 안 돼서 키움
     SL: { name: '슬라이더', ratio: 0.9, arm: -0.22, drop: 0.1, arc: 0.14, brk: true },
     ST: { name: '스위퍼', ratio: 0.89, arm: -0.36, drop: 0.06, arc: 0.15, brk: true },
     CB: { name: '커브', ratio: 0.8, arm: -0.14, drop: 0.36, arc: 0.34, brk: true },
@@ -1731,24 +1732,30 @@ const whiteMat = new T.MeshLambertMaterial({ color: 0xffffff });
 
 /* ---------- 스트라이크존 가이드 (타격 시점) ---------- */
 // 타격 스트라이크 존 표시: 굵은 테두리 + 아주 옅은 바탕 + 3×3 칸선 (1픽셀 선은 폰에서 잘 안 보여서 얇은 면으로 그림)
+// + 타자 핫·콜드 존(칸별 색·타율을 캔버스 한 장에, drawZoneHeat).
+// 불투명 단계(renderOrder 7~8)에서 섞기만 켜서 그림 → 공(renderOrder 10)이 항상 존 위에 그려져서 색에 물들지 않음
 const zoneGuide = (() => {
   const g = new T.Group(); g.visible = false;
-  const m = (op) => new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op, depthTest: false, depthWrite: false });
+  const m = (op, map) => new T.MeshBasicMaterial({ color: 0xffffff, map: map || null, transparent: false, blending: T.CustomBlending, opacity: op, depthTest: false, depthWrite: false });
   const sq = new T.PlaneGeometry(1, 1), frame = m(0.75), grid = m(0.22);
-  const mk = (mat) => { const x = new T.Mesh(sq, mat); x.renderOrder = 20; g.add(x); return x; };
-  g.fill = mk(m(0.045)); g.bars = [mk(frame), mk(frame), mk(frame), mk(frame)]; g.lines = [mk(grid), mk(grid), mk(grid), mk(grid)];
+  const mk = (mat, ro) => { const x = new T.Mesh(sq, mat); x.renderOrder = ro; g.add(x); return x; };
+  g.fill = mk(m(0.045), 7);
+  g.heatCanvas = makeCanvas(256, 320); g.heatTex = canvasTex(g.heatCanvas, { nomip: true });
+  g.heat = mk(m(1, g.heatTex), 7); g.heat.visible = false;
+  g.bars = [mk(frame, 8), mk(frame, 8), mk(frame, 8), mk(frame, 8)]; g.lines = [mk(grid, 8), mk(grid, 8), mk(grid, 8), mk(grid, 8)];
   scene.add(g); return g;
 })();
 function setZoneGuide(z) {
   const G = zoneGuide, w = 0.432, h = z.top - z.bot, t = 0.011, t2 = 0.005;
   G.position.set(0, (z.top + z.bot) / 2, -0.2);
-  G.fill.scale.set(w, h, 1);
+  G.fill.scale.set(w, h, 1); G.heat.scale.set(w, h, 1);
   const [top, bot, lft, rgt] = G.bars;
   top.scale.set(w + t, t, 1); top.position.set(0, h / 2, 0); bot.scale.set(w + t, t, 1); bot.position.set(0, -h / 2, 0);
   lft.scale.set(t, h + t, 1); lft.position.set(-w / 2, 0, 0); rgt.scale.set(t, h + t, 1); rgt.position.set(w / 2, 0, 0);
   const [v1, v2, h1, h2] = G.lines;
   v1.scale.set(t2, h, 1); v1.position.set(-w / 6, 0, 0); v2.scale.set(t2, h, 1); v2.position.set(w / 6, 0, 0);
   h1.scale.set(w, t2, 1); h1.position.set(0, h / 6, 0); h2.scale.set(w, t2, 1); h2.position.set(0, -h / 6, 0);
+  drawZoneHeat(); // 타자가 바뀔 때마다 (새 타석·대타·훈련) 이 자리를 지나감
 }
 
 /* ---------- 펜스 & 광고 ---------- */
@@ -3649,6 +3656,26 @@ function drawPad(sel) {
     g.fillStyle = '#37d67a'; g.beginPath(); g.arc(X(t.x), Y(t.y), 4, 0, Math.PI * 2); g.fill();
   }
 }
+// 타격 시점 존의 핫·콜드 존: 투수 패드와 같은 색(빨강 = 이 타자가 강한 코스, 파랑 = 약한 코스).
+// 캔버스는 타자(포수) 시점이라 우타자는 몸쪽이 왼쪽. 공이 날아오는 동안에는 숫자를 빼고 색만 남김
+function drawZoneHeat(nums) {
+  const Z = zoneGuide, b = G.T ? curBatter() : null;
+  Z.heat.visible = !!(b && b.tz && G.heatOn);
+  if (!Z.heat.visible) return;
+  if (nums == null) nums = G.phase !== 'flight';
+  const c = Z.heatCanvas, g = c.getContext('2d'), W = c.width, H = c.height, cw = W / 3, ch = H / 3;
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(8,12,22,0.62)'; g.fillRect(0, 0, W, H); // 잔디·흙 위에서도 빨강·파랑이 탁해지지 않게 옅은 어두운 바탕
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `bold 36px ${FONT_UI}`;
+  g.shadowColor = 'rgba(0,0,0,0.65)';
+  for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
+    const i = r * 3 + col, avg = b.tz[i][2], d = avg - BAT_LG.cells[i][2];
+    const x = (b.hand === 'R' ? col : 2 - col) * cw, y = r * ch;
+    g.shadowBlur = 0; g.fillStyle = heatCol(d * 1.25, 0.75); g.fillRect(x, y, cw, ch);
+    if (nums) { g.shadowBlur = 6; g.fillStyle = 'rgba(255,255,255,0.92)'; g.fillText(fmtAvg(avg), x + cw / 2, y + ch / 2 + 2); }
+  }
+  Z.heatNums = nums; Z.heatTex.needsUpdate = true;
+}
 function padToWorld(ev) {
   const r = UI.padCanvas.getBoundingClientRect();
   const fx = clamp((ev.clientX - r.left) / r.width, 0, 1), fy = clamp((ev.clientY - r.top) / r.height, 0, 1);
@@ -3796,7 +3823,7 @@ const POS_IDX = { C: 1, '1B': 2, '2B': 3, '3B': 4, SS: 5, LF: 6, CF: 7, RF: 8 };
 const G = {
   phase: 'title', T: null, inning: 1, half: 0, outs: 0, b: 0, s: 0, bases: [null, null, null],
   maxInn: 9, limitInn: 11, userSide: 1, pitchLog: [], selType: 'FB', aimTarget: null, lastSpeed: 0,
-  diff: DIFF.rookie, zoneOn: store.get('zone', true), bunt: false, stealReq: false, steal: null, pitch: null, play: null,
+  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), bunt: false, stealReq: false, steal: null, pitch: null, play: null,
   runFig: [null, null, null], batFig: null, bs: null, meter: null, gen: 0, cpuBunt: false,
 };
 function batTeam() { return G.T ? G.T[G.half] : null; }
@@ -4593,7 +4620,7 @@ function showDocks() {
     $('#phBtn').hidden = $('#prBtn').hidden = UI.steal.hidden = !!G.prac;
     if (G.online) UI.steal.setAttribute('aria-pressed', String(!!ON.stealWant));
     $('#phBtn').disabled = !canPre || !batTeam().bench.length; $('#prBtn').disabled = !canPre || !batTeam().bench.length || !G.bases.some(Boolean);
-    $('#batHint').textContent = G.bunt ? '번트 자세! 공이 오면 탭해서 갖다 대기' : isTouch ? '공이 오면 칠 곳을 탭!' : '공이 오면 칠 곳을 클릭 (조준 후 스페이스)';
+    $('#batHint').textContent = (G.bunt ? '번트 자세! 공이 오면 탭해서 갖다 대기' : isTouch ? '공이 오면 칠 곳을 탭!' : '공이 오면 칠 곳을 클릭 (조준 후 스페이스)') + (G.zoneOn && zoneGuide.heat.visible ? ' · 빨강 = 강한 코스' : '');
   }
   zoneGuide.visible = bat && G.zoneOn;
 }
@@ -5215,6 +5242,7 @@ function openMenu() {
   paused = true;
   $('#sndSw').setAttribute('aria-checked', String(AU.on));
   $('#zoneSw').setAttribute('aria-checked', String(G.zoneOn));
+  $('#heatSw').setAttribute('aria-checked', String(G.heatOn));
   $('#boxNow').innerHTML = `<div class="lswrap" style="margin:10px 0"><table class="lscore">${lineScoreHTML()}</table></div>` + boxHTML(G.T[G.userSide]);
   openModal('#menuModal');
 }
@@ -5223,6 +5251,7 @@ $('#menuBtn').addEventListener('click', () => { AU.click(); openMenu(); });
 $('#resumeBtn').addEventListener('click', closeMenu);
 $('#sndSw').addEventListener('click', (e) => { const v = !AU.on; AU.init(); AU.setOn(v); e.currentTarget.setAttribute('aria-checked', String(v)); });
 $('#zoneSw').addEventListener('click', (e) => { G.zoneOn = !G.zoneOn; store.set('zone', G.zoneOn); e.currentTarget.setAttribute('aria-checked', String(G.zoneOn)); zoneGuide.visible = G.zoneOn && userBatting() && G.phase !== 'play'; });
+$('#heatSw').addEventListener('click', (e) => { G.heatOn = !G.heatOn; store.set('heat', G.heatOn); e.currentTarget.setAttribute('aria-checked', String(G.heatOn)); drawZoneHeat(); });
 $('#quitBtn').addEventListener('click', quitToTitle);
 $('#againBtn').addEventListener('click', () => { $('#overModal').hidden = true; if (G.season) { quitToTitle(); openSeason(); } else startGame(); });
 $('#homeBtn').addEventListener('click', quitToTitle);
@@ -5257,6 +5286,7 @@ function cosmetics(dt) {
   cheerU.uCH.value = Math.max(0.06, cheerU.uCH.value - dt * 0.32);
   cheerU.uCA.value = Math.max(0.06, cheerU.uCA.value - dt * 0.32);
   if (ledRibbon.tex) ledRibbon.tex.offset.x = (ledRibbon.tex.offset.x + dt * 0.012) % 1;
+  if (zoneGuide.visible && zoneGuide.heat.visible && zoneGuide.heatNums !== (G.phase !== 'flight')) drawZoneHeat(); // 공이 날아오는 동안엔 타율 숫자 숨김
   if (board.flash > 0) {
     board.flash -= dt;
     const k = Math.floor(board.flash * 4);

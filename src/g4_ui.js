@@ -226,6 +226,26 @@ function drawPad(sel) {
     g.fillStyle = '#37d67a'; g.beginPath(); g.arc(X(t.x), Y(t.y), 4, 0, Math.PI * 2); g.fill();
   }
 }
+// 타격 시점 존의 핫·콜드 존: 투수 패드와 같은 색(빨강 = 이 타자가 강한 코스, 파랑 = 약한 코스).
+// 캔버스는 타자(포수) 시점이라 우타자는 몸쪽이 왼쪽. 공이 날아오는 동안에는 숫자를 빼고 색만 남김
+function drawZoneHeat(nums) {
+  const Z = zoneGuide, b = G.T ? curBatter() : null;
+  Z.heat.visible = !!(b && b.tz && G.heatOn);
+  if (!Z.heat.visible) return;
+  if (nums == null) nums = G.phase !== 'flight';
+  const c = Z.heatCanvas, g = c.getContext('2d'), W = c.width, H = c.height, cw = W / 3, ch = H / 3;
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(8,12,22,0.62)'; g.fillRect(0, 0, W, H); // 잔디·흙 위에서도 빨강·파랑이 탁해지지 않게 옅은 어두운 바탕
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `bold 36px ${FONT_UI}`;
+  g.shadowColor = 'rgba(0,0,0,0.65)';
+  for (let r = 0; r < 3; r++) for (let col = 0; col < 3; col++) {
+    const i = r * 3 + col, avg = b.tz[i][2], d = avg - BAT_LG.cells[i][2];
+    const x = (b.hand === 'R' ? col : 2 - col) * cw, y = r * ch;
+    g.shadowBlur = 0; g.fillStyle = heatCol(d * 1.25, 0.75); g.fillRect(x, y, cw, ch);
+    if (nums) { g.shadowBlur = 6; g.fillStyle = 'rgba(255,255,255,0.92)'; g.fillText(fmtAvg(avg), x + cw / 2, y + ch / 2 + 2); }
+  }
+  Z.heatNums = nums; Z.heatTex.needsUpdate = true;
+}
 function padToWorld(ev) {
   const r = UI.padCanvas.getBoundingClientRect();
   const fx = clamp((ev.clientX - r.left) / r.width, 0, 1), fy = clamp((ev.clientY - r.top) / r.height, 0, 1);
