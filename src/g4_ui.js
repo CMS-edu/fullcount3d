@@ -5,6 +5,10 @@ const UI = {
   tracker: $('#tracker'), batLine: $('#batLine'), pitLine: $('#pitLine'), speedBox: $('#speedBox'), speedV: $('#speedV'), speedT: $('#speedT'),
   skip: $('#skipBtn'), bunt: $('#buntBtn'), steal: $('#stealBtn'), pitchBtns: $('#pitchBtns'), stam: $('#stamBar'),
 };
+// 투구 도크 실제 높이 → CSS --dockH: 코스 패드·제구 게이지를 구종 버튼 바로 위에 둠
+// (고정 128px이던 때는 좁은 화면·화면 확대로 칩 줄이 두 줄로 접히면 게이지가 구종 버튼과 겹쳤음)
+function syncDockH() { const h = UI.dockPit.offsetHeight; if (h > 0) document.documentElement.style.setProperty('--dockH', h + 'px'); }
+if (window.ResizeObserver) new ResizeObserver(syncDockH).observe(UI.dockPit);
 const timersUI = {};
 function flashEl(el, cls, ms, key) {
   clearTimeout(timersUI[key]); el.classList.add(cls);

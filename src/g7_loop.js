@@ -5,11 +5,10 @@ function camTo(p, l, fov, kp, kl, cut) {
   CAM.tp.set(p[0], p[1], p[2]); CAM.tl.set(l[0], l[1], l[2]); CAM.tfov = fov; CAM.kp = kp; CAM.kl = kl || kp;
   if (cut) { CAM.p.copy(CAM.tp); CAM.l.copy(CAM.tl); CAM.fov = fov; }
 }
-// 타격 시점: 포수 뒤 가까이(홈에서 3m 남짓)에서 타자 쪽으로 살짝 비켜서 봄 → 스트라이크 존이 크게(예전 7m 뒤보다 2배쯤) 보이고
-// 타자의 팔·배트는 화면 가장자리에 남음. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
+// 타격 시점: 포수 뒤 한가운데(홈에서 7m쯤)에서 투구 방향 그대로 보되, 화각을 좁혀(망원) 스트라이크 존이 예전의 2배쯤 크게.
+// 각도는 예전 그대로이고 존이 아래 버튼에 가리지 않게 살짝 더 내려다보기만 함. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
 function viewPA() {
-  const b = curBatter(), s = b && b.hand === 'L' ? 1 : -1; // 좌타자는 +x 쪽에 섬
-  return userBatting() ? (portrait() ? [[s * 0.26, 1.22, 3.15], [-s * 0.02, 1.0, -18.4], 46] : [[s * 0.35, 1.25, 3.6], [0, -0.4, -18.4], 26]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
+  return userBatting() ? (portrait() ? [[0, 1.62, 7.0], [0, 0.67, -18.4], 22.4] : [[0, 1.5, 6.2], [0, 0.01, -18.4], 16]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
 }
 function camForPA(cut) { CAM.mode = userBatting() ? 'bat' : 'pitch'; const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, cut); }
 function camIntro() {
@@ -202,7 +201,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && G.T
 /* ===================== 루프 ===================== */
 function resize() {
   const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); syncDockH();
   if ((CAM.mode === 'bat' || CAM.mode === 'pitch') && G.T) { const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, true); }
   else if (CAM.mode === 'orbit') CAM.tfov = portrait() ? 56 : 40;
 }

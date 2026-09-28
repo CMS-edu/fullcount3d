@@ -287,11 +287,12 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 .pclock.warn b { color: var(--strike-c); } .pclock.bad b { color: var(--out-c); }
 .stam .bar i { display: block; height: 100%; background: var(--ball-c); transition: width 0.3s; }
 
-#pad { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); width: 176px; height: 206px; border-radius: 16px;
+/* 코스 패드·제구 게이지는 투구 도크(구종 버튼 + 칩 줄) 바로 위에: --dockH = 도크 실제 높이 (g4_ui.js에서 잼, 칩이 두 줄로 접혀도 안 겹침) */
+#pad { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--dockH, 118px) + 10px); width: 176px; height: 206px; border-radius: 16px;
   background: rgba(11, 21, 53, 0.55); border: 1px solid rgba(255, 255, 255, 0.18); touch-action: none; }
 #pad canvas { width: 100%; height: 100%; display: block; }
 #pad .cap { position: absolute; top: -22px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; color: #eef1ff; text-shadow: 0 1px 3px #000; }
-#meter { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); width: min(320px, 84vw); text-align: center; }
+#meter { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--dockH, 118px) + 14px); width: min(320px, 84vw); text-align: center; }
 #meter .track { position: relative; height: 26px; border-radius: 13px; background: linear-gradient(90deg, #ff4b4b 0%, #ffc93c 30%, #37d67a 45%, #37d67a 55%, #ffc93c 70%, #ff4b4b 100%); border: 2px solid #0b1535; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
 #meter .needle { position: absolute; top: -6px; width: 4px; height: 34px; margin-left: -2px; background: #fff; border-radius: 2px; box-shadow: 0 0 0 2px #0b1535; left: 0; }
 #meter p { margin: 6px 0 0; font-weight: 700; font-size: 14px; text-shadow: 0 1px 3px #000; }
@@ -552,7 +553,6 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 @media (orientation: landscape) and (max-height: 520px) {
   .lines { top: calc(env(safe-area-inset-top, 0px) + 64px); max-width: 44vw; }
   #pad { left: auto; right: calc(env(safe-area-inset-right, 0px) + 14px); transform: none; bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); width: 150px; height: 176px; }
-  #meter { bottom: calc(env(safe-area-inset-bottom, 0px) + 70px); }
   #call { top: 32%; }
   #playText { bottom: calc(env(safe-area-inset-bottom, 0px) + 66px); }
   .dock .hint { display: none; }
@@ -3435,6 +3435,10 @@ const UI = {
   tracker: $('#tracker'), batLine: $('#batLine'), pitLine: $('#pitLine'), speedBox: $('#speedBox'), speedV: $('#speedV'), speedT: $('#speedT'),
   skip: $('#skipBtn'), bunt: $('#buntBtn'), steal: $('#stealBtn'), pitchBtns: $('#pitchBtns'), stam: $('#stamBar'),
 };
+// 투구 도크 실제 높이 → CSS --dockH: 코스 패드·제구 게이지를 구종 버튼 바로 위에 둠
+// (고정 128px이던 때는 좁은 화면·화면 확대로 칩 줄이 두 줄로 접히면 게이지가 구종 버튼과 겹쳤음)
+function syncDockH() { const h = UI.dockPit.offsetHeight; if (h > 0) document.documentElement.style.setProperty('--dockH', h + 'px'); }
+if (window.ResizeObserver) new ResizeObserver(syncDockH).observe(UI.dockPit);
 const timersUI = {};
 function flashEl(el, cls, ms, key) {
   clearTimeout(timersUI[key]); el.classList.add(cls);
@@ -4612,6 +4616,7 @@ function showDocks() {
   if (G.phase === 'adv') { hideDocks(); return; }
   const bat = userBatting(); pracChips();
   UI.dockBat.hidden = !bat; UI.dockPit.hidden = bat;
+  if (!bat) syncDockH();
   UI.pad.hidden = bat || G.phase !== 'aim';
   UI.meter.hidden = G.phase !== 'meter';
   if (bat) {
@@ -5074,11 +5079,10 @@ function camTo(p, l, fov, kp, kl, cut) {
   CAM.tp.set(p[0], p[1], p[2]); CAM.tl.set(l[0], l[1], l[2]); CAM.tfov = fov; CAM.kp = kp; CAM.kl = kl || kp;
   if (cut) { CAM.p.copy(CAM.tp); CAM.l.copy(CAM.tl); CAM.fov = fov; }
 }
-// 타격 시점: 포수 뒤 가까이(홈에서 3m 남짓)에서 타자 쪽으로 살짝 비켜서 봄 → 스트라이크 존이 크게(예전 7m 뒤보다 2배쯤) 보이고
-// 타자의 팔·배트는 화면 가장자리에 남음. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
+// 타격 시점: 포수 뒤 한가운데(홈에서 7m쯤)에서 투구 방향 그대로 보되, 화각을 좁혀(망원) 스트라이크 존이 예전의 2배쯤 크게.
+// 각도는 예전 그대로이고 존이 아래 버튼에 가리지 않게 살짝 더 내려다보기만 함. 포수·구심은 이 시점에서 자동으로 숨김 (updateCamera)
 function viewPA() {
-  const b = curBatter(), s = b && b.hand === 'L' ? 1 : -1; // 좌타자는 +x 쪽에 섬
-  return userBatting() ? (portrait() ? [[s * 0.26, 1.22, 3.15], [-s * 0.02, 1.0, -18.4], 46] : [[s * 0.35, 1.25, 3.6], [0, -0.4, -18.4], 26]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
+  return userBatting() ? (portrait() ? [[0, 1.62, 7.0], [0, 0.67, -18.4], 22.4] : [[0, 1.5, 6.2], [0, 0.01, -18.4], 16]) : [[-1.0, 3.6, -36], [0, 0.9, 0.5], portrait() ? 16.5 : 11];
 }
 function camForPA(cut) { CAM.mode = userBatting() ? 'bat' : 'pitch'; const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, cut); }
 function camIntro() {
@@ -5271,7 +5275,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && G.T
 /* ===================== 루프 ===================== */
 function resize() {
   const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); syncDockH();
   if ((CAM.mode === 'bat' || CAM.mode === 'pitch') && G.T) { const v = viewPA(); camTo(v[0], v[1], v[2], 4, 4, true); }
   else if (CAM.mode === 'orbit') CAM.tfov = portrait() ? 56 : 40;
 }

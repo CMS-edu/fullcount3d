@@ -878,6 +878,7 @@ function showDocks() {
   if (G.phase === 'adv') { hideDocks(); return; }
   const bat = userBatting(); pracChips();
   UI.dockBat.hidden = !bat; UI.dockPit.hidden = bat;
+  if (!bat) syncDockH();
   UI.pad.hidden = bat || G.phase !== 'aim';
   UI.meter.hidden = G.phase !== 'meter';
   if (bat) {
