@@ -204,9 +204,29 @@ function padToWorld(ev) {
 const OPTS = Object.assign({ me: 0, opp: 1, home: 1, inn: 3, diff: 'rookie', time: matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day' }, store.get('opts', {}));
 function recOf(i) { const r = store.get('rec', {})[S.TEAMS[i].id]; return r || { w: 0, l: 0, d: 0 }; }
 function badgeStyle(el, t) { el.style.background = t.c1; el.style.color = lum(t.c1) > 0.6 && lum(t.c2) > 0.6 ? '#111' : t.c2; el.textContent = t.city; }
+// 화면 전체를 내 팀 색으로: 팀 색이 너무 어두우면(검정·짙은 남색) 밝고 선명하게 바꿔서 씀
+function vividOf(t, lo, hi) {
+  const hsl = {}, c = new T.Color(t.c1); c.getHSL(hsl);
+  if (hsl.s < 0.2) { c.set(t.c2); c.getHSL(hsl); } // 무채색(KT 검정 등)이면 보조색
+  c.setHSL(hsl.h, Math.max(hsl.s, 0.6), clamp(hsl.l, lo, hi));
+  return c;
+}
+function applyTeamTheme(me, opp) {
+  const st = document.documentElement.style, W = new T.Color('#ffffff');
+  const hex = (c) => '#' + c.getHexString(), rgb = (c) => [c.r, c.g, c.b].map((x) => Math.round(x * 255)).join(', ');
+  const v = vividOf(me, 0.36, 0.52), br = vividOf(me, 0.6, 0.68), o = vividOf(opp, 0.36, 0.52);
+  const set = { '--team': hex(v), '--team-dk': hex(v.clone().multiplyScalar(0.55)), '--team-lt2': hex(v.clone().lerp(W, 0.35)), '--team-rgb': rgb(v),
+    '--team-ink': lum(hex(v)) > 0.62 ? '#151a33' : '#ffffff', '--team-br': hex(br), '--team-br-hi': hex(br.clone().lerp(W, 0.25)), '--team-br-rgb': rgb(br),
+    '--team-br-ink': lum(hex(br)) > 0.55 ? '#151a33' : '#ffffff', '--opp': hex(o), '--opp-dk': hex(o.clone().multiplyScalar(0.55)) };
+  for (const k in set) st.setProperty(k, set[k]);
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = set['--team-dk']; // 폰 브라우저 윗줄 색
+}
 function renderTitle() {
   if (OPTS.opp === OPTS.me) OPTS.opp = (OPTS.me + 1) % 10;
   const tm = S.TEAMS[OPTS.me], to = S.TEAMS[OPTS.opp];
+  applyTeamTheme(tm, to);
+  const tick = `${tm.city} ${tm.name}  VS  ${to.city} ${to.name}   ·   ${OPTS.inn}이닝 ${OPTS.time === 'night' ? '야간' : '주간'} 경기   ·   ${OPTS.home ? '홈에서 후공' : '원정 선공'}   ·   오늘도 풀카운트!`;
+  $('#tickA').textContent = tick; $('#tickB').textContent = tick;
   badgeStyle($('#badgeMe'), tm); badgeStyle($('#badgeOpp'), to);
   $('#nameMe').textContent = `${tm.city} ${tm.name}`; $('#nameOpp').textContent = `${to.city} ${to.name}`;
   const r = recOf(OPTS.me); $('#recMe').textContent = `${r.w}승 ${r.l}패 ${r.d}무`;
