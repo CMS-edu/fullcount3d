@@ -327,6 +327,53 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .result.win { color: var(--ball-c); } }
 .mvp { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); font-size: 14px; }
 .mvp .tagm { font-family: var(--display); color: #1c1405; background: var(--led); border-radius: 8px; padding: 4px 8px; font-size: 14px; }
+/* 경기 결과: 탭 · 어워드 카드 · 팀 기록 막대 */
+.otabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); margin: 2px 0 10px; }
+.otabs button { flex: 1; min-height: 38px; border-radius: 10px; font-weight: 700; font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; padding: 0 4px; }
+.otabs .tdot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.7); }
+.otabs button[aria-selected="true"] { background: var(--sunset); color: #fff; box-shadow: 0 4px 12px rgba(255, 110, 80, 0.3); }
+#overPane { min-height: 120px; }
+.awards { display: grid; gap: 8px; }
+.acard { position: relative; overflow: hidden; display: flex; gap: 10px; align-items: center; padding: 10px 12px 10px 14px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--border); border-left: 5px solid var(--tc);
+  animation: acIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes acIn { from { opacity: 0; transform: translateY(14px) scale(0.92); } }
+.acard .aico { position: absolute; right: 10px; top: 6px; font-size: 26px; opacity: 0.9; }
+.acard .atx { display: grid; min-width: 0; line-height: 1.3; padding-right: 30px; }
+.acard .atx small { font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
+.acard .atx b { font-size: 17px; font-family: var(--display); font-weight: 400; }
+.acard .atx span { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.acard .atx em { font-size: 12px; color: var(--ink-2); font-style: normal; }
+.acard .ava.md { width: 50px; height: 50px; flex: none; }
+.fx-gold { background: linear-gradient(110deg, rgba(255, 216, 74, 0.28), rgba(255, 216, 74, 0.08) 45%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 216, 74, 0.08) 55%, rgba(255, 216, 74, 0.2)); background-size: 250% 100%;
+  border-color: rgba(255, 196, 40, 0.7); animation: acIn 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both, shine 3s linear 1s infinite; }
+.fx-gold .aico { animation: trophy 1.2s ease-in-out infinite alternate; }
+@keyframes trophy { from { transform: rotate(-10deg) scale(1); } to { transform: rotate(10deg) scale(1.18); } }
+.confetti, .rain { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -10px; left: var(--x); width: 6px; height: 10px; border-radius: 2px; background: var(--c); animation: confetti 2.4s var(--d) ease-in infinite; opacity: 0; }
+@keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110px) rotate(540deg); opacity: 0; } }
+.fx-doom { filter: saturate(0.4); background: linear-gradient(180deg, rgba(90, 100, 130, 0.35), var(--panel-2)); animation: acIn 0.5s both, doomShake 0.5s 1.2s 2; }
+.fx-doom .atx b { text-decoration: underline wavy rgba(196, 59, 59, 0.6); text-underline-offset: 4px; }
+.rain i { position: absolute; top: -12px; left: var(--x); width: 2px; height: 12px; border-radius: 1px; background: rgba(120, 170, 255, 0.7); animation: rain 0.9s var(--d) linear infinite; }
+@keyframes rain { to { transform: translateY(100px); } }
+@keyframes doomShake { 25% { transform: translateX(-4px) rotate(-0.6deg); } 75% { transform: translateX(4px) rotate(0.6deg); } }
+.fx-wobble .aico { animation: wob 1.1s ease-in-out infinite; }
+@keyframes wob { 50% { transform: rotate(-18deg) translateY(-2px); } }
+.fx-pulse .aico { animation: pul 1.2s ease-in-out infinite; }
+@keyframes pul { 50% { transform: scale(1.25); } }
+.fx-boom .aico { animation: boom 0.9s ease-out infinite; } .fx-boom { box-shadow: inset 0 0 0 1px rgba(255, 120, 60, 0.4); }
+@keyframes boom { 0% { transform: scale(0.8); } 30% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.fx-fire { background: linear-gradient(0deg, rgba(255, 90, 40, 0.22), var(--panel-2) 70%); }
+.fx-fire .aico { animation: pul 0.5s ease-in-out infinite; }
+.fx-ice { background: linear-gradient(135deg, rgba(120, 210, 255, 0.25), var(--panel-2) 60%); }
+.tcmp { display: grid; gap: 7px; font-variant-numeric: tabular-nums; }
+.tcmp .th, .tcmp .tr { display: grid; grid-template-columns: 30px 1fr 64px 1fr 30px; align-items: center; gap: 6px; }
+.tcmp .th { grid-template-columns: 1fr 64px 1fr; font-family: var(--display); font-size: 17px; } .tcmp .th b:last-child { text-align: right; }
+.tcmp .nm { text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.tcmp .v { font-weight: 700; font-size: 14px; text-align: center; }
+.tcmp .bar { height: 10px; border-radius: 5px; background: var(--chip-bg); display: flex; overflow: hidden; }
+.tcmp .bar.l { justify-content: flex-end; }
+.tcmp .bar i { width: var(--w); border-radius: 5px; animation: grow 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes grow { from { width: 0; } }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
 .stats div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 8px; text-align: center; font-size: 12px; color: var(--ink-2); }
 .stats b { display: block; font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -746,7 +793,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <h2 id="overH">경기 종료</h2>
     <div class="result" id="overRes"></div>
     <div class="lswrap"><table class="lscore" id="overLS"></table></div>
-    <div class="mvp" id="overMvp"></div>
+    <div class="otabs" id="overTabs" role="tablist"></div>
+    <div id="overPane"></div>
     <div class="stats" id="overStats"></div>
     <button class="mbtn primary" id="againBtn">같은 매치업 다시</button>
     <button class="mbtn" id="homeBtn">메인으로</button>
@@ -3844,7 +3892,7 @@ let GR = Math.random; // 경기 결과에 영향을 주는 난수 (온라인에�
 
 function makeTeamState(idx) {
   const ros = JSON.parse(JSON.stringify(LEAGUE[idx]));
-  ros.lineup.concat(ros.bench).forEach((b) => (b.g = { pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, k: 0, sb: 0, d2: 0, d3: 0 }));
+  ros.lineup.concat(ros.bench).forEach((b) => (b.g = { pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, k: 0, sb: 0, cs: 0, pko: 0, d2: 0, d3: 0 }));
   ros.rotation.concat(ros.bullpen).forEach((p) => (p.g = { pc: 0, outs: 0, h: 0, r: 0, bb: 0, k: 0, hr: 0 }));
   const sp = ros.rotation[Math.floor(GR() * ros.rotation.length)];
   const tm = { idx, t: S.TEAMS[idx], ros, lineup: ros.lineup.slice(), bench: ros.bench.slice(), out: [], order: 0, pitcher: sp, used: [sp], runs: 0, hits: 0, bb: 0, err: 0, line: [], warned: null };
@@ -4044,7 +4092,7 @@ function startGame(ov) {
   const away = o.home ? o.opp : o.me, home = o.home ? o.me : o.opp;
   G.T = [makeTeamState(away), makeTeamState(home)];
   if (ov.sp) G.T.forEach((tm, i) => { if (ov.sp[i] != null) { tm.pitcher = tm.ros.rotation[ov.sp[i] % tm.ros.rotation.length]; tm.used = [tm.pitcher]; } });
-  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null; G.paId = 0;
+  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null; G.paId = 0; G.runLog = [];
   paintCrowd(G.T[1].t, G.T[0].t); paintLed(G.T[1].t, G.T[0].t);
   UI.title.hidden = true; UI.hud.hidden = false; $('#overModal').hidden = true;
   $('#pracLine').hidden = !G.prac;
@@ -4115,7 +4163,7 @@ function cpuManagerPitch(ft, bt) {
     if (pool.length) want = pool.sort((a, b) => b.stf + b.ctl - (a.stf + a.ctl))[Math.floor(R() * Math.min(2, pool.length))];
   }
   if (want) {
-    ft.pitcher = want; ft.used.push(want);
+    ft.pitcher = want; ft.used.push(want); pitEnter(ft);
     dressField();
     toast(`상대 투수 교체: ${want.name} (${want.role === 'CL' ? '마무리' : '불펜'})`);
     boardFlash('투수 교체', want.name, 2.2);
@@ -4157,7 +4205,7 @@ function nextPitch() {
       if (gen !== G.gen || G.phase !== 'ready') return;
       // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
       const pb = pickoffBase();
-      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.28 : 0.1) * [0.5, 1, 1.6][(G.leadT || 0) + 1]) { pickoff(); return; }
+      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1]) { pickoff(); return; }
       windup(plan.type, plan.target, null);
     });
   }
@@ -4211,7 +4259,8 @@ function windup(type, target, meter) {
   else if (userBatting() && G.stealReq) k = stealBase();
   else if (userPitching()) {
     const sb = stealBase();
-    if (sb >= 0) { const r = G.bases[sb]; const pr = sb === 0 ? (r.spd >= 68 ? 0.14 : r.spd >= 60 ? 0.05 : 0) : (r.spd >= 75 ? 0.06 : 0); if (G.s < 2 && G.outs < 2 && R() < pr) k = sb; }
+    // CPU 주자는 성공 확률이 괜찮을 때만 뜀 (확률 낮은 도루로 주루사가 쌓이지 않게)
+    if (sb >= 0) { const c = stealChance(sb), pr = c >= 0.62 ? 0.14 : c >= 0.55 ? 0.06 : 0; if (G.s < 2 && G.outs < 2 && R() < pr) k = sb; }
   }
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false');
   if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false; // 아직 전달 중인 도루 요청이 있으면 버튼 유지
@@ -4222,12 +4271,14 @@ function stealBase() {
   if (G.bases[0] && !G.bases[1]) return 0;
   return -1;
 }
+// 도루 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
+// 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움. 견제 받을수록·리드 짧을수록 어려움
+function stealChance(k) {
+  const r = G.bases[k], P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : fieldTeam().pitcher.hand === 'L';
+  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+}
 function startSteal(k) {
-  const r = G.bases[k];
-  // 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
-  // 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움
-  const P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : false;
-  const pSucc = clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+  const r = G.bases[k], pSucc = stealChance(k);
   G.steal = { k, who: r, fig: G.runFig[k], ok: (G.online && G.pitch ? onSeed(G.pitch.pi, 5)() : R()) < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
 }
 function handPos(f, left, out) { return (left ? f.lA : f.rA).hand.localToWorld(out.set(0, -0.3, 0)); }
@@ -4424,6 +4475,7 @@ function addRuns(n, scorers) {
   if (n <= 0) return;
   const bt = batTeam(), pit = fieldTeam().pitcher;
   bt.runs += n; bt.line[G.inning - 1] = (bt.line[G.inning - 1] || 0) + n; pit.g.r += n;
+  (G.runLog = G.runLog || []).push({ a: G.T[0].runs, h: G.T[1].runs, p: [G.T[0].pitcher, G.T[1].pitcher] }); // 승리·패전 투수 판정용 (g9r_report.js)
   (scorers || []).slice(0, n).forEach((r) => r && r.g && r.g.r++);
   const homeScores = bt === G.T[1];
   crowdPulse(homeScores ? 'H' : 'A', 1.2);
@@ -4503,7 +4555,7 @@ function finishSteal() {
     showCall('세이프!', '#37d67a', 1000); showPlayText(`${st.who.name}, ${st.k + 2}루 도루 성공!`, 1600);
     AU.cheer(0.7, 1.5); crowdPulse(G.half ? 'H' : 'A', 0.7);
   } else {
-    G.outs++; pit.g.outs++;
+    G.outs++; pit.g.outs++; st.who.g.cs = (st.who.g.cs || 0) + 1; batTeam().ro = (batTeam().ro || 0) + 1;
     showCall('아웃!', '#ff4b4b', 1000); showPlayText(`${st.who.name}, 도루 실패`, 1600);
   }
   ball.hide(); placeRunners(); resetField(); updateBug(); drawBoard();
@@ -4555,30 +4607,15 @@ function gameOver() {
   const gen = G.gen;
   later(r === 'win' ? 2.4 : 1.6, () => { if (gen === G.gen) showOver(r); });
 }
-function mvpOf(tm) {
-  let best = null, bs = -1e9;
-  tm.lineup.concat(tm.out).forEach((b) => { const s = b.g.h * 1 + b.g.hr * 2.5 + b.g.rbi * 1.2 + b.g.r * 0.6 + b.g.bb * 0.4 + b.g.sb * 0.5 - b.g.k * 0.2; if (s > bs) { bs = s; best = { p: b, bat: true }; } });
-  tm.used.forEach((p) => { const s = (p.g.outs / 3) * 0.9 + p.g.k * 0.35 - p.g.r * 1.2 - p.g.bb * 0.2; if (s > bs) { bs = s; best = { p, bat: false }; } });
-  return best;
-}
 function showOver(r) {
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const el = $('#overRes'); el.className = 'result ' + r;
   el.textContent = r === 'win' ? '승리!' : r === 'lose' ? '패배' : '무승부';
   $('#overH').textContent = G.inning > G.maxInn ? `경기 종료 · 연장 ${G.inning}회` : '경기 종료';
   $('#overLS').innerHTML = lineScoreHTML();
-  const win = r === 'lose' ? op : me;
-  const m = mvpOf(win);
-  if (m) {
-    const g = m.p.g;
-    const line = m.bat ? `${g.ab}타수 ${g.h}안타${g.hr ? ` ${g.hr}홈런` : ''}${g.rbi ? ` ${g.rbi}타점` : ''}${g.sb ? ` ${g.sb}도루` : ''}`
-      : `${Math.floor(g.outs / 3)}${g.outs % 3 ? '⅓⅔'[g.outs % 3 - 1] : ''}이닝 ${g.k}K ${g.r}실점`;
-    $('#overMvp').innerHTML = `${avatarHTML(m.p, 'md')}<span class="tagm">MVP</span><div><b>${esc(m.p.name)}</b> <span style="opacity:.7">${esc(win.t.city)} · ${m.bat ? m.p.posK : '투수'}</span><br><span style="font-size:13px">${line}</span></div>`;
-  } else $('#overMvp').innerHTML = '';
-  const hr = me.lineup.concat(me.out).reduce((a, b) => a + b.g.hr, 0), k = op.lineup.concat(op.out).reduce((a, b) => a + b.g.k, 0);
+  showReport(r); // 어워드 · 팀 기록 · 타자 · 투수 탭 (g9r_report.js)
   const rec = recOf(OPTS.me);
-  $('#overStats').innerHTML = `<div><b>${me.hits}</b>우리 안타</div><div><b>${hr}</b>우리 홈런</div><div><b>${k}</b>탈삼진</div>` +
-    `<div style="grid-column:1/-1"><b style="font-size:15px">${esc(me.t.city)} ${esc(me.t.name)} · ${rec.w}승 ${rec.l}패 ${rec.d}무</b>통산 전적</div>`;
+  $('#overStats').innerHTML = `<div style="grid-column:1/-1"><b style="font-size:15px">${esc(me.t.city)} ${esc(me.t.name)} · ${rec.w}승 ${rec.l}패 ${rec.d}무</b>통산 전적</div>`;
   $('#againBtn').textContent = G.season ? '시즌 화면으로' : '같은 매치업 다시';
   if (G.season) $('#overStats').innerHTML += `<div style="grid-column:1/-1"><b style="font-size:15px">${esc(seasonLine())}</b>시즌 성적</div>`;
   $('#overModal').hidden = false;
@@ -4618,7 +4655,7 @@ function openPen() {
 }
 function changePitcher(tm, p, remote) {
   if (G.online && !remote) sendAct({ k: 'pc', key: p.key });
-  tm.pitcher = p; tm.used.push(p);
+  tm.pitcher = p; tm.used.push(p); pitEnter(tm);
   dressField(); pitcherPose(FIG.P, 0, p.hand, p.slot);
   G.selType = p.pitches[0]; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
   toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);
@@ -4766,7 +4803,7 @@ function balk() {
 }
 
 /* ---------- 견제 ---------- */
-// 평소엔 잘 안 잡히지만(1루 5% · 좌투수 +4%) 주자가 도루하려던 참이면(도루 요청) 절반쯤 잡힘 → 도루 읽기 싸움.
+// 평소엔 잘 안 잡히지만(1루 2.5% · 좌투수 +1.5%) 주자가 도루하려던 참이면(도루 요청) 22%쯤 잡힘 → 도루 읽기 싸움.
 // 견제할 때마다 주자 리드가 줄어서 이번 타석 도루 성공률 −3%p씩. 한 타석 3번째 견제가 실패하면 보크 (KBO 투수판 이탈 3회 제한)
 const PK_MAX = 3;
 function pickoffBase() { const s = stealBase(); if (s >= 0) return s; for (let k = 2; k >= 0; k--) if (G.bases[k]) return k; return -1; }
@@ -4776,11 +4813,11 @@ function pickoff(remote) {
   if (G.online && !remote) { flushSubsIn(); sendAct({ k: 'pko' }); } // 받은 도루 요청을 먼저 반영하고 신호 → 두 기기가 같은 조건으로 판정
   G.pk = (G.pk || 0) + 1;
   const r = G.bases[k], p = fieldTeam().pitcher, going = !!G.stealReq;
-  const lf = [0.3, 1, 2.2][(G.leadT || 0) + 1]; // 주자 리드 작전: 짧게면 거의 안 걸리고, 크게면 2배 넘게
-  let pr = going ? 0.5 + (G.leadT || 0) * 0.1 : [0.05, 0.03, 0.02][k] * lf;
-  if (k === 0 && p.hand === 'L') pr += going ? 0.1 : 0.04 * lf;
-  pr -= (r.spd - 60) * (going ? 0.004 : 0.0008);
-  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.01, 0.8);
+  const lf = [0.4, 1, 1.8][(G.leadT || 0) + 1]; // 주자 리드 작전: 짧게면 거의 안 걸리고, 크게면 2배 가까이
+  let pr = going ? 0.22 + (G.leadT || 0) * 0.07 : [0.025, 0.015, 0.01][k] * lf;
+  if (k === 0 && p.hand === 'L') pr += going ? 0.05 : 0.015 * lf;
+  pr -= (r.spd - 60) * (going ? 0.003 : 0.0004);
+  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.005, 0.45);
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false'); // 뛰려던 주자는 타이밍을 뺏김
   if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false;
   G.pclock = null; UI.pclock.hidden = true; G.meter = null; hideDocks();
@@ -4824,6 +4861,7 @@ function finishPickoff() {
   ball.hide();
   if (K.out) {
     G.bases[K.k] = null; G.outs++; fieldTeam().pitcher.g.outs++;
+    K.who.g.pko = (K.who.g.pko || 0) + 1; batTeam().ro = (batTeam().ro || 0) + 1;
     showPlayText(`견제사! ${K.who.name} 아웃`, 1700); AU.cheer(userPitching() ? 0.8 : 0.3, 1.2);
   } else if (!K.balk && G.pk === PK_MAX - 1 && userPitching()) toast('다음 견제가 실패하면 보크예요 (타석당 3번까지)', 2400);
   resetField(); placeRunners(); updateBug(); drawBoard(); updateLines();
@@ -6333,6 +6371,165 @@ function confirmTwice(sel, msg) {
 
 if (window.__fc) Object.assign(window.__fc, { simGame, newSeason, simDay, openSeason, startPractice, gameOver, sea: () => SEA });
 
+/* ===================== 경기 결과 리포트: 우리 팀·상대 팀 어워드 · 팀 기록 · 타자 · 투수 ===================== */
+// 어워드는 팀별 탭: 이긴 팀은 MVP·승리투수·세이브/홀드·"얜 뭐냐", 진 팀은 졌잘싸·패전투수·"얘 때문에 짐".
+// 조건이 맞으면 홈런·불쇼·철벽·삼진 공장장 같은 칭호도. 카드마다 등장 효과(색종이·비구름·흔들림 등)
+
+function batScore(g) {
+  return g.h + g.hr * 2.5 + (g.d2 || 0) * 0.5 + (g.d3 || 0) + g.rbi * 1.2 + g.r * 0.6 + g.bb * 0.45 + g.sb * 0.5
+    - g.k * 0.35 - (g.ab - g.h) * 0.3 - ((g.cs || 0) + (g.pko || 0)) * 0.9;
+}
+function pitScore(g) { return (g.outs / 3) * 0.9 + g.k * 0.35 - g.r * 1.25 - g.bb * 0.25 - g.h * 0.2 - g.hr * 0.6; }
+function playersOf(tm) {
+  const bats = tm.lineup.concat(tm.out).filter((b) => b.g && b.g.pa > 0).map((p) => ({ p, bat: true, s: batScore(p.g), tm }));
+  const pits = tm.used.filter((p) => p.g && (p.g.outs > 0 || p.g.pc > 0)).map((p) => ({ p, bat: false, s: pitScore(p.g), tm }));
+  return bats.concat(pits);
+}
+function statLine(x) {
+  const g = x.p.g;
+  if (!x.bat) return `${fmtIP(g.outs)}이닝 ${g.pc}구 ${g.h}피안타 ${g.r}실점 ${g.k}K${g.bb ? ` ${g.bb}볼넷` : ''}`;
+  const extra = [g.hr && `${g.hr}홈런`, g.rbi && `${g.rbi}타점`, g.r && `${g.r}득점`, g.bb && `${g.bb}볼넷`, g.sb && `${g.sb}도루`, g.k && `${g.k}삼진`, (g.cs || 0) + (g.pko || 0) && `주루사 ${(g.cs || 0) + (g.pko || 0)}`].filter(Boolean);
+  return `${g.ab}타수 ${g.h}안타${extra.length ? ' · ' + extra.join(' ') : ''}`;
+}
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const LINES = {
+  mvp: ['오늘의 주인공!', '경기를 지배했다', '인터뷰 준비하세요', '수훈 선수 등극'],
+  wp: ['승리의 기운을 받았다', '타선 덕을 봤다… 아니 잘 던졌다', '오늘 밤 발 뻗고 잔다'],
+  sv: ['뒷문 잠금 완료', '끝판왕 등장', '심장 쫄깃했던 마무리'],
+  hd: ['리드를 지켜 냈다', '다리 역할 완벽 수행'],
+  what: ['얜 뭐냐… 이긴 게 다행', '팀 승리에 묻어 간 하루', '상대 벤치가 박수를 보냈다', '적군 팬들이 유니폼 구매 고민 중'],
+  hero: ['졌지만 잘 싸웠다', '혼자서 다 했는데…', '이 선수에게 죄가 없다', '패배 속 한 줄기 빛'],
+  lp: ['오늘은 운이 없었다', '결승점을 내줬다', '다음 등판을 기약하며'],
+  doom: ['오늘은 쉬는 날이었어야…', '감독님 표정이 굳었습니다', '팬 카페가 불타는 중', '내일은 잘할 거예요… 아마도', '더그아웃 구석에서 반성 중'],
+};
+
+// 승리·패전·세이브·홀드 (KBO 규칙을 짧은 경기에 맞춰 단순화)
+//   결승점: 이긴 팀이 마지막으로 앞서 나간 순간 → 그때 상대 투수가 패전, 우리 투수(선발은 경기 5/9 이닝 이상 던졌을 때)가 승리
+//   세이브: 승리투수가 아닌 마지막 투수가 3점 차 이내 리드에서 나와 아웃 1개 이상 잡고 끝냄
+//   홀드: 3점 차 이내 리드에서 나와 아웃을 잡고 리드를 지킨 채 내려간 중간 투수
+function pitEnter(tm) { // 투수 교체 직후: 새 투수의 등판 시 점수 차, 내려간 투수의 강판 시 점수 차 기록
+  const opp = G.T[0] === tm ? G.T[1] : G.T[0], lead = tm.runs - opp.runs, prev = tm.used[tm.used.length - 2];
+  if (prev) prev.g.outLead = lead;
+  tm.pitcher.g.inLead = lead;
+}
+function decisions(W, L) {
+  const wi = G.T.indexOf(W), log = G.runLog || [];
+  let k = -1, prev = 0;
+  log.forEach((e, i) => { const lead = wi ? e.h - e.a : e.a - e.h; if (lead > 0 && prev <= 0) k = i; if (lead <= 0) k = -1; prev = lead; });
+  if (k < 0) return {};
+  const e = log[k], lp = e.p[1 - wi];
+  let wp = e.p[wi];
+  const need = Math.ceil((G.maxInn * 5) / 9) * 3;
+  if (wp === W.used[0] && wp.g.outs < need && W.used.length > 1) wp = W.used.slice(1).sort((a, b) => pitScore(b.g) - pitScore(a.g))[0];
+  const last = W.used[W.used.length - 1], final = W.runs - L.runs;
+  const sv = last !== wp && W.used.length > 1 && last.g.inLead >= 1 && last.g.inLead <= 3 && last.g.outs >= 1 ? last : null;
+  const hd = W.used.slice(1, -1).filter((p) => p !== wp && p.g.inLead >= 1 && p.g.inLead <= 3 && p.g.outs >= 1 && (p.g.outLead != null ? p.g.outLead : final) >= 1);
+  return { wp, lp, sv, hd };
+}
+
+// 한 팀의 어워드 카드 (res: 이 팀 기준 win/lose/draw)
+function teamAwards(tm, res) {
+  const opp = G.T[0] === tm ? G.T[1] : G.T[0], ps = playersOf(tm);
+  const cards = [], used = new Set();
+  const add = (p, c) => { if (!p || used.has(p)) return; const x = ps.find((y) => y.p === p) || { p, bat: !tm.used.includes(p), tm }; used.add(p); cards.push(Object.assign({ x }, c)); };
+  const best = () => ps.filter((x) => !used.has(x.p)).sort((a, b) => b.s - a.s)[0];
+  const worst = () => ps.filter((x) => !used.has(x.p) && (x.bat ? x.p.g.pa >= 2 : x.p.g.r > 0 || x.p.g.outs < 3)).sort((a, b) => a.s - b.s)[0];
+  const d = res === 'win' ? decisions(tm, opp) : res === 'lose' ? decisions(opp, tm) : {};
+  if (res === 'win') {
+    const m = best(); if (m) add(m.p, { fx: 'gold', ico: '🏆', t: 'MVP', sub: pick(LINES.mvp) });
+    add(d.wp, { fx: 'pulse', ico: '⚾', t: '승리투수', sub: pick(LINES.wp) });
+    add(d.sv, { fx: 'ice', ico: '🔒', t: '세이브', sub: pick(LINES.sv) });
+    (d.hd || []).forEach((p) => add(p, { fx: 'pulse', ico: '🛡️', t: '홀드', sub: pick(LINES.hd) }));
+    const w = worst(); if (w && w.s < 0) add(w.p, { fx: 'wobble', ico: '🤨', t: `얜 뭐냐 · 사실상 ${opp.t.city} MVP`, sub: pick(LINES.what) });
+  } else if (res === 'lose') {
+    const h = best(); if (h) add(h.p, { fx: 'pulse', ico: '💪', t: '졌잘싸', sub: pick(LINES.hero) });
+    add(d.lp, { fx: 'fire', ico: '😣', t: '패전투수', sub: pick(LINES.lp) });
+    const w = worst(); if (w) add(w.p, { fx: 'doom', ico: '🌧️', t: `얘 때문에 짐 · 사실상 ${opp.t.city} MVP`, sub: pick(LINES.doom) });
+  } else {
+    const m = best(); if (m) add(m.p, { fx: 'gold', ico: '🏆', t: '무승부 MVP', sub: pick(LINES.mvp) });
+    const w = worst(); if (w && w.s < 0) add(w.p, { fx: 'wobble', ico: '🤨', t: `얜 뭐냐 · 사실상 ${opp.t.city} MVP`, sub: pick(LINES.what) });
+  }
+  // 칭호: 이 팀 선수 중 조건 맞는 것만, 이미 상 받은 선수는 빼고 최대 3개
+  const bats = ps.filter((x) => x.bat), pits = ps.filter((x) => !x.bat);
+  const top = (arr, f, min) => arr.filter((x) => !used.has(x.p) && f(x.p.g) >= min).sort((a, b) => f(b.p.g) - f(a.p.g))[0];
+  const titles = [
+    [bats, (g) => g.hr, 1, (g) => ({ fx: 'boom', ico: '💥', t: g.hr >= 2 ? '멀티 홈런쇼' : '홈런 한 방', sub: `담장 밖으로 ${g.hr}개` })],
+    [bats, (g) => g.rbi, 3, (g) => ({ fx: 'pulse', ico: '👑', t: '타점 기계', sub: `혼자 ${g.rbi}타점` })],
+    [bats, (g) => g.h + g.bb, 3, (g) => ({ fx: 'pulse', ico: '🚀', t: '출루 머신', sub: `${g.h + g.bb}번 출루` })],
+    [pits, (g) => g.k, 4, (g) => ({ fx: 'pulse', ico: '🎯', t: 'K 머신', sub: `삼진 ${g.k}개` })],
+    [pits, (g) => (g.r === 0 ? g.outs : 0), 6, (g) => ({ fx: 'ice', ico: '🧊', t: '철벽 투구', sub: `${fmtIP(g.outs)}이닝 무실점` })],
+    [pits, (g) => g.r, 3, (g) => ({ fx: 'fire', ico: '🔥', t: '불쇼 주의보', sub: `${g.r}실점… 소방차 출동` })],
+    [bats, (g) => g.k, 2, (g) => ({ fx: 'wobble', ico: '🌀', t: '삼진 공장장', sub: `선풍기 ${g.k}번 가동` })],
+    [bats, (g) => (g.cs || 0) + (g.pko || 0), 1, () => ({ fx: 'wobble', ico: '🙈', t: '주루사 장인', sub: '베이스가 멀었다' })],
+    [bats, (g) => g.sb, 1, (g) => ({ fx: 'pulse', ico: '🏃', t: '대도', sub: `도루 ${g.sb}개 성공` })],
+    [bats, (g) => (g.h === 0 ? g.ab : 0), 3, (g) => ({ fx: 'doom', ico: '🥶', t: '무안타 침묵', sub: `${g.ab}타수 무안타` })],
+  ];
+  let n = 0;
+  for (const [arr, f, min, mk] of titles) {
+    if (n >= 3) break;
+    const x = top(arr, f, min);
+    if (x) { add(x.p, mk(x.p.g)); n++; }
+  }
+  return cards;
+}
+
+function awardsHTML(cards) {
+  if (!cards.length) return '<p class="sub">기록이 부족해요</p>';
+  return `<div class="awards">${cards.map((c, i) => {
+    const conf = c.fx === 'gold' ? `<span class="confetti">${Array.from({ length: 16 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k % 5) * 0.18}s;--c:${['#ffd84a', '#ff6b6b', '#4dd4ff', '#7dff9b', '#ff9ef0'][k % 5]}"></i>`).join('')}</span>` : '';
+    const rain = c.fx === 'doom' ? `<span class="rain">${Array.from({ length: 10 }, (_, k) => `<i style="--x:${(k * 23 + 7) % 100}%;--d:${(k % 4) * 0.2}s"></i>`).join('')}</span>` : '';
+    return `<div class="acard fx-${c.fx}" style="--tc:${c.x.tm.t.c1};animation-delay:${0.15 + i * 0.22}s">${conf}${rain}
+      <span class="aico">${c.ico}</span>${avatarHTML(c.x.p, 'md')}
+      <div class="atx"><small>${esc(c.t)}</small><b>${esc(c.x.p.name)}</b><span>${esc(statLine(c.x))}</span><em>${esc(c.sub)}</em></div></div>`;
+  }).join('')}</div>`;
+}
+
+function teamCmpHTML() {
+  const A = G.T[0], H = G.T[1];
+  const sum = (tm, f) => tm.lineup.concat(tm.out).reduce((a, b) => a + (f(b.g) || 0), 0);
+  const pc = (tm) => tm.used.reduce((a, p) => a + p.g.pc, 0);
+  const rows = [
+    ['득점', A.runs, H.runs], ['안타', A.hits, H.hits], ['홈런', sum(A, (g) => g.hr), sum(H, (g) => g.hr)],
+    ['2·3루타', sum(A, (g) => (g.d2 || 0) + (g.d3 || 0)), sum(H, (g) => (g.d2 || 0) + (g.d3 || 0))],
+    ['볼넷', A.bb, H.bb], ['삼진 당함', sum(A, (g) => g.k), sum(H, (g) => g.k)], ['도루', sum(A, (g) => g.sb), sum(H, (g) => g.sb)],
+    ['주루사', A.ro || 0, H.ro || 0], ['실책', A.err, H.err], ['투구 수', pc(A), pc(H)],
+  ];
+  const col = (t) => `background:${t.c1}`;
+  return `<div class="tcmp"><div class="th"><b style="color:${A.t.c1}">${esc(A.t.city)}</b><span></span><b style="color:${H.t.c1}">${esc(H.t.city)}</b></div>
+    ${rows.map(([nm, a, h]) => { const m = Math.max(a, h, 1); return `<div class="tr"><span class="v">${a}</span><span class="bar l"><i style="${col(A.t)};--w:${(a / m) * 100}%"></i></span><span class="nm">${nm}</span><span class="bar r"><i style="${col(H.t)};--w:${(h / m) * 100}%"></i></span><span class="v">${h}</span></div>`; }).join('')}</div>`;
+}
+
+function batBoxHTML(tm) {
+  let h = `<div class="rhead">${esc(tm.t.city)} ${esc(tm.t.name)} 타자</div><div class="lswrap"><table class="box"><tr><th>#</th><th style="text-align:left">이름</th><th>타수</th><th>안타</th><th>홈런</th><th>타점</th><th>득점</th><th>볼넷</th><th>삼진</th><th>도루</th></tr>`;
+  const row = (b, i, sub) => { const g = b.g; return `<tr${sub ? ' style="opacity:.6"' : ''}><td>${sub ? '-' : i + 1}</td><td class="n">${esc(b.name)}${sub ? ' (교체)' : ''} <small style="opacity:.6">${b.posK}</small></td><td>${g.ab}</td><td${g.h >= 2 ? ' style="color:#ffd84a;font-weight:700"' : ''}>${g.h}</td><td>${g.hr || ''}</td><td>${g.rbi || ''}</td><td>${g.r || ''}</td><td>${g.bb || ''}</td><td>${g.k || ''}</td><td>${g.sb || ''}</td></tr>`; };
+  tm.lineup.forEach((b, i) => { h += row(b, i, false); });
+  tm.out.filter((b) => b.g.pa > 0 || b.g.r > 0).forEach((b) => { h += row(b, 0, true); });
+  return h + '</table></div>';
+}
+function pitBoxHTML(tm) {
+  let h = `<div class="rhead">${esc(tm.t.city)} ${esc(tm.t.name)} 투수</div><div class="lswrap"><table class="box"><tr><th style="text-align:left">이름</th><th>이닝</th><th>투구</th><th>피안타</th><th>피홈런</th><th>실점</th><th>볼넷</th><th>삼진</th></tr>`;
+  tm.used.forEach((p, i) => { const g = p.g; h += `<tr><td class="n">${esc(p.name)} <small style="opacity:.6">${i === 0 ? '선발' : '구원'}</small></td><td>${fmtIP(g.outs)}</td><td>${g.pc}</td><td>${g.h}</td><td>${g.hr || ''}</td><td${g.r >= 3 ? ' style="color:#ff8a8a;font-weight:700"' : ''}>${g.r}</td><td>${g.bb || ''}</td><td${g.k >= 4 ? ' style="color:#7dff9b;font-weight:700"' : ''}>${g.k}</td></tr>`; });
+  return h + '</table></div>';
+}
+
+// 결과 창 탭
+const OVER = { tab: 'me', me: [], op: [] };
+function renderOverPane() {
+  const me = G.T[G.userSide], op = G.T[1 - G.userSide], P = $('#overPane');
+  $('#overTabs').querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.ot === OVER.tab)));
+  P.innerHTML = OVER.tab === 'me' ? awardsHTML(OVER.me) : OVER.tab === 'op' ? awardsHTML(OVER.op) : OVER.tab === 'tm' ? teamCmpHTML()
+    : OVER.tab === 'bat' ? batBoxHTML(me) + batBoxHTML(op) : pitBoxHTML(me) + pitBoxHTML(op);
+}
+function showReport(r) {
+  const me = G.T[G.userSide], op = G.T[1 - G.userSide];
+  OVER.tab = 'me';
+  OVER.me = teamAwards(me, r); OVER.op = teamAwards(op, r === 'win' ? 'lose' : r === 'lose' ? 'win' : 'draw');
+  const dot = (t) => `<i class="tdot" style="background:${t.c1}"></i>`;
+  $('#overTabs').innerHTML = `<button data-ot="me" role="tab">${dot(me.t)}${esc(me.t.city)}</button><button data-ot="op" role="tab">${dot(op.t)}${esc(op.t.city)}</button>`
+    + '<button data-ot="tm" role="tab">팀 기록</button><button data-ot="bat" role="tab">타자</button><button data-ot="pit" role="tab">투수</button>';
+  renderOverPane();
+}
+$('#overTabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-ot]'); if (!b) return; AU.click(); OVER.tab = b.dataset.ot; renderOverPane(); });
 /* ===================== 온라인 1:1 (room presence 기반 락스텝) ===================== */
 // 원리: 두 기기가 같은 시드로 같은 계산을 하고, 사람의 선택(투구/스윙/작전)만 주고받는다.
 // 방 설정(이닝·홈/원정·주야간·판정 난이도)은 방장이 정하고, 참가자는 그 설정으로 경기한다.
@@ -6957,7 +7154,7 @@ function renderMe() {
   };
 }
 
-if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff });
+if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter });
 
 // 경기에서 돌아오면 보던 탭 그대로 (시즌 경기 → 시즌 탭, 온라인 경기 → 온라인 탭)
 showTab(store.get('tab', 'home'), true);

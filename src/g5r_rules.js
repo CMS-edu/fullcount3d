@@ -94,7 +94,7 @@ function balk() {
 }
 
 /* ---------- 견제 ---------- */
-// 평소엔 잘 안 잡히지만(1루 5% · 좌투수 +4%) 주자가 도루하려던 참이면(도루 요청) 절반쯤 잡힘 → 도루 읽기 싸움.
+// 평소엔 잘 안 잡히지만(1루 2.5% · 좌투수 +1.5%) 주자가 도루하려던 참이면(도루 요청) 22%쯤 잡힘 → 도루 읽기 싸움.
 // 견제할 때마다 주자 리드가 줄어서 이번 타석 도루 성공률 −3%p씩. 한 타석 3번째 견제가 실패하면 보크 (KBO 투수판 이탈 3회 제한)
 const PK_MAX = 3;
 function pickoffBase() { const s = stealBase(); if (s >= 0) return s; for (let k = 2; k >= 0; k--) if (G.bases[k]) return k; return -1; }
@@ -104,11 +104,11 @@ function pickoff(remote) {
   if (G.online && !remote) { flushSubsIn(); sendAct({ k: 'pko' }); } // 받은 도루 요청을 먼저 반영하고 신호 → 두 기기가 같은 조건으로 판정
   G.pk = (G.pk || 0) + 1;
   const r = G.bases[k], p = fieldTeam().pitcher, going = !!G.stealReq;
-  const lf = [0.3, 1, 2.2][(G.leadT || 0) + 1]; // 주자 리드 작전: 짧게면 거의 안 걸리고, 크게면 2배 넘게
-  let pr = going ? 0.5 + (G.leadT || 0) * 0.1 : [0.05, 0.03, 0.02][k] * lf;
-  if (k === 0 && p.hand === 'L') pr += going ? 0.1 : 0.04 * lf;
-  pr -= (r.spd - 60) * (going ? 0.004 : 0.0008);
-  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.01, 0.8);
+  const lf = [0.4, 1, 1.8][(G.leadT || 0) + 1]; // 주자 리드 작전: 짧게면 거의 안 걸리고, 크게면 2배 가까이
+  let pr = going ? 0.22 + (G.leadT || 0) * 0.07 : [0.025, 0.015, 0.01][k] * lf;
+  if (k === 0 && p.hand === 'L') pr += going ? 0.05 : 0.015 * lf;
+  pr -= (r.spd - 60) * (going ? 0.003 : 0.0004);
+  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.005, 0.45);
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false'); // 뛰려던 주자는 타이밍을 뺏김
   if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false;
   G.pclock = null; UI.pclock.hidden = true; G.meter = null; hideDocks();
@@ -152,6 +152,7 @@ function finishPickoff() {
   ball.hide();
   if (K.out) {
     G.bases[K.k] = null; G.outs++; fieldTeam().pitcher.g.outs++;
+    K.who.g.pko = (K.who.g.pko || 0) + 1; batTeam().ro = (batTeam().ro || 0) + 1;
     showPlayText(`견제사! ${K.who.name} 아웃`, 1700); AU.cheer(userPitching() ? 0.8 : 0.3, 1.2);
   } else if (!K.balk && G.pk === PK_MAX - 1 && userPitching()) toast('다음 견제가 실패하면 보크예요 (타석당 3번까지)', 2400);
   resetField(); placeRunners(); updateBug(); drawBoard(); updateLines();

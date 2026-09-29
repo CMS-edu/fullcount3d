@@ -102,7 +102,7 @@ let GR = Math.random; // 경기 결과에 영향을 주는 난수 (온라인에�
 
 function makeTeamState(idx) {
   const ros = JSON.parse(JSON.stringify(LEAGUE[idx]));
-  ros.lineup.concat(ros.bench).forEach((b) => (b.g = { pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, k: 0, sb: 0, d2: 0, d3: 0 }));
+  ros.lineup.concat(ros.bench).forEach((b) => (b.g = { pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, k: 0, sb: 0, cs: 0, pko: 0, d2: 0, d3: 0 }));
   ros.rotation.concat(ros.bullpen).forEach((p) => (p.g = { pc: 0, outs: 0, h: 0, r: 0, bb: 0, k: 0, hr: 0 }));
   const sp = ros.rotation[Math.floor(GR() * ros.rotation.length)];
   const tm = { idx, t: S.TEAMS[idx], ros, lineup: ros.lineup.slice(), bench: ros.bench.slice(), out: [], order: 0, pitcher: sp, used: [sp], runs: 0, hits: 0, bb: 0, err: 0, line: [], warned: null };
@@ -302,7 +302,7 @@ function startGame(ov) {
   const away = o.home ? o.opp : o.me, home = o.home ? o.me : o.opp;
   G.T = [makeTeamState(away), makeTeamState(home)];
   if (ov.sp) G.T.forEach((tm, i) => { if (ov.sp[i] != null) { tm.pitcher = tm.ros.rotation[ov.sp[i] % tm.ros.rotation.length]; tm.used = [tm.pitcher]; } });
-  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null; G.paId = 0;
+  G.inning = 1; G.half = 0; G.play = null; G.pitch = null; G.steal = null; G.paId = 0; G.runLog = [];
   paintCrowd(G.T[1].t, G.T[0].t); paintLed(G.T[1].t, G.T[0].t);
   UI.title.hidden = true; UI.hud.hidden = false; $('#overModal').hidden = true;
   $('#pracLine').hidden = !G.prac;
@@ -373,7 +373,7 @@ function cpuManagerPitch(ft, bt) {
     if (pool.length) want = pool.sort((a, b) => b.stf + b.ctl - (a.stf + a.ctl))[Math.floor(R() * Math.min(2, pool.length))];
   }
   if (want) {
-    ft.pitcher = want; ft.used.push(want);
+    ft.pitcher = want; ft.used.push(want); pitEnter(ft);
     dressField();
     toast(`상대 투수 교체: ${want.name} (${want.role === 'CL' ? '마무리' : '불펜'})`);
     boardFlash('투수 교체', want.name, 2.2);
@@ -415,7 +415,7 @@ function nextPitch() {
       if (gen !== G.gen || G.phase !== 'ready') return;
       // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
       const pb = pickoffBase();
-      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.28 : 0.1) * [0.5, 1, 1.6][(G.leadT || 0) + 1]) { pickoff(); return; }
+      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1]) { pickoff(); return; }
       windup(plan.type, plan.target, null);
     });
   }
@@ -469,7 +469,8 @@ function windup(type, target, meter) {
   else if (userBatting() && G.stealReq) k = stealBase();
   else if (userPitching()) {
     const sb = stealBase();
-    if (sb >= 0) { const r = G.bases[sb]; const pr = sb === 0 ? (r.spd >= 68 ? 0.14 : r.spd >= 60 ? 0.05 : 0) : (r.spd >= 75 ? 0.06 : 0); if (G.s < 2 && G.outs < 2 && R() < pr) k = sb; }
+    // CPU 주자는 성공 확률이 괜찮을 때만 뜀 (확률 낮은 도루로 주루사가 쌓이지 않게)
+    if (sb >= 0) { const c = stealChance(sb), pr = c >= 0.62 ? 0.14 : c >= 0.55 ? 0.06 : 0; if (G.s < 2 && G.outs < 2 && R() < pr) k = sb; }
   }
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false');
   if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false; // 아직 전달 중인 도루 요청이 있으면 버튼 유지
@@ -480,12 +481,14 @@ function stealBase() {
   if (G.bases[0] && !G.bases[1]) return 0;
   return -1;
 }
+// 도루 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
+// 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움. 견제 받을수록·리드 짧을수록 어려움
+function stealChance(k) {
+  const r = G.bases[k], P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : fieldTeam().pitcher.hand === 'L';
+  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+}
 function startSteal(k) {
-  const r = G.bases[k];
-  // 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
-  // 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움
-  const P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : false;
-  const pSucc = clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+  const r = G.bases[k], pSucc = stealChance(k);
   G.steal = { k, who: r, fig: G.runFig[k], ok: (G.online && G.pitch ? onSeed(G.pitch.pi, 5)() : R()) < pSucc, t0: clock + 0.1, arrive: 0, throwT: 0, throwArr: 0, phase: 'run' };
 }
 function handPos(f, left, out) { return (left ? f.lA : f.rA).hand.localToWorld(out.set(0, -0.3, 0)); }
@@ -682,6 +685,7 @@ function addRuns(n, scorers) {
   if (n <= 0) return;
   const bt = batTeam(), pit = fieldTeam().pitcher;
   bt.runs += n; bt.line[G.inning - 1] = (bt.line[G.inning - 1] || 0) + n; pit.g.r += n;
+  (G.runLog = G.runLog || []).push({ a: G.T[0].runs, h: G.T[1].runs, p: [G.T[0].pitcher, G.T[1].pitcher] }); // 승리·패전 투수 판정용 (g9r_report.js)
   (scorers || []).slice(0, n).forEach((r) => r && r.g && r.g.r++);
   const homeScores = bt === G.T[1];
   crowdPulse(homeScores ? 'H' : 'A', 1.2);
@@ -761,7 +765,7 @@ function finishSteal() {
     showCall('세이프!', '#37d67a', 1000); showPlayText(`${st.who.name}, ${st.k + 2}루 도루 성공!`, 1600);
     AU.cheer(0.7, 1.5); crowdPulse(G.half ? 'H' : 'A', 0.7);
   } else {
-    G.outs++; pit.g.outs++;
+    G.outs++; pit.g.outs++; st.who.g.cs = (st.who.g.cs || 0) + 1; batTeam().ro = (batTeam().ro || 0) + 1;
     showCall('아웃!', '#ff4b4b', 1000); showPlayText(`${st.who.name}, 도루 실패`, 1600);
   }
   ball.hide(); placeRunners(); resetField(); updateBug(); drawBoard();
@@ -813,30 +817,15 @@ function gameOver() {
   const gen = G.gen;
   later(r === 'win' ? 2.4 : 1.6, () => { if (gen === G.gen) showOver(r); });
 }
-function mvpOf(tm) {
-  let best = null, bs = -1e9;
-  tm.lineup.concat(tm.out).forEach((b) => { const s = b.g.h * 1 + b.g.hr * 2.5 + b.g.rbi * 1.2 + b.g.r * 0.6 + b.g.bb * 0.4 + b.g.sb * 0.5 - b.g.k * 0.2; if (s > bs) { bs = s; best = { p: b, bat: true }; } });
-  tm.used.forEach((p) => { const s = (p.g.outs / 3) * 0.9 + p.g.k * 0.35 - p.g.r * 1.2 - p.g.bb * 0.2; if (s > bs) { bs = s; best = { p, bat: false }; } });
-  return best;
-}
 function showOver(r) {
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const el = $('#overRes'); el.className = 'result ' + r;
   el.textContent = r === 'win' ? '승리!' : r === 'lose' ? '패배' : '무승부';
   $('#overH').textContent = G.inning > G.maxInn ? `경기 종료 · 연장 ${G.inning}회` : '경기 종료';
   $('#overLS').innerHTML = lineScoreHTML();
-  const win = r === 'lose' ? op : me;
-  const m = mvpOf(win);
-  if (m) {
-    const g = m.p.g;
-    const line = m.bat ? `${g.ab}타수 ${g.h}안타${g.hr ? ` ${g.hr}홈런` : ''}${g.rbi ? ` ${g.rbi}타점` : ''}${g.sb ? ` ${g.sb}도루` : ''}`
-      : `${Math.floor(g.outs / 3)}${g.outs % 3 ? '⅓⅔'[g.outs % 3 - 1] : ''}이닝 ${g.k}K ${g.r}실점`;
-    $('#overMvp').innerHTML = `${avatarHTML(m.p, 'md')}<span class="tagm">MVP</span><div><b>${esc(m.p.name)}</b> <span style="opacity:.7">${esc(win.t.city)} · ${m.bat ? m.p.posK : '투수'}</span><br><span style="font-size:13px">${line}</span></div>`;
-  } else $('#overMvp').innerHTML = '';
-  const hr = me.lineup.concat(me.out).reduce((a, b) => a + b.g.hr, 0), k = op.lineup.concat(op.out).reduce((a, b) => a + b.g.k, 0);
+  showReport(r); // 어워드 · 팀 기록 · 타자 · 투수 탭 (g9r_report.js)
   const rec = recOf(OPTS.me);
-  $('#overStats').innerHTML = `<div><b>${me.hits}</b>우리 안타</div><div><b>${hr}</b>우리 홈런</div><div><b>${k}</b>탈삼진</div>` +
-    `<div style="grid-column:1/-1"><b style="font-size:15px">${esc(me.t.city)} ${esc(me.t.name)} · ${rec.w}승 ${rec.l}패 ${rec.d}무</b>통산 전적</div>`;
+  $('#overStats').innerHTML = `<div style="grid-column:1/-1"><b style="font-size:15px">${esc(me.t.city)} ${esc(me.t.name)} · ${rec.w}승 ${rec.l}패 ${rec.d}무</b>통산 전적</div>`;
   $('#againBtn').textContent = G.season ? '시즌 화면으로' : '같은 매치업 다시';
   if (G.season) $('#overStats').innerHTML += `<div style="grid-column:1/-1"><b style="font-size:15px">${esc(seasonLine())}</b>시즌 성적</div>`;
   $('#overModal').hidden = false;
@@ -876,7 +865,7 @@ function openPen() {
 }
 function changePitcher(tm, p, remote) {
   if (G.online && !remote) sendAct({ k: 'pc', key: p.key });
-  tm.pitcher = p; tm.used.push(p);
+  tm.pitcher = p; tm.used.push(p); pitEnter(tm);
   dressField(); pitcherPose(FIG.P, 0, p.hand, p.slot);
   G.selType = p.pitches[0]; buildPitchButtons(); drawPad(); updateLines(); drawBoard();
   toast(`투수 교체: ${p.name}`); boardFlash('투수 교체', p.name, 2.2); AU.whistle(); playerCard(p, tm, true);

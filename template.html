@@ -327,6 +327,53 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .result.win { color: var(--ball-c); } }
 .mvp { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); font-size: 14px; }
 .mvp .tagm { font-family: var(--display); color: #1c1405; background: var(--led); border-radius: 8px; padding: 4px 8px; font-size: 14px; }
+/* 경기 결과: 탭 · 어워드 카드 · 팀 기록 막대 */
+.otabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); margin: 2px 0 10px; }
+.otabs button { flex: 1; min-height: 38px; border-radius: 10px; font-weight: 700; font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; padding: 0 4px; }
+.otabs .tdot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.7); }
+.otabs button[aria-selected="true"] { background: var(--sunset); color: #fff; box-shadow: 0 4px 12px rgba(255, 110, 80, 0.3); }
+#overPane { min-height: 120px; }
+.awards { display: grid; gap: 8px; }
+.acard { position: relative; overflow: hidden; display: flex; gap: 10px; align-items: center; padding: 10px 12px 10px 14px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--border); border-left: 5px solid var(--tc);
+  animation: acIn 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes acIn { from { opacity: 0; transform: translateY(14px) scale(0.92); } }
+.acard .aico { position: absolute; right: 10px; top: 6px; font-size: 26px; opacity: 0.9; }
+.acard .atx { display: grid; min-width: 0; line-height: 1.3; padding-right: 30px; }
+.acard .atx small { font-size: 11px; font-weight: 700; color: var(--ink-2); letter-spacing: 0.02em; }
+.acard .atx b { font-size: 17px; font-family: var(--display); font-weight: 400; }
+.acard .atx span { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.acard .atx em { font-size: 12px; color: var(--ink-2); font-style: normal; }
+.acard .ava.md { width: 50px; height: 50px; flex: none; }
+.fx-gold { background: linear-gradient(110deg, rgba(255, 216, 74, 0.28), rgba(255, 216, 74, 0.08) 45%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 216, 74, 0.08) 55%, rgba(255, 216, 74, 0.2)); background-size: 250% 100%;
+  border-color: rgba(255, 196, 40, 0.7); animation: acIn 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both, shine 3s linear 1s infinite; }
+.fx-gold .aico { animation: trophy 1.2s ease-in-out infinite alternate; }
+@keyframes trophy { from { transform: rotate(-10deg) scale(1); } to { transform: rotate(10deg) scale(1.18); } }
+.confetti, .rain { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -10px; left: var(--x); width: 6px; height: 10px; border-radius: 2px; background: var(--c); animation: confetti 2.4s var(--d) ease-in infinite; opacity: 0; }
+@keyframes confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(110px) rotate(540deg); opacity: 0; } }
+.fx-doom { filter: saturate(0.4); background: linear-gradient(180deg, rgba(90, 100, 130, 0.35), var(--panel-2)); animation: acIn 0.5s both, doomShake 0.5s 1.2s 2; }
+.fx-doom .atx b { text-decoration: underline wavy rgba(196, 59, 59, 0.6); text-underline-offset: 4px; }
+.rain i { position: absolute; top: -12px; left: var(--x); width: 2px; height: 12px; border-radius: 1px; background: rgba(120, 170, 255, 0.7); animation: rain 0.9s var(--d) linear infinite; }
+@keyframes rain { to { transform: translateY(100px); } }
+@keyframes doomShake { 25% { transform: translateX(-4px) rotate(-0.6deg); } 75% { transform: translateX(4px) rotate(0.6deg); } }
+.fx-wobble .aico { animation: wob 1.1s ease-in-out infinite; }
+@keyframes wob { 50% { transform: rotate(-18deg) translateY(-2px); } }
+.fx-pulse .aico { animation: pul 1.2s ease-in-out infinite; }
+@keyframes pul { 50% { transform: scale(1.25); } }
+.fx-boom .aico { animation: boom 0.9s ease-out infinite; } .fx-boom { box-shadow: inset 0 0 0 1px rgba(255, 120, 60, 0.4); }
+@keyframes boom { 0% { transform: scale(0.8); } 30% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.fx-fire { background: linear-gradient(0deg, rgba(255, 90, 40, 0.22), var(--panel-2) 70%); }
+.fx-fire .aico { animation: pul 0.5s ease-in-out infinite; }
+.fx-ice { background: linear-gradient(135deg, rgba(120, 210, 255, 0.25), var(--panel-2) 60%); }
+.tcmp { display: grid; gap: 7px; font-variant-numeric: tabular-nums; }
+.tcmp .th, .tcmp .tr { display: grid; grid-template-columns: 30px 1fr 64px 1fr 30px; align-items: center; gap: 6px; }
+.tcmp .th { grid-template-columns: 1fr 64px 1fr; font-family: var(--display); font-size: 17px; } .tcmp .th b:last-child { text-align: right; }
+.tcmp .nm { text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.tcmp .v { font-weight: 700; font-size: 14px; text-align: center; }
+.tcmp .bar { height: 10px; border-radius: 5px; background: var(--chip-bg); display: flex; overflow: hidden; }
+.tcmp .bar.l { justify-content: flex-end; }
+.tcmp .bar i { width: var(--w); border-radius: 5px; animation: grow 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes grow { from { width: 0; } }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
 .stats div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 8px; text-align: center; font-size: 12px; color: var(--ink-2); }
 .stats b { display: block; font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -746,7 +793,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <h2 id="overH">경기 종료</h2>
     <div class="result" id="overRes"></div>
     <div class="lswrap"><table class="lscore" id="overLS"></table></div>
-    <div class="mvp" id="overMvp"></div>
+    <div class="otabs" id="overTabs" role="tablist"></div>
+    <div id="overPane"></div>
     <div class="stats" id="overStats"></div>
     <button class="mbtn primary" id="againBtn">같은 매치업 다시</button>
     <button class="mbtn" id="homeBtn">메인으로</button>
