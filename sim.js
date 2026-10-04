@@ -155,16 +155,24 @@
   ];
   const FT = { ofS: 5.9, infS: 4.3, ofT: 0.75, infT: 0.44, ofR: 1.04, infR: 0.91 };
   const US = { e0: 72, e1: 108, ep: 0.75, la0: 12, laK: 18, laN: 9 };
-  function makeFielders(defSpd, homes) { // homes: 수비 작전(전진·장타 방지 등)으로 옮긴 위치, 없으면 기본 위치
+  // defs[i]: 수비수 i의 {spd 주력, fld 수비, arm 어깨} (숫자 하나면 주력만, 수비·어깨는 60 = 보통)
+  //   수비 → 첫발 반응·포구 범위·송구 준비 시간·실책, 어깨 → 송구 속도(주자 진루·내야 땅볼 판정)·악송구
+  // homes: 수비 작전(전진·장타 방지 등)으로 옮긴 위치, 없으면 기본 위치
+  function makeFielders(defs, homes) {
     return (homes || FIELD_HOME).map((p, i) => {
-      const s = defSpd ? defSpd[i] : 60;
-      const of = i >= 6, inf = i >= 2 && i <= 5;
+      const d = defs ? defs[i] : null, o = typeof d === 'number' ? { spd: d } : d || {};
+      const s = o.spd == null ? 60 : o.spd, fld = o.fld == null ? 60 : o.fld, arm = o.arm == null ? 60 : o.arm;
+      const of = i >= 6, inf = i >= 2 && i <= 5, df = fld - 60;
       return {
-        x: p.x, z: p.z,
+        x: p.x, z: p.z, fld, arm,
         speed: (of ? FT.ofS : inf ? FT.infS : 4.3) * (0.92 + s / 750),
-        react: of ? FT.ofT : inf ? FT.infT : 0.52,
-        reach: of ? FT.ofR : inf ? FT.infR : 0.8,
+        react: (of ? FT.ofT : inf ? FT.infT : 0.52) * (1 - df * 0.0025),
+        reach: (of ? FT.ofR : inf ? FT.infR : 0.8) * (1 + df * 0.002),
         reachH: of ? 2.7 : inf ? 2.3 : 2.1,
+        xfer: 1 - df * 0.004, // 포구→송구 시간 배율
+        thr: 1 + (arm - 60) * 0.004, // 송구 속도 배율 (어깨 90 → +12%)
+        errK: Math.exp(-df * 0.03), // 실책 확률 배율 (수비 85 → 절반, 35 → 2배)
+        thrErrK: Math.exp(-df * 0.02 - (arm - 60) * 0.01),
       };
     });
   }
@@ -262,7 +270,8 @@
 
     // 인필드 플라이: 1·2루(또는 만루), 노아웃/1아웃에 내야 뜬공 → 타자 자동 아웃 (포구 실책이 나와도 타자는 아웃)
     const iff = ic.air && !ctx.bunt && tr.la > 45 && d0 < 45 && ic.f >= 1 && ic.f <= 5 && !!B[0] && !!B[1] && out0 < 2;
-    if (ic.air && !ctx.bunt && !iff && R() < 0.012) { ic.air = false; ic.late = true; res._err = true; res.errType = 'drop'; }
+    const fd = ctx.fielders[ic.f];
+    if (ic.air && !ctx.bunt && !iff && R() < 0.012 * (fd.errK || 1)) { ic.air = false; ic.late = true; res._err = true; res.errType = 'drop'; }
     if (ic.air) {
       /* ----- 뜬공/직선타 아웃 ----- */
       res.outs = 1;
@@ -273,7 +282,7 @@
       const nb = [B[0], B[1], B[2]];
       if (out0 + 1 < 3) {
         if (B[2]) {
-          const tThrow = ic.t + 0.9 + d0 / 27, tRun = ic.t + 0.3 + BASE / runV(B[2].spd);
+          const tThrow = ic.t + 0.9 + d0 / (27 * (fd.thr || 1)), tRun = ic.t + 0.3 + BASE / runV(B[2].spd);
           if (tRun + 0.25 < tThrow) {
             res.runners.push({ who: B[2], from: 3, to: 4, out: false, t0: ic.t + 0.3, t1: tRun });
             nb[2] = null; res.runs = 1; res.rbi = 1; res.kind = 'SF';
@@ -283,7 +292,7 @@
           }
         }
         if (B[1] && !nb[2] && d0 > 78 && tr.phi > -5) {
-          const b3 = basePos(3), tThrow = ic.t + 0.9 + dist2(ic, b3) / 27, tRun = ic.t + 0.3 + BASE / runV(B[1].spd);
+          const b3 = basePos(3), tThrow = ic.t + 0.9 + dist2(ic, b3) / (27 * (fd.thr || 1)), tRun = ic.t + 0.3 + BASE / runV(B[1].spd);
           if (tRun + 0.4 < tThrow) { res.runners.push({ who: B[1], from: 2, to: 3, out: false, t0: ic.t + 0.3, t1: tRun }); nb[2] = B[1]; nb[1] = null; }
         }
       }
@@ -312,7 +321,7 @@
     const infield = ic.f <= 5 && d0 < 48 && !ic.late;
     if (infield) {
       /* ----- 내야 땅볼 ----- */
-      const xfer = (ic.f === 1 ? 0.95 : ic.f === 0 ? 0.8 : 0.75) + (ic.dive || 0) * 0.55, arm = 28;
+      const xfer = ((ic.f === 1 ? 0.95 : ic.f === 0 ? 0.8 : 0.75) + (ic.dive || 0) * 0.55) * (fd.xfer || 1), arm = 28 * (fd.thr || 1);
       const thr = (k, from = ic, t0 = ic.t + xfer) => t0 + dist2(from, basePos(k)) / arm;
       const forced = [!!B[0], !!(B[0] && B[1]), !!(B[0] && B[1] && B[2])];
       const runT = (b) => 0.15 + BASE / runV(B[b].spd); // b: 0=1루주자
@@ -341,7 +350,7 @@
       }
       if (!plan) {
         plan = tB1 < bT1 ? 'GO' : 'IFH';
-        if (plan === 'GO' && R() < (ic.f === 5 || ic.f === 4 ? 0.022 : 0.014)) { plan = 'IFH'; res._err = true; res.errType = 'throw'; }
+        if (plan === 'GO' && R() < (ic.f === 5 || ic.f === 4 ? 0.022 : 0.014) * (fd.thrErrK || 1)) { plan = 'IFH'; res._err = true; res.errType = 'throw'; }
         res.throws.push({ t0: ic.t + xfer, t1: tB1, from: { x: ic.x, z: ic.z }, to: basePos(1) });
         addCover(1, tB1);
       }
@@ -407,7 +416,7 @@
     /* ----- 외야로 빠진 안타 ----- */
     const EXTRA_HOME = 1.25, EXTRA_3B = 1.1;
     const P = { x: ic.x, z: ic.z };
-    const throwArr = (k) => ic.t + 0.9 + dist2(P, basePos(k)) / (dist2(P, basePos(k)) > 50 ? 24 : 27);
+    const throwArr = (k) => ic.t + 0.9 + dist2(P, basePos(k)) / ((dist2(P, basePos(k)) > 50 ? 24 : 27) * (fd.thr || 1));
     let k = 1;
     for (let kk = 2; kk <= 3; kk++) {
       const tb = 0.45 + (kk * BASE) / runV(bat.spd) + (kk - 1) * 0.3;

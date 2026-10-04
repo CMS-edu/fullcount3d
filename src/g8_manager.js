@@ -35,7 +35,7 @@ function edLoad(ti) {
 }
 function edName(k) { return ED.names[k] || ED.base[k].name; }
 function edBench() { return Object.keys(ED.base).filter((k) => k[0] === 'B' && !ED.order.includes(k)); }
-function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd}${p.spray ? ' · ' + tendText(p) : ''}`; }
+function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd} 수${p.fld} 어${p.arm}${p.fpos && p.fpos !== p.pos && p.fpos !== 'DH' ? ` (원래 ${POS_K[p.fpos] || (p.fpos === 'IF' ? '내야수' : '외야수')})` : ''}${p.spray ? ' · ' + tendText(p) : ''}`; }
 function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투${armSlotName(p) ? ' ' + armSlotName(p) : ''} · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · ${p.mix ? `${mixText(p)}${p.spd && p.spd.FB ? ` · 직구 평균 ${Math.round(p.spd.FB)}km/h` : ''}` : '구속·구종은 추정'}`; }
 function openRoster(ti) {
   edLoad(ti == null ? OPTS.me : ti); ED.tab = 'bat';
@@ -318,14 +318,15 @@ function openDef(slot) {
     tm.lineup.forEach((p, i) => {
       if (p.pos === 'DH') return;
       const b = document.createElement('button'); b.className = 'pcard';
-      b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${i + 1}번 · ${p.posK}</span></b><span class="role">주력 ${p.spd}</span><span class="r">${batInfo(p)}</span>`;
+      b.innerHTML = `<b>${avatarHTML(p, 'xs2')} ${esc(p.name)} <span style="font-weight:500;opacity:.7">${i + 1}번 · ${p.posK}</span></b><span class="role">수비 ${fieldAt(p, p.pos).fld}</span><span class="r">${batInfo(p)}</span>`;
       b.addEventListener('click', () => openDef(i)); L.appendChild(b);
     });
   } else {
     const old = tm.lineup[slot];
-    $('#subSub').textContent = `${old.posK} ${old.name} 대신 누구를? (수비는 주력이 높을수록 넓게 커버해요)`;
-    tm.bench.slice().sort((a, b) => b.spd - a.spd).forEach((p) => {
-      const b = subCard(p, `주력 ${p.spd}`);
+    $('#subSub').textContent = `${old.posK} ${old.name}(수비 ${fieldAt(old, old.pos).fld}) 대신 누구를? (수비: 포구·범위·실책, 어깨: 송구 · 원래 자리가 아니면 수비 감점)`;
+    const at = (p) => fieldAt(p, old.pos);
+    tm.bench.slice().sort((a, b) => at(b).fld - at(a).fld).forEach((p) => {
+      const f = at(p), b = subCard(p, `${old.posK} 수비 ${f.fld} · 어깨 ${f.arm}`);
       b.addEventListener('click', () => { defSub(tm, slot, p); closeSub(); }); L.appendChild(b);
     });
   }

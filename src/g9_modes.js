@@ -238,7 +238,7 @@ function rotIdx(i) { return gp(i) % 5; }
 function simGame(hi, ai, inn) {
   const T2 = [makeTeamState(ai), makeTeamState(hi)];
   T2.forEach((tm) => { tm.pitcher = tm.ros.rotation[rotIdx(tm.idx)]; tm.used = [tm.pitcher]; });
-  const Fs = T2.map((tm) => S.makeFielders(fieldersOf(tm).map((p, i) => (i === 0 ? 50 : p ? p.spd : 55))));
+  const Fs = T2.map((tm) => S.makeFielders(defOf(tm)));
   const maxInn = inn, limit = inn === 9 ? 11 : inn + 2;
   const D = DIFF.pro;
   for (let ing = 1; ing <= limit; ing++) {

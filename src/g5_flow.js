@@ -4,6 +4,20 @@ const POS_LIST = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'];
 /* ---------- 실제 기록 → 게임 능력치 ---------- */
 // 표본이 작으면 리그 평균 쪽으로 당김 (w = 신뢰도)
 const POS_SPD = { C: 38, '1B': 42, DH: 42, '3B': 50, LF: 52, RF: 52, '2B': 56, SS: 58, CF: 60 };
+// 수비 능력치 (실제 수비 기록이 없어서 추정): 수비 = 그 포지션을 맡는 선수 기본값 + 주력(도루), 어깨 = 포지션 기본값 + 파워 조금
+// data/fielding.txt에 적은 선수는 그 값 그대로. 60이 예전(모두 같은 수비)과 같은 수준
+const POS_FLD = { C: 58, '1B': 50, DH: 42, '3B': 58, LF: 54, RF: 56, '2B': 62, SS: 66, CF: 64, IF: 60, OF: 56 };
+const POS_ARM = { C: 62, '1B': 50, DH: 46, '2B': 55, SS: 64, '3B': 64, LF: 54, CF: 60, RF: 66, IF: 58, OF: 58 };
+// 수비 난이도 (높을수록 어려운 자리): 자기 자리보다 어려운 곳에 서면 수비 감점, 포수는 전문 포지션
+const POS_DIF = { DH: 0, '1B': 1, LF: 2, RF: 2.5, OF: 3, '3B': 3, IF: 3.5, '2B': 3.5, CF: 3.5, SS: 4, C: 5 };
+const isOF = (p) => p === 'LF' || p === 'CF' || p === 'RF' || p === 'OF';
+function fieldAt(b, pos) { // pos 자리에 섰을 때의 수비·어깨
+  const n = b.fpos || b.pos;
+  if (!b.fld || pos === n || (n === 'IF' && !isOF(pos) && pos !== 'C' && pos !== '1B') || (n === 'OF' && isOF(pos))) return { fld: b.fld || 55, arm: b.arm || 55 };
+  let pen = Math.max(0, (POS_DIF[pos] || 0) - (POS_DIF[n] || 0)) * 6 + (isOF(pos) !== isOF(n) && pos !== '1B' ? 5 : 0);
+  if (pos === 'C') pen = 30;
+  return { fld: Math.max(20, b.fld - Math.round(pen)), arm: b.arm };
+}
 function hashN(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 function rateHitter(r) {
   const pa = Math.max(1, r.pa), w = pa / (pa + 120), w2 = pa / (pa + 60);
@@ -16,6 +30,9 @@ function rateHitter(r) {
     pow: rnd(58 + ((iso - 0.13) * 210 + (r.hr / pa - 0.022) * 150) * w, 25, 99),
     eye: rnd(58 + ((bbp - 0.09) * 280 - (kp - 0.19) * 60) * w, 25, 99),
     spd: rnd((POS_SPD[r.pos] || 50) + Math.min(38, (r.sb / pa) * 380) * w2, 25, 97),
+    fpos: r.fp || r.pos,
+    fld: r.fld || rnd((POS_FLD[r.fp || r.pos] || 55) + Math.min(38, (r.sb / pa) * 380) * w2 * 0.45, 30, 92),
+    arm: r.arm || rnd((POS_ARM[r.fp || r.pos] || 55) + ((iso - 0.13) * 210 + (r.hr / pa - 0.022) * 150) * w * 0.12, 35, 90),
   };
 }
 const ARSENAL = ['SL', 'CB', 'CH', 'FK', 'TS'];
@@ -113,6 +130,10 @@ function fieldersOf(tm) {
   const a = [tm.pitcher];
   tm.lineup.forEach((b) => { if (POS_IDX[b.pos]) a[POS_IDX[b.pos]] = b; });
   return a;
+}
+// S.makeFielders에 넘길 수비수별 {주력, 수비, 어깨} (투수는 수비 55 · 어깨 60, 빈 자리는 평균)
+function defOf(tm) {
+  return fieldersOf(tm).map((p, i) => (i === 0 ? { spd: 50, fld: 55, arm: 60 } : p ? Object.assign({ spd: p.spd }, fieldAt(p, p.pos)) : { spd: 55, fld: 55, arm: 55 }));
 }
 
 /* ---------- 유니폼 ---------- */
@@ -482,10 +503,11 @@ function stealBase() {
   return -1;
 }
 // 도루 성공률: 주력이 기본 (주력 55 → 30%, 75 → 52%, 90 → 69%). 빠른 공(직구)엔 불리, 느린 변화구엔 유리,
-// 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움. 견제 받을수록·리드 짧을수록 어려움
+// 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움. 견제 받을수록·리드 짧을수록·포수 어깨가 강할수록 어려움
 function stealChance(k) {
   const r = G.bases[k], P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : fieldTeam().pitcher.hand === 'L';
-  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+  const c = fieldersOf(fieldTeam())[1], carm = c ? fieldAt(c, 'C').arm : 60; // 포수 어깨: 70이면 −4%p, 85면 −10%p
+  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07 - (carm - 60) * 0.004, 0.1, 0.85);
 }
 function startSteal(k) {
   const r = G.bases[k], pSucc = stealChance(k);

@@ -8,6 +8,13 @@ POSFIX={'Lee Woo-sung':'LF'}
 def ko(v):
     return KO.get(v['eng']+'|'+v['team']) or KO.get(v['eng'])
 lineups={}
+# 수비 능력치 직접 지정 (선택): team|name_ko|fld|arm  — 없으면 게임이 기록·포지션으로 추정
+FLD={}
+try:
+    for line in open('data/fielding.txt'):
+        if line.startswith('#') or not line.strip(): continue
+        t,n,f,a=line.strip().split('|'); FLD[(t,n)]=(int(f) if f else None, int(a) if a else None)
+except FileNotFoundError: pass
 for line in open('data/lineups.txt'):
     if line.startswith('#') or not line.strip(): continue
     t,d,o,n,pos=line.strip().split('|'); lineups.setdefault(t,[]).append((int(o),n,pos,d))
@@ -34,9 +41,16 @@ for t in TEAMS:
         if cs: bench=bench[:3]+[cs[0]]
     rot,pen=pick_pitchers(t)
     def H(v,pos):
+        fp = v['pos'] or POSFIX.get(v['eng'])  # 원래 수비 위치 (로스터 기준, IF/OF = 내야/외야 유틸리티)
         pos = pos or {'IF':'2B','OF':'LF',None:POSFIX.get(v['eng'],'LF')}.get(v['pos'],v['pos'])
+        ex = {}
+        if fp and fp != pos: ex['fp'] = fp
+        fa = FLD.get((t, ko(v).rstrip('*')))
+        if fa:
+            if fa[0] is not None: ex['fld'] = fa[0]
+            if fa[1] is not None: ex['arm'] = fa[1]
         return dict(n=ko(v).rstrip('*'), e=v['eng'], num=v.get('num') or '', pos=pos, b=(v.get('bats') or 'R')[0].replace('S','R') if (v.get('bats') or 'R')[0]!='S' else 'S',
-                    pa=v['pa'], avg=v['avg'], obp=v['obp'], slg=v['slg'], hr=v['hr'], sb=v.get('sb',0), bb=v.get('bb'), so=v.get('so'))
+                    pa=v['pa'], avg=v['avg'], obp=v['obp'], slg=v['slg'], hr=v['hr'], sb=v.get('sb',0), bb=v.get('bb'), so=v.get('so'), **ex)
     def P(v,role):
         thr=(v.get('thr') or THROWS.get(v['eng']) or 'R')[0]
         return dict(n=ko(v).rstrip('*'), e=v['eng'], num=v.get('num') or '', t=thr, role=role, ip=round(v['ip'],2), era=v['era'], whip=v['whip'], k=v['k'], bb=v['bb'], sv=v.get('sv',0))
