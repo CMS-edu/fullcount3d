@@ -38,9 +38,18 @@ function updateCamera(dt) {
   CAM.p.lerp(CAM.tp, kp); CAM.l.lerp(CAM.tl, kl); CAM.fov = lerp(CAM.fov, CAM.tfov, kp);
   camera.position.copy(CAM.p); camera.lookAt(CAM.l); fxApplyShake();
   if (Math.abs(camera.fov - CAM.fov) > 0.01) { camera.fov = CAM.fov; camera.updateProjectionMatrix(); }
+  updateShadowFocus();
   // 타격 시점에서는 포수·구심이 존을 가리지 않게 숨김
   const hideHome = CAM.mode === 'bat' && CAM.p.z > 3;
   [FIG.field[1], FIG.ump[0]].forEach((f) => { if (f.visible) { f.root.visible = !hideHome; f.shadow.visible = !hideHome; } });
+}
+
+// 그림자 범위: 카메라와 보는 곳 사이(보는 곳 쪽으로 60%)를 중심으로, 멀리 볼수록 넓게 (4m 단위로 끊어서 지글거림 방지)
+function updateShadowFocus() {
+  if (!GFX.shadows) return;
+  const x = lerp(camera.position.x, CAM.l.x, 0.6), z = lerp(camera.position.z, CAM.l.z, 0.6);
+  const d = camera.position.distanceTo(CAM.l);
+  shadowFocus(x, z, clamp(Math.round((d * 1.2) / 4) * 4, 28, 72));
 }
 
 /* ===================== 대기 동작 ===================== */
@@ -64,6 +73,13 @@ function updateIdle(dt) {
       if (G.steal && G.steal.coverF === i && clock > G.steal.throwT - 0.9) continue;
       if (G.pko && G.pko.cover === i) continue;
       idleTo(f, pitching && u > 0.55 ? POSE.ready : f.tp, dt, 5);
+      // 크립 스텝: 투수가 공을 던질 때 야수들이 홈 쪽으로 반 걸음~한 걸음 들어오며 준비, 공이 지나가면 다시 제자리 (제자리 근처에 있을 때만)
+      if (G.T) {
+        const h = defHome(i), L = Math.hypot(h.x, h.z) || 1, want = pitching && u > 0.5 ? (i >= 6 ? 1.1 : 0.55) : 0;
+        f.creep = damp(f.creep || 0, want, want ? 3.2 : 1.6, dt);
+        const x = h.x - (h.x / L) * f.creep, z = h.z - (h.z / L) * f.creep;
+        if (Math.hypot(f.root.position.x - x, f.root.position.z - z) < 0.6) placeFig(f, x, z);
+      }
     }
     // 포수
     const c = FIG.field[1];
@@ -182,6 +198,7 @@ function openMenu() {
   $('#sndSw').setAttribute('aria-checked', String(AU.on));
   $('#zoneSw').setAttribute('aria-checked', String(G.zoneOn));
   $('#heatSw').setAttribute('aria-checked', String(G.heatOn));
+  $$('#gfxSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === GFX.q)));
   $('#boxNow').innerHTML = `<div class="lswrap" style="margin:10px 0"><table class="lscore">${lineScoreHTML()}</table></div>` + boxHTML(G.T[G.userSide]);
   openModal('#menuModal');
 }
@@ -191,6 +208,15 @@ $('#resumeBtn').addEventListener('click', closeMenu);
 $('#sndSw').addEventListener('click', (e) => { const v = !AU.on; AU.init(); AU.setOn(v); e.currentTarget.setAttribute('aria-checked', String(v)); });
 $('#zoneSw').addEventListener('click', (e) => { G.zoneOn = !G.zoneOn; store.set('zone', G.zoneOn); e.currentTarget.setAttribute('aria-checked', String(G.zoneOn)); zoneGuide.visible = G.zoneOn && userBatting() && G.phase !== 'play'; });
 $('#heatSw').addEventListener('click', (e) => { G.heatOn = !G.heatOn; store.set('heat', G.heatOn); e.currentTarget.setAttribute('aria-checked', String(G.heatOn)); drawZoneHeat(); });
+// 그래픽 품질 바꾸기: 그림자 켜고 끄기·해상도 → 모든 재질을 다시 컴파일
+function setGfx(q) {
+  store.set('gfx', q); gfxApply(q);
+  sun.shadow.mapSize.set(GFX.shadowSize, GFX.shadowSize); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  FG.shadowMat.opacity = GFX.shadows ? 0.5 : 1;
+  scene.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => (m.needsUpdate = true)); });
+  $$('#gfxSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === q)));
+}
+$('#gfxSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { AU.click(); setGfx(b.dataset.v); } });
 $('#quitBtn').addEventListener('click', quitToTitle);
 $('#againBtn').addEventListener('click', () => { $('#overModal').hidden = true; if (G.season) { quitToTitle(); openSeason(); } else startGame(); });
 $('#homeBtn').addEventListener('click', quitToTitle);
@@ -218,7 +244,7 @@ addEventListener('resize', resize);
 
 const HASH = location.hash || '';
 const AUTO = /auto/.test(HASH) ? { speed: +(HASH.match(/speed=([\d.]+)/) || [0, 1])[1], busy: false } : null;
-const FASTTEST = /fast/.test(HASH); let fastN = 0;
+const FASTTEST = /fast/.test(HASH); let fastN = 0, shadowN = 0;
 let flashTick = -1, perfT = 0, perfN = 0, last = performance.now();
 function cosmetics(dt) {
   cheerU.uT.value += dt;
@@ -233,6 +259,7 @@ function cosmetics(dt) {
     if (board.flash <= 0) { board.msg = ''; drawBoard(); }
   }
   updateFireworks(dt); fxTick(dt);
+  if (!paused) ball.spin(dt);
   if (pciRing.visible) {
     if (pciRing.flash) { if (clock > pciRing.flash) { pciRing.visible = false; pciRing.flash = 0; } }
     pciRing.material.opacity = 0.55 + Math.sin(clock * 10) * 0.2;
@@ -261,6 +288,9 @@ function frame(now) {
   }
   updateCamera(paused ? real : Math.min(dt, 0.1));
   cosmetics(real);
+  // 보통 화질: 그림자는 두 프레임에 한 번만 다시 그림 (폰 부담 줄이기)
+  renderer.shadowMap.autoUpdate = GFX.q !== 'mid';
+  if (GFX.q === 'mid' && (++shadowN & 1)) renderer.shadowMap.needsUpdate = true;
   if (!FASTTEST || (++fastN % 12) === 0) renderer.render(scene, camera);
   // 적응형 해상도
   perfT += real; perfN++;
@@ -307,7 +337,7 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
 });
 requestAnimationFrame((t) => { last = t; frame(t); });
 setTimeout(() => { $('#loading').classList.add('gone'); window.__done = true; }, 250);
-window.__fc = { G, S, OPTS, CAM, startGame, finishPlay, quitToTitle, FIG, startAdvance, placeRunners, balk, call, curBatter, batTeam };
+window.__fc = { G, S, OPTS, CAM, startGame, finishPlay, quitToTitle, FIG, startAdvance, placeRunners, balk, call, curBatter, batTeam, renderer, hemi, sun, fill, applyTime, fieldU, startPlay, trackPos };
 if (AUTO) {
   const m = (k, d) => (HASH.match(new RegExp(k + '=(\\w+)')) || [0, d])[1];
   OPTS.inn = +m('inn', 1); OPTS.home = +m('home', 1); OPTS.diff = m('diff', 'pro'); OPTS.time = m('time', OPTS.time);

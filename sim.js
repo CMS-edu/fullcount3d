@@ -72,12 +72,14 @@
     const dur = Math.abs(rel.z) / (kmh / 3.6);
     return { type, kmh, rel, target, bx, by, arc: p.arc * (145 / kmh), dur };
   }
-  // u = t/dur (0=릴리스, 1=홈플레이트)
+  // u = t/dur (0=릴리스, 1=홈플레이트). 휘는 양(bx·by)은 시간의 제곱 → 회전(마그누스)·중력처럼 일정한 힘
+  // 앞으로 가는 속도는 공기 저항으로 줄어듦: 손을 떠날 때 +5%, 홈에서 −5% (도착 시간 dur는 그대로라 타이밍은 같음)
+  const PITCH_DEC = 0.05;
   function pitchPos(pt, u, out) {
     const { rel, target, bx, by, arc } = pt;
     out.x = rel.x + (target.x - bx - rel.x) * u + bx * u * u;
     out.y = rel.y + (target.y - by - rel.y) * u + by * u * u + arc * 4 * u * (1 - u);
-    out.z = rel.z * (1 - u);
+    out.z = rel.z * (1 - (u + PITCH_DEC * u * (1 - u)));
     return out;
   }
 

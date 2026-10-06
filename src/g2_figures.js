@@ -80,7 +80,8 @@ const FG = (() => {
     x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return canvasTex(c);
   })();
   g.shadow = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  const shadowMat = new T.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 });
+  // 발밑 원형 그림자: 실시간 그림자가 있으면 옅게(발 닿는 곳 어둑함만), 없으면 진하게
+  const shadowMat = new T.MeshBasicMaterial({ map: shadowTex, transparent: true, opacity: GFX.shadows ? 0.5 : 1, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 });
   // 저사양 폰은 정점 조명(Lambert), 나머지는 픽셀 조명(Phong) — 곡면이 매끈해 보임
   const mat = (o = {}) => (lowEnd ? new T.MeshLambertMaterial(o) : new T.MeshPhongMaterial(Object.assign({ shininess: 10, specular: 0x161616 }, o)));
   const gloss = (o = {}) => new T.MeshPhongMaterial(Object.assign({ shininess: 70, specular: 0x5a5a5a }, o));
@@ -135,7 +136,30 @@ function jerseyTexture(base, trim, text, num, name, pin) {
   x.font = `60px ${FONT_DISP}`;
   x.lineWidth = 4; x.strokeStyle = edge; x.strokeText(String(num), 128, 78);
   x.fillStyle = ink; x.fillText(String(num), 128, 78);
+  x.setTransform(1, 0, 0, 1, 0, 0); fabric(x, W, H, 9, 9);
   return canvasTex(c);
+}
+// 천 질감: 아주 고운 직조 노이즈 + 세로 주름 음영 (캔버스 위에 덧칠)
+function fabric(x, w, h, amt, folds) {
+  const img = x.getImageData(0, 0, w, h), d = img.data;
+  let a = 1234567;
+  for (let i = 0; i < d.length; i += 4) { a = (a * 1103515245 + 12345) & 0x7fffffff; const n = ((a / 0x7fffffff) - 0.5) * amt; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  x.putImageData(img, 0, 0);
+  for (let k = 0; k < folds; k++) {
+    const fx = ((k * 37) % 100) / 100 * w, fw = w * (0.03 + ((k * 13) % 7) / 140);
+    const gr = x.createLinearGradient(fx - fw, 0, fx + fw, 0);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, 'rgba(0,0,0,0.09)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = gr; x.fillRect(fx - fw, 0, fw * 2, h);
+  }
+}
+function pantsTexture(pants, pipe) {
+  return cachedTex('pt' + pants + pipe, 64, 64, (x, w, h) => {
+    x.fillStyle = pants; x.fillRect(0, 0, w, h);
+    const gr = x.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(0,0,0,0.1)'); gr.addColorStop(0.75, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.16)'); // 무릎 뒤·사타구니 그늘
+    x.fillStyle = gr; x.fillRect(0, 0, w, h);
+    if (pipe) { x.fillStyle = pipe; x.fillRect(w * 0.24, 0, 1.4, h); x.fillRect(w * 0.74, 0, 1.4, h); } // 옆선 파이핑
+    fabric(x, w, h, 10, 5);
+  });
 }
 function sleeveTexture(base, trim) {
   return cachedTex('sl' + base + trim, 16, 32, (x, w, h) => {
@@ -227,18 +251,21 @@ function makeFigure(o) {
   // o: {jersey, pants, cap, trim, socks, helmet(bool), glove('L'|'R'|null), skin, num, name, teamText, capText, pin, kind}
   const { g, M, mat, gloss } = FG;
   const root = new T.Group(), body = new T.Group(), hip = new T.Group(), spine = new T.Group(), neck = new T.Group();
-  const mk = (geo, m, parent) => { const ms = new T.Mesh(geo, m); parent.add(ms); return ms; };
+  const mk = (geo, m, parent) => { const ms = new T.Mesh(geo, m); ms.castShadow = true; ms.receiveShadow = true; parent.add(ms); return ms; };
   const jerseyMat = mat({ map: jerseyTexture(o.jersey, o.trim, o.teamText || '', o.num == null ? '' : o.num, o.name, o.pin) });
   const sleeveMat = mat({ map: sleeveTexture(o.jersey, o.trim) });
-  const pantsMat = mat({ color: o.pants });
+  const pantsMat = mat({ map: pantsTexture(o.pants, o.pin ? o.trim : null) });
   const hipsMat = mat({ map: hipsTexture(o.pants, o.belt || '#16161a') });
   const shinMat = mat({ map: shinTexture(o.pants, o.socks || o.trim, o.pants) });
   const capMat = o.helmet ? gloss({ map: capTexture(o.cap, o.capText || '', true) }) : mat({ map: capTexture(o.cap, o.capText || '') });
   const capPlain = o.helmet ? gloss({ color: o.cap }) : mat({ color: o.cap });
   const id = figSerial, lk = o.skin != null ? { sk: o.skin, hair: 0, v: figSerial % 3 } : looksOf(null, id);
   const skinMat = mat({ color: SKINS[lk.sk], emissive: new T.Color(SKINS[lk.sk]).multiplyScalar(0.16) });
+  const armMat = mat({ color: SKINS[lk.sk], emissive: new T.Color(SKINS[lk.sk]).multiplyScalar(0.16) }); // 맨팔 또는 긴팔 언더셔츠
+  const handMat = mat({ color: SKINS[lk.sk], emissive: new T.Color(SKINS[lk.sk]).multiplyScalar(0.16) }); // 맨손 또는 배팅 장갑
   const headMat = mat({ map: faceTexture(lk.sk, lk.hair, lk.v), emissive: 0x2a2018 });
   figSerial++;
+  root.rotation.order = 'YXZ'; // 몸 방향(y) 먼저, 그다음 앞으로 눕기(x: 다이빙)
   root.add(body); body.add(hip); hip.position.y = 0.95;
   mk(g.hips, hipsMat, hip);
   hip.add(spine); spine.position.y = 0.08;
@@ -259,20 +286,20 @@ function makeFigure(o) {
   };
   const arm = (s) => {
     const Sh = new T.Group(); Sh.position.set(0.235 * s, 0.52, 0); spine.add(Sh);
-    mk(g.sleeve, sleeveMat, Sh); mk(g.upper, skinMat, Sh);
+    mk(g.sleeve, sleeveMat, Sh); mk(g.upper, armMat, Sh);
     const E = new T.Group(); E.position.y = -0.3; Sh.add(E);
-    mk(g.fore, skinMat, E);
+    mk(g.fore, armMat, E);
     const isGlove = (o.glove === 'L' && s > 0) || (o.glove === 'R' && s < 0);
-    const hand = mk(isGlove ? g.glove : g.hand, isGlove ? M.glove : skinMat, E);
+    const hand = mk(isGlove ? g.glove : g.hand, isGlove ? M.glove : handMat, E);
     return { Sh, E, hand };
   };
   const lL = leg(1), rL = leg(-1), lA = arm(1), rA = arm(-1);
   const sh = new T.Mesh(g.shadow, FG.shadowMat); sh.scale.set(1.1, 1, 1.1); sh.renderOrder = 5;
   const f = {
-    root, body, hip, spine, neck, torso, hat, lL, rL, lA, rA, shadow: sh, jerseyMat, capMat, capPlain, pantsMat, hipsMat, shinMat, sleeveMat, skinMat, headMat,
+    root, body, hip, spine, neck, torso, hat, lL, rL, lA, rA, shadow: sh, jerseyMat, capMat, capPlain, pantsMat, hipsMat, shinMat, sleeveMat, skinMat, armMat, handMat, headMat, uni: o,
     P: neutralPose(), run: 0, kind: o.kind || '', visible: true, helmet: !!o.helmet, id,
   };
-  f.ownMats = [jerseyMat, capMat, capPlain, pantsMat, hipsMat, shinMat, sleeveMat, skinMat, headMat];
+  f.ownMats = [jerseyMat, capMat, capPlain, pantsMat, hipsMat, shinMat, sleeveMat, skinMat, armMat, handMat, headMat];
   world.add(root); world.add(sh);
   return f;
 }
@@ -280,7 +307,9 @@ function setFigureColors(f, o) {
   f.jerseyMat.map && f.jerseyMat.map.dispose();
   f.jerseyMat.map = jerseyTexture(o.jersey, o.trim, o.teamText || '', o.num == null ? '' : o.num, o.name, o.pin); f.jerseyMat.needsUpdate = true;
   f.sleeveMat.map = sleeveTexture(o.jersey, o.trim);
-  f.pantsMat.color.set(o.pants);
+  f.uni = o;
+  f.pantsMat.map = pantsTexture(o.pants, o.pin ? o.trim : null);
+  if (f.kind === 'U') { f.armMat.color.set(o.jersey); f.armMat.emissive.set(0); } // 심판은 긴팔
   f.hipsMat.map = hipsTexture(o.pants, o.belt || '#16161a');
   f.shinMat.map = shinTexture(o.pants, o.socks || o.trim, o.pants);
   f.capMat.map = capTexture(o.cap, o.capText || '', f.helmet); f.capPlain.color.set(o.cap);
@@ -289,6 +318,12 @@ function setFigureColors(f, o) {
 function setFigureLooks(f, pl) {
   const lk = looksOf(pl, f.id);
   f.skinMat.color.set(SKINS[lk.sk]); f.skinMat.emissive.set(SKINS[lk.sk]).multiplyScalar(0.16);
+  // 긴팔 언더셔츠(선수마다 고정, 10명 중 4명쯤: 팀 보조색 또는 검정·남색) · 타자·주자는 배팅 장갑
+  const h = hashN(pl ? (pl.eng || pl.name || '') : 'fig' + f.id), o = f.uni || {};
+  const under = (h >>> 3) % 10 < 4 ? [o.trim || '#1b1b1f', '#16171b', '#1d2742'][(h >>> 7) % 3] : null;
+  if (under) { f.armMat.color.set(under); f.armMat.emissive.set(0); } else { f.armMat.color.set(SKINS[lk.sk]); f.armMat.emissive.set(SKINS[lk.sk]).multiplyScalar(0.16); }
+  const gloves = f.kind === 'B' || f.kind === 'R' ? ['#f4f4f0', '#18181c', o.trim || '#f4f4f0', o.jersey === '#f3f3ee' ? o.trim : o.jersey][(h >>> 11) % 4] : null;
+  if (gloves) { f.handMat.color.set(gloves); f.handMat.emissive.set(0); } else { f.handMat.color.set(SKINS[lk.sk]); f.handMat.emissive.set(SKINS[lk.sk]).multiplyScalar(0.16); }
   f.headMat.map = faceTexture(lk.sk, lk.hair, lk.v);
 }
 function showFigure(f, v) { f.root.visible = v; f.shadow.visible = v; f.visible = v; }
@@ -361,6 +396,8 @@ const POSE = {
   throwFwd: pose({ spY: -0.5, spX: 0.5, rSx: -2.2, rSz: 0.2, rE: -0.2, lSx: -0.3, lE: -1.4, lLx: -0.6, rLx: 0.5, rK: 0.5 }),
   celebrate: pose({ lSx: -2.6, rSx: -2.6, lSz: 0.5, rSz: -0.5, lE: -0.3, rE: -0.3, hdX: -0.3 }),
   dejected: pose({ spX: 0.35, hdX: 0.5, lSz: 0.05, rSz: -0.05 }),
+  // 다이빙: 몸을 앞으로 눕힌 채(root.rotation.x) 양팔을 머리 위로 뻗고 다리는 뒤로
+  dive: pose({ spX: -0.2, lSx: -2.95, lSz: 0.12, lE: -0.1, rSx: -2.55, rSz: -0.25, rE: -0.35, lLx: 0.3, rLx: 0.12, lK: 0.35, rK: 0.85, hdX: -0.85 }),
 };
 // 투구 동작 키프레임 (우투 기준; 좌투는 좌우 반전)
 const PITCH_KF = [
@@ -417,10 +454,34 @@ function runPose(f, spd, dt) {
 }
 
 /* ---------- 공 ---------- */
+// 실밥: 야구공 솔기 곡선(테니스공 곡선)을 구 텍스처(가로 = 경도, 세로 = 위도)에 빨간 바늘땀으로 그림
+const seamTex = (() => {
+  const W = 512, H = 256, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#f6f3ea'; g.fillRect(0, 0, W, H);
+  const a = 0.75, b = 0.25, cc = 2 * Math.sqrt(a * b);
+  const uv = (t) => {
+    let x = a * Math.cos(t) + b * Math.cos(3 * t), y = a * Math.sin(t) - b * Math.sin(3 * t), z = cc * Math.sin(2 * t);
+    const L = Math.hypot(x, y, z); x /= L; y /= L; z /= L;
+    let u = Math.atan2(z, -x) / (2 * Math.PI); if (u < 0) u += 1;
+    return [u * W, (Math.acos(clamp(y, -1, 1)) / Math.PI) * H];
+  };
+  g.strokeStyle = '#c8202a'; g.lineWidth = 2.2; g.lineCap = 'round';
+  const N = 1400;
+  for (let i = 0; i < N; i += 7) {
+    const t = (i / N) * Math.PI * 2, p = uv(t), q = uv(t + 0.004);
+    let dx = q[0] - p[0], dy = q[1] - p[1]; if (Math.abs(dx) > W / 2) continue;
+    const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+    const sx = 1 / Math.max(0.25, Math.sin((p[1] / H) * Math.PI)); // 극 쪽은 가로로 늘어나니 보정
+    for (const s of [-1, 1]) { g.beginPath(); g.moveTo(p[0] - dy * 2 * sx, p[1] + dx * 2); g.lineTo(p[0] - dy * 7 * s * sx + dx * 3, p[1] + dx * 7 * s + dy * 3); g.stroke(); }
+  }
+  return canvasTex(c);
+})();
+// 공 회전(눈에 보이는 속도, 초당 바퀴)과 자이로 비율 — 실제(직구 초당 38바퀴)는 화면에서 멈춘 것처럼 보여서 줄임. 포크는 거의 안 돎
+const PITCH_SPIN = { FB: [9, 0.1], TS: [8, 0.2], CT: [8, 0.6], SL: [7, 0.9], ST: [7, 0.3], CB: [6, 0.25], CH: [5, 0.15], FK: [1.6, 0.3] };
 const ball = (() => {
-  const m = new T.Mesh(new T.SphereGeometry(S.BALL_R, 14, 10), new T.MeshBasicMaterial({ color: 0xfbfbf6 }));
+  const m = new T.Mesh(new T.SphereGeometry(S.BALL_R, 16, 12), new T.MeshBasicMaterial({ map: seamTex }));
   m.renderOrder = 10; scene.add(m);
-  const halo = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending }));
+  const halo = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0.42, depthWrite: false, blending: T.AdditiveBlending }));
   halo.scale.set(0.3, 0.3, 1); m.add(halo);
   const sh = new T.Mesh(FG.g.shadow, new T.MeshBasicMaterial({ map: FG.shadowMat.map, transparent: true, depthWrite: false, opacity: 0.9, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -8 }));
   sh.renderOrder = 6; scene.add(sh);
@@ -430,7 +491,18 @@ const ball = (() => {
   trail.frustumCulled = false; scene.add(trail);
   const hist = [];
   return {
-    m, sh, halo, trail, hist, N, tp, tc, hot: 0,
+    m, sh, halo, trail, hist, N, tp, tc, hot: 0, spinAx: new T.Vector3(1, 0, 0), spinR: 0,
+    spin(dt) { if (m.visible && this.spinR) m.rotateOnWorldAxis(this.spinAx, this.spinR * 2 * Math.PI * dt); },
+    // 투구: 회전축 = 진행 방향(+z) × 휘는 방향 (마그누스 힘이 휘는 쪽으로 가게) + 슬라이더·커터는 자이로(진행 방향 축)
+    pitchSpin(pt) {
+      const sp = PITCH_SPIN[pt.type] || [7, 0.2], a = this.spinAx.set(-pt.by, pt.bx, 0);
+      if (a.lengthSq() < 1e-6) a.set(1, 0, 0); a.normalize(); a.z = sp[1]; a.normalize(); this.spinR = sp[0];
+    },
+    // 타구: 뜬공·라이너는 백스핀, 땅볼은 탑스핀
+    hitSpin(la, phi) {
+      const c = Math.cos(phi * D2R), s = Math.sin(phi * D2R), k = la < 6 ? -1 : 1;
+      this.spinAx.set(c * k, 0, s * k); this.spinR = la < 6 ? 6 : 8;
+    },
     set(x, y, z, big) {
       m.position.set(x, y, z); m.visible = true;
       const s = big || 1; m.scale.setScalar(s); halo.scale.setScalar(0.18 * s + 0.12);

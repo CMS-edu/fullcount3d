@@ -5,6 +5,7 @@ function contact(sw) {
   if (G.online) S.setRng(onSeed(P.pi, 2));
   const cp = sw.st || S.pitchPos(P.pt, P.contactU || 1, {});
   const tr = S.flyBall({ x: cp.x, y: cp.y, z: cp.z }, sw.ev, sw.la, sw.phi);
+  ball.hitSpin(sw.la, sw.phi);
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
   if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
@@ -74,6 +75,9 @@ function startPlay(tr, sw) {
       th.to = { x: th.to.x + (dx / L) * 2.5 + 1.2, z: th.to.z + (dz / L) * 2.5 + 1.8 }; th.recv = -1; th.wild = true;
     }
   });
+  addRelay(play, pos); addBackups(play, pos);
+  play.movers.forEach((m) => planRun(m, F[m.i].speed * 1.08, m.i >= 6 ? 6.5 : 8));
+  planCatch(play, pos);
   // 타자 / 주자
   res.runners.forEach((r) => {
     r.fig = who.get(r.who) || null;
@@ -87,17 +91,108 @@ function startPlay(tr, sw) {
   if (!play.foul) { cheerU.uT.value += 0; AU.cheer(clamp(sw.ev / 150, 0.4, 1), 1.6); crowdPulse(play.side, clamp((sw.ev - 90) / 60, 0.2, 1)); }
 }
 
-function moveFig(f, from, to, t0, t1, t, dt) {
-  const s = clamp((t - t0) / Math.max(0.01, t1 - t0), 0, 1);
-  const x = lerp(from.x, to.x, s), z = lerp(from.z, to.z, s);
-  const moving = t > t0 && s < 1;
+/* ---------- 야수 달리기: 가속 → 최고 속도 → (여유 있으면) 감속해서 멈추고 공을 기다림 ----------
+   여유가 없으면 공 도착 시각에 맞춰 멈추지 않고 달리며 잡음. 판정(sim.js resolvePlay)은 그대로, 화면 연출만 */
+function planRun(m, vmax, acc) {
+  const d = Math.hypot(m.to.x - m.from.x, m.to.z - m.from.z), T = Math.max(0.05, m.t1 - m.t0);
+  m.d = d; m.acc = acc; m.vmax = vmax;
+  const da = (vmax * vmax) / acc, tStop = d >= da ? (2 * vmax) / acc + (d - da) / vmax : 2 * Math.sqrt(d / acc);
+  if (tStop + 0.12 <= T || m.role === 'backup') { m.kind = 'stop'; m.v = d >= da ? vmax : Math.sqrt(d * acc); return; }
+  const disc = T * T - (2 * d) / acc;
+  if (disc >= 0) { m.kind = 'run'; m.v = acc * (T - Math.sqrt(disc)); } else m.kind = 'lin';
+}
+function runDist(m, t) {
+  const tt = Math.max(0, t - m.t0), d = m.d;
+  if (m.kind === 'stop') {
+    const v = m.v, a = m.acc, ta = v / a, tc = Math.max(0, (d - v * ta) / v), tot = 2 * ta + tc;
+    if (tt >= tot) return d;
+    if (tt < ta) return 0.5 * a * tt * tt;
+    if (tt < ta + tc) return 0.5 * v * ta + v * (tt - ta);
+    const r = tot - tt; return d - 0.5 * a * r * r;
+  }
+  if (m.kind === 'run') { const v = m.v, ta = v / m.acc; return Math.min(d, tt < ta ? 0.5 * m.acc * tt * tt : 0.5 * v * ta + v * (tt - ta)); }
+  return d * clamp(tt / Math.max(0.01, m.t1 - m.t0), 0, 1);
+}
+function moveRun(f, m, t, dt) {
+  const s = runDist(m, t), k = m.d > 1e-4 ? s / m.d : 1;
+  placeFig(f, lerp(m.from.x, m.to.x, k), lerp(m.from.z, m.to.z, k));
+  const moving = t > m.t0 && s < m.d - 0.02;
   if (moving) {
-    const d = Math.hypot(to.x - from.x, to.z - from.z), v = d / Math.max(0.01, t1 - t0);
-    placeFig(f, x, z);
-    if (d > 0.3) turnTo(f, Math.atan2(to.x - from.x, to.z - from.z), 12, dt);
-    runPose(f, clamp(v, 2, 8), dt);
-  } else placeFig(f, x, z);
+    const v = (s - runDist(m, t - 0.03)) / 0.03;
+    if (m.d > 0.3) turnTo(f, Math.atan2(m.to.x - m.from.x, m.to.z - m.from.z), 12, dt);
+    if (v > 0.8) runPose(f, clamp(v, 2, 8), dt); else idleTo(f, POSE.ready, dt, 10);
+  }
   return moving;
+}
+/* ---------- 중계 플레이: 깊은 외야 송구는 유격수·2루수(홈 송구는 1루수·3루수)가 중간에서 받아 다시 던짐 ----------
+   두 번 던져도 베이스 도착 시각은 판정과 같게 맞춤 */
+function addRelay(play, pos) {
+  const { res } = play;
+  if (res.fielder < 6 || play.hr || play.foul || res.throws.length !== 1) return;
+  const th = res.throws[0], d = Math.hypot(th.to.x - th.from.x, th.to.z - th.from.z);
+  if (d < 55 || th.wild) return;
+  const tb = baseOfPt(th.to), phi = S.phiOf(th.from.x, th.from.z), busy = (i) => i === res.fielder || i === th.recv || play.movers.some((m) => m.i === i);
+  let cut = tb === 0 ? (phi < 0 ? 4 : 2) : phi > 12 ? 3 : 5;
+  if (busy(cut)) cut = tb === 0 ? 5 : cut === 3 ? 5 : 3;
+  if (busy(cut)) return;
+  const C = { x: lerp(th.from.x, th.to.x, 0.42), z: lerp(th.from.z, th.to.z, 0.42) }, m1 = th.t0 + (th.t1 - th.t0) * 0.46;
+  if (th.t1 - (m1 + 0.22) < 0.35) return;
+  res.throws.splice(0, 1, { t0: th.t0, t1: m1, from: th.from, to: C, recv: cut, thrower: th.thrower, relay: true }, { t0: m1 + 0.22, t1: th.t1, from: C, to: th.to, recv: th.recv, thrower: cut });
+  play.movers.push({ i: cut, from: pos(cut), to: C, t0: 0.35, t1: m1 - 0.1, role: 'cut' });
+}
+/* ---------- 백업: 외야 타구엔 옆 외야수가 뒤를 받치고, 투수는 홈·3루 송구 뒤로. 내야 땅볼 1루 송구엔 우익수가 1루 뒤로 ---------- */
+function addBackups(play, pos) {
+  const { res } = play;
+  if (play.hr || play.foul || res.fielder < 0) return;
+  const add = (i, to, t0) => { if (!play.movers.some((m) => m.i === i) && i !== res.fielder) play.movers.push({ i, from: pos(i), to, t0, t1: res.dur, role: 'backup' }); };
+  if (res.fielder >= 6) {
+    const fp = res.fieldPos, L = Math.hypot(fp.x, fp.z) || 1, nb = res.fielder === 7 ? (S.phiOf(fp.x, fp.z) < 0 ? 6 : 8) : 7;
+    add(nb, { x: fp.x + (fp.x / L) * 6, z: fp.z + (fp.z / L) * 6 }, 0.6);
+    const th = res.throws[res.throws.length - 1], tb = th ? baseOfPt(th.to) : -1;
+    if (th && (tb === 0 || tb === 3)) { const b = th.to, dx = b.x - th.from.x, dz = b.z - th.from.z, l = Math.hypot(dx, dz) || 1; add(0, { x: b.x + (dx / l) * 9, z: b.z + (dz / l) * 9 }, 0.8); }
+  } else if (res.fielder >= 3 && res.throws.length && baseOfPt(res.throws[0].to) === 1) {
+    const b1 = S.basePos(1); add(8, { x: b1.x + 8, z: b1.z - 5 }, 0.5);
+  }
+}
+/* ---------- 다이빙·점프 캐치 (연출): 최고 속도로도 빠듯한데 공이 낮으면 몸을 날리고, 펜스 앞 높은 공은 뛰어올라 잡음 ---------- */
+function planCatch(play, pos) {
+  const { res, tr } = play, m = play.movers.find((x) => x.role === 'field');
+  if (!m || play.hr || play.foul || res.errType === 'drop') return;
+  const yb = trackPos(tr, res.fieldT, {}).y, fp = res.fieldPos, r = Math.hypot(fp.x, fp.z);
+  const air = ['FLY', 'LINE', 'POP', 'SF', 'LDP', 'FOUL_OUT'].includes(res.kind);
+  if (air && res.fielder >= 6 && yb > 2.2 && r > S.fenceDist(S.phiOf(fp.x, fp.z)) - 5) { m.leap = true; return; }
+  // 빠듯함 = 판정이 계산한 여유 시간 (공 도착 − 야수가 글러브 닿는 거리까지 가는 시간)
+  const p0 = pos(res.fielder), Fi = play.F[res.fielder], margin = res.fieldT - (Fi.react + Math.max(0, m.d - Fi.reach) / Fi.speed);
+  const ux = Math.sin(tr.phi * D2R), uz = -Math.cos(tr.phi * D2R), side = Math.abs(p0.x * uz - p0.z * ux);
+  // 땅볼: 판정은 늘 '닿는 가장 이른 지점'에서 잡으니 여유 시간 대신 옆으로 뛴 거리로 (6m 넘게 옆 = 몸을 날림)
+  // 뜬공·라이너: 여유가 거의 없이 무릎 아래에서 잡으면 다이빙(슬라이딩) 캐치
+  const ground = res.fielder >= 2 && res.fielder <= 5 && !air && side > (res.kind === 'IFH' ? 8.5 : 7.2);
+  const fly = air && res.kind !== 'POP' && margin < 0.08 && yb < 0.7;
+  if (!(ground || fly) || m.d < 2) return;
+  // 공 1.4m 앞에서 몸을 날림 → 뻗은 글러브가 공 자리에 닿게
+  const dx = m.to.x - m.from.x, dz = m.to.z - m.from.z, L = Math.hypot(dx, dz);
+  m.dive = { x: dx / L, z: dz / L }; m.to = { x: m.to.x - (dx / L) * 1.4, z: m.to.z - (dz / L) * 1.4 }; m.d = Math.max(0, L - 1.4);
+  const th = res.throws.find((w) => w.thrower === res.fielder);
+  m.upT = Math.max(res.fieldT + 0.35, (th ? th.t0 : res.fieldT + 1.2) - 0.55);
+  play.ev.dive = true;
+}
+function diveAnim(f, m, t, dt, tc) {
+  const a = t - (tc - 0.3);
+  if (a < 0) return false;
+  if (t > m.upT + 0.45) { f.root.rotation.x = 0; return false; }
+  const lay = a < 0.3 ? smooth(a / 0.3) : t < m.upT ? 1 : 1 - smooth((t - m.upT) / 0.45);
+  f.root.rotation.x = lay * 1.4;
+  if (a < 0.3) f.root.position.y += Math.sin((a / 0.3) * Math.PI) * 0.22;
+  turnTo(f, Math.atan2(m.dive.x, m.dive.z), 14, dt);
+  blendPose(f.P, POSE.ready, POSE.dive, lay); applyPose(f);
+  return true;
+}
+function leapAnim(f, t, dt, tc) {
+  const a = (t - (tc - 0.4)) / 0.75;
+  if (a < 0 || a > 1) return false;
+  f.root.position.y += Math.sin(a * Math.PI) * 0.7;
+  idleTo(f, POSE.catchHigh, dt, 16);
+  return true;
 }
 function idleTo(f, P, dt, k = 8) { blendPose(f.P, f.P, P, 1 - Math.exp(-k * dt)); applyPose(f); }
 
@@ -122,7 +217,7 @@ function updatePlay(dt) {
       held = last.recv >= 0 ? fig(last.recv) : null;
       bx = last.to.x; bz = last.to.z; by = 1.2;
       if (last.wild) { const r = Math.min(9, (t - last.t1) * 6), dx = last.to.x - last.from.x, dz = last.to.z - last.from.z, L = Math.hypot(dx, dz) || 1; bx += (dx / L) * r; bz += (dz / L) * r; by = 0.05 + Math.max(0, 0.8 - (t - last.t1) * 2); }
-      if (!last.got) { last.got = true; AU.glove(); onThrowArrive(play, last); }
+      if (!last.got) { last.got = true; AU.glove(); if (!last.relay) onThrowArrive(play, last); }
     } else {
       held = fig(res.fielder);
       if (!play.ev.caught) { play.ev.caught = true; AU.glove(); onFielded(play); }
@@ -146,12 +241,14 @@ function updatePlay(dt) {
   const moved = new Set();
   play.movers.forEach((m) => {
     const f = fig(m.i); moved.add(m.i);
-    const mv = moveFig(f, m.from, m.to, m.t0, m.t1, t, dt);
+    const mv = moveRun(f, m, t, dt);
+    if (m.dive && diveAnim(f, m, t, dt, res.fieldT)) return;
+    if (m.leap && leapAnim(f, t, dt, res.fieldT)) return;
     if (!mv) {
       const thr = res.throws.find((w) => w.thrower === m.i && t > w.t0 - 0.35 && t < w.t0 + 0.35);
       if (thr) { idleTo(f, t < thr.t0 ? POSE.throwBack : POSE.throwFwd, dt, 14); turnTo(f, Math.atan2(thr.to.x - f.root.position.x, thr.to.z - f.root.position.z), 12, dt); }
       else if (m.role === 'field' && Math.abs(t - res.fieldT) < 0.5 && !play.hr) idleTo(f, (tr.firstLand && t < tr.firstLand.t + 0.1) || res.kind === 'FLY' || res.kind === 'SF' || res.kind === 'LINE' || res.kind === 'POP' || res.kind === 'FOUL_OUT' || res.kind === 'LDP' ? POSE.catchHigh : POSE.catchLow, dt, 12);
-      else if (m.role === 'cover') { idleTo(f, POSE.ready, dt); turnTo(f, Math.atan2(play.ball.x - f.root.position.x, play.ball.z - f.root.position.z), 8, dt); }
+      else if (m.role === 'cover' || m.role === 'cut' || m.role === 'backup' || (m.role === 'field' && t < res.fieldT)) { idleTo(f, POSE.ready, dt); turnTo(f, Math.atan2(play.ball.x - f.root.position.x, play.ball.z - f.root.position.z), 8, dt); }
       else idleTo(f, POSE.stand, dt);
     }
   });

@@ -1,7 +1,7 @@
 /* ===================== WORLD ===================== */
 const FC = {
-  grass: '#2b7a37', grassL: '#348742', grassD: '#256d31', dirt: '#a6643e', dirtD: '#94583a', mound: '#ad6a43',
-  track: '#7a4f35', chalk: '#f3efe6', outer: '#22682f',
+  grass: '#3d7a35', grassL: '#468540', grassD: '#33702f', dirt: '#a06a4a', dirtD: '#8e5d40', mound: '#a66d4d',
+  track: '#7a5540', chalk: '#f3efe6', outer: '#2f6a2c',
 };
 const world = new T.Group(); scene.add(world);
 
@@ -29,7 +29,29 @@ const stars = (() => {
 const hemi = new T.HemisphereLight(0xcfd8ff, 0x1d2b1d, 0.6); scene.add(hemi);
 const sun = new T.DirectionalLight(0xffffff, 0.8); sun.position.set(30, 90, 45); scene.add(sun);
 const fill = new T.DirectionalLight(0xffffff, 0.3); fill.position.set(-40, 60, -90); scene.add(fill);
-scene.fog = new T.Fog(0x000000, 260, 1300);
+scene.fog = new T.Fog(0x000000, 150, 950); // 멀리 있는 외야 관중석·전광판이 살짝 흐려져서 거리감
+// 실시간 그림자: 주 조명(sun) 하나만. 그림자 범위(정사영 박스)는 카메라가 보는 곳을 따라다님 → 가까운 선수는 선명하게
+const SUN_DIR = new T.Vector3(25, 90, 40).normalize(), SH = { x: 0, z: -14, R: 32 };
+sun.castShadow = true;
+sun.shadow.mapSize.set(GFX.shadowSize, GFX.shadowSize);
+sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.025; sun.shadow.radius = 3;
+sun.shadow.camera.near = 20; sun.shadow.camera.far = 320;
+scene.add(sun.target);
+const _shU = new T.Vector3(), _shR = new T.Vector3(), _shC = new T.Vector3();
+function shadowFocus(x, z, R) {
+  SH.x = x; SH.z = z; SH.R = R;
+  const c = sun.shadow.camera;
+  if (c.right !== R) { c.left = -R; c.right = R; c.top = R; c.bottom = -R; c.updateProjectionMatrix(); }
+  // 그림자 텍셀 격자에 맞춰 중심을 고정 (카메라가 움직일 때 그림자 가장자리가 지글거리지 않게)
+  const tx = (2 * R) / sun.shadow.mapSize.x;
+  _shR.set(0, 1, 0).cross(SUN_DIR).normalize(); _shU.copy(SUN_DIR).cross(_shR).normalize();
+  _shC.set(x, 0, z);
+  const a = Math.round(_shC.dot(_shR) / tx) * tx - _shC.dot(_shR), b = Math.round(_shC.dot(_shU) / tx) * tx - _shC.dot(_shU);
+  _shC.addScaledVector(_shR, a).addScaledVector(_shU, b);
+  sun.target.position.copy(_shC);
+  sun.position.copy(_shC).addScaledVector(SUN_DIR, 160);
+}
+shadowFocus(0, -14, 32);
 
 /* ---------- 외곽 지면 ---------- */
 const outerGround = new T.Mesh(new T.CircleGeometry(1400, 48), new T.MeshLambertMaterial({ color: 0x151a17 }));
@@ -75,8 +97,10 @@ function buildBoundary() {
 const BOUND = buildBoundary();
 
 /* ---------- 필드 페인팅 (월드 좌표로 그림) ---------- */
+// 잔디 깎은 무늬는 셰이더(fieldMat)가 보는 방향에 따라 그림 → 여기선 단색 (셰이더를 못 쓰는 경우만 예전처럼 칠함)
 function grassPattern(g, x0, z0, x1, z1) {
   g.fillStyle = FC.grass; g.fillRect(x0, z0, x1 - x0, z1 - z0);
+  if (FIELD_SHADER) return;
   g.save(); g.rotate(-Math.PI / 4);
   const w = 4.57, R = 260;
   g.globalAlpha = 0.55; g.fillStyle = FC.grassL;
@@ -149,18 +173,72 @@ function paintField(g, x0, z0, x1, z1, W, H, detail) {
   g.lineWidth = 0.08;
   for (const s of [-1, 1]) { const bp = S.basePos(s > 0 ? 1 : 3); g.strokeRect(bp.x + s * 5.5, bp.z + 3.2, s * 3, 6); }
 }
+/* ---------- 잔디·흙 셰이더 ----------
+   - 잔디 깎은 무늬: 대각선 두 방향(4.57m 폭)으로 잔디 잎이 번갈아 눕혀져 있어서, 잎이 눕은 방향을 마주 보면 어둡고 같은 방향으로 보면 밝음
+     → 카메라 방향에 따라 줄무늬가 진해지고 옅어지고 뒤집힘 (실제 구장처럼)
+   - 가까이서는 잎·흙 알갱이 노이즈, 멀리서는 넓은 얼룩(물 빠짐·밟힌 자국)으로 단색 느낌을 없앰
+   잔디/흙 구분은 칠한 색으로 (초록이 빨강보다 크면 잔디) */
+const FIELD_SHADER = true;
+function noiseTex(size, cells, oct, seed) { // 이어 붙여도 이음매 없는 값 노이즈 (회색 128 중심)
+  const c = makeCanvas(size, size), g = c.getContext('2d'), img = g.createImageData(size, size), d = img.data;
+  let a = seed >>> 0; const rnd = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const acc = new Float32Array(size * size); let amp = 1, tot = 0;
+  for (let o = 0; o < oct; o++) {
+    const n = cells << o, grid = new Float32Array(n * n); for (let i = 0; i < n * n; i++) grid[i] = rnd();
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const fx = (x / size) * n, fy = (y / size) * n, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+      const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty), x1 = (ix + 1) % n, y1 = (iy + 1) % n;
+      const v = lerp(lerp(grid[iy * n + ix], grid[iy * n + x1], sx), lerp(grid[y1 * n + ix], grid[y1 * n + x1], sx), sy);
+      acc[y * size + x] += v * amp;
+    }
+    tot += amp; amp *= 0.55;
+  }
+  for (let i = 0; i < size * size; i++) { const v = clamp((acc[i] / tot - 0.5) * 2.2 + 0.5, 0, 1) * 255; d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v; d[i * 4 + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = Math.min(8, MAXANI); // 데이터용 → sRGB 변환 안 함
+  return t;
+}
+const fieldU = { uDetail: { value: noiseTex(256, 16, 4, 7) }, uMacro: { value: noiseTex(128, 4, 3, 11) }, uMow: { value: 0.2 } };
+function fieldMat(o) {
+  const m = new T.MeshLambertMaterial(o);
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, fieldU);
+    sh.vertexShader = 'varying vec3 vFP;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vFP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = 'varying vec3 vFP;\nuniform sampler2D uDetail;\nuniform sampler2D uMacro;\nuniform float uMow;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+  {
+    vec3 sc = sqrt(max(diffuseColor.rgb, 0.0));
+    float grass = smoothstep(0.03, 0.09, sc.g - sc.r);
+    float dirt = smoothstep(0.04, 0.12, sc.r - sc.g);
+    vec3 V = cameraPosition - vFP; float dist = length(V); V /= dist;
+    vec2 wp = vFP.xz;
+    float near = 1.0 - smoothstep(12.0, 70.0, dist);
+    float nF = texture2D(uDetail, wp * 1.9).r - 0.5, nM = texture2D(uDetail, wp * 0.21 + 0.31).r - 0.5, nL = texture2D(uMacro, wp * 0.013).r - 0.5;
+    // 잔디 깎은 무늬 (두 방향): 띠 안에서 잎이 눕은 방향(±축) · 보는 방향 수평 성분
+    vec2 ab = vec2(wp.x - wp.y, wp.x + wp.y) * (0.70710678 / 4.57);
+    float ew = clamp(dist * 0.004, 0.04, 0.6);
+    float sA = smoothstep(-ew, ew, sin(3.14159265 * ab.x)) * 2.0 - 1.0, sB = smoothstep(-ew, ew, sin(3.14159265 * ab.y)) * 2.0 - 1.0;
+    vec2 vh = V.xz * (1.0 - 0.45 * abs(V.y));
+    float mow = sA * dot(vh, vec2(0.70710678, 0.70710678)) + 0.8 * sB * dot(vh, vec2(0.70710678, -0.70710678));
+    float gF = 1.0 + uMow * mow + nF * 0.32 * near + nM * 0.16 + nL * 0.16;
+    float dF = 1.0 + nF * 0.36 * near + nM * 0.22 + nL * 0.1;
+    diffuseColor.rgb *= mix(1.0, mix(1.0, gF, grass), 1.0) * mix(1.0, dF, dirt);
+    diffuseColor.rgb *= mix(vec3(1.0), vec3(1.0 + nL * 0.12, 1.0, 1.0 - nL * 0.18), grass); // 잔디 색 얼룩 (누런 곳·짙은 곳)
+  }`);
+  };
+  return m;
+}
 function fieldLayer(x0, z0, x1, z1, W, H, y, order, detail) {
   const c = makeCanvas(W, H), g = c.getContext('2d');
   paintField(g, x0, z0, x1, z1, W, H, detail);
   const tex = canvasTex(c, { aniso: 16 });
-  const m = new T.Mesh(new T.PlaneGeometry(x1 - x0, z1 - z0), new T.MeshLambertMaterial({ map: tex, polygonOffset: order > 0, polygonOffsetFactor: -order, polygonOffsetUnits: -order * 2 }));
-  m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); m.renderOrder = order;
+  const m = new T.Mesh(new T.PlaneGeometry(x1 - x0, z1 - z0), fieldMat({ map: tex, polygonOffset: order > 0, polygonOffsetFactor: -order, polygonOffsetUnits: -order * 2 }));
+  m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); m.renderOrder = order; m.receiveShadow = true;
   world.add(m); return m;
 }
 const bigTex = !lowEnd;
 fieldLayer(-150, -175, 150, 35, bigTex ? 2048 : 1024, bigTex ? 2048 : 1024, 0, 0, false);
-fieldLayer(-36, -54, 36, 18, 1024, 1024, 0.012, 1, true);
-fieldLayer(-5, -6, 5, 4, 512, 512, 0.024, 2, true);
+fieldLayer(-36, -54, 36, 18, 1024, 1024, 0.012, 1, !FIELD_SHADER);
+fieldLayer(-5, -6, 5, 4, 512, 512, 0.024, 2, !FIELD_SHADER);
 
 /* ---------- 홈플레이트, 베이스, 마운드 ---------- */
 const whiteMat = new T.MeshLambertMaterial({ color: 0xffffff });
@@ -168,11 +246,11 @@ const whiteMat = new T.MeshLambertMaterial({ color: 0xffffff });
   const sh = new T.Shape();
   sh.moveTo(-0.216, 0.432); sh.lineTo(0.216, 0.432); sh.lineTo(0.216, 0.216); sh.lineTo(0, 0); sh.lineTo(-0.216, 0.216); sh.closePath();
   const plate = new T.Mesh(new T.ShapeGeometry(sh), whiteMat);
-  plate.rotation.x = -Math.PI / 2; plate.position.y = 0.04; world.add(plate);
+  plate.rotation.x = -Math.PI / 2; plate.position.y = 0.04; plate.receiveShadow = true; world.add(plate);
   const bg = new T.BoxGeometry(0.38, 0.09, 0.38);
-  for (const k of [1, 2, 3]) { const bp = S.basePos(k); const b = new T.Mesh(bg, whiteMat); b.position.set(bp.x, 0.045, bp.z); b.rotation.y = Math.PI / 4; world.add(b); }
-  const mound = new T.Mesh(new T.CylinderGeometry(1.1, 2.74, 0.25, 32, 1), new T.MeshLambertMaterial({ color: FC.mound }));
-  mound.position.set(0, 0.125, -18.44); world.add(mound);
+  for (const k of [1, 2, 3]) { const bp = S.basePos(k); const b = new T.Mesh(bg, whiteMat); b.position.set(bp.x, 0.045, bp.z); b.rotation.y = Math.PI / 4; b.receiveShadow = true; world.add(b); }
+  const mound = new T.Mesh(new T.CylinderGeometry(1.1, 2.74, 0.25, 32, 1), fieldMat({ color: FC.mound }));
+  mound.position.set(0, 0.125, -18.44); mound.receiveShadow = true; world.add(mound);
   const rubber = new T.Mesh(new T.BoxGeometry(0.61, 0.04, 0.15), whiteMat); rubber.position.set(0, 0.27, -18.44); world.add(rubber);
 }
 
@@ -318,6 +396,35 @@ const frontWallTex = { tex: null, canvas: null };
   const geo = ribbonGeo(BOUND, () => 0, (i) => LOW[i].h0, { x: 0, z: -45 }, 1 / 64);
   world.add(new T.Mesh(geo, new T.MeshLambertMaterial({ map: frontWallTex.tex })));
 }
+// 더그아웃 (1루 쪽 = 홈팀, 3루 쪽 = 원정팀): 앞벽에 낸 어두운 입구 + 팀 색 지붕 + 난간
+const dugoutRoofs = [];
+for (const sd of [1, -1]) {
+  const U = sd > 0 ? U1 : U3, N = sd > 0 ? N1 : N3, gp = new T.Group();
+  gp.position.set(U.x * 20 + N.x * (FOUL_OFF - 0.02), 0, U.z * 20 + N.z * (FOUL_OFF - 0.02)); gp.rotation.y = Math.atan2(-N.x, -N.z);
+  const dark = new T.MeshLambertMaterial({ color: 0x090b10 }), rail = new T.MeshLambertMaterial({ color: 0x9aa1ab });
+  const open = new T.Mesh(new T.PlaneGeometry(16, 1.5), dark); open.position.set(0, 0.75, 0.04); gp.add(open);
+  const floor = new T.Mesh(new T.PlaneGeometry(16, 1.1), dark); floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0.02, 0.58); gp.add(floor);
+  const roofMat = new T.MeshLambertMaterial({ color: 0x14365a }); dugoutRoofs.push(roofMat);
+  const roof = new T.Mesh(new T.BoxGeometry(16.6, 0.3, 1.4), roofMat); roof.position.set(0, 1.65, 0.62); roof.castShadow = true; roof.receiveShadow = true; gp.add(roof);
+  const bar = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 16, 6), rail); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.05, 1.25); gp.add(bar);
+  for (let k = -8; k <= 8; k += 2) { const post = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 1.05, 5), rail); post.position.set(k, 0.52, 1.25); gp.add(post); }
+  world.add(gp);
+}
+// 홈 뒤 보호 그물 (관중석 앞, 파울 라인 쪽으로 30m쯤까지): 가늘고 밝은 그물실 → 멀리선 옅은 막처럼 보임
+{
+  const c = makeCanvas(64, 64), g = c.getContext('2d');
+  g.strokeStyle = 'rgba(225,228,232,0.32)'; g.lineWidth = 1;
+  for (let k = -64; k <= 128; k += 16) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k + 64, 64); g.stroke(); g.beginPath(); g.moveTo(k + 64, 0); g.lineTo(k, 64); g.stroke(); }
+  const tex = canvasTex(c, { repeat: true, repeatT: true });
+  const path = BOUND.filter((p) => p.w >= 0.99 && Math.hypot(p.x, p.z) < 38).map((p) => ({ x: p.x - p.nx * 0.25, z: p.z - p.nz * 0.25 }));
+  const H = 11, y0 = standProfile(1).h0;
+  tex.repeat.set(1, (H - y0) / 0.2);
+  const net = new T.Mesh(ribbonGeo(path, () => y0, () => H, { x: 0, z: -45 }, 1 / 0.2), new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: T.DoubleSide, fog: true }));
+  net.renderOrder = 4; world.add(net);
+  const cable = new T.Mesh(ribbonGeo(path, () => H - 0.06, () => H, { x: 0, z: -45 }), new T.MeshBasicMaterial({ color: 0x3a3f48, side: T.DoubleSide }));
+  world.add(cable);
+  for (let i = 0; i < path.length; i += 4) { const pole = new T.Mesh(new T.CylinderGeometry(0.06, 0.08, H, 6), new T.MeshLambertMaterial({ color: 0x4a505b })); pole.position.set(path[i].x, H / 2, path[i].z); world.add(pole); }
+}
 // 상단 스탠드 (내야만) + LED 리본
 const upIdx = BOUND.map((p, i) => i).filter((i) => BOUND[i].w >= 0.99);
 const UPATH = upIdx.map((i) => BOUND[i]);
@@ -362,18 +469,51 @@ function crowdMat(color) {
   const m = new T.MeshLambertMaterial({ color });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uT = cheerU.uT; sh.uniforms.uCH = cheerU.uCH; sh.uniforms.uCA = cheerU.uCA;
-    sh.vertexShader = 'attribute float aPh;\nattribute float aSide;\nuniform float uT;\nuniform float uCH;\nuniform float uCA;\n' + sh.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\n float ch = aSide > 0.5 ? uCH : (aSide < -0.5 ? uCA : max(uCH, uCA) * 0.6);\n float bb = abs(sin(uT * (7.0 + aPh * 3.0) + aPh * 30.0));\n transformed.y += ch * bb * 0.38 + 0.025 * sin(uT * 1.7 + aPh * 50.0);\n transformed.x += ch * 0.06 * sin(uT * 9.0 + aPh * 11.0);');
+    // 환호: 일어나서 들썩이고(위아래), 팔(aArm = ±1인 정점)을 어깨 기준으로 머리 위까지 들어 올림. 박수 치는 사람·팔 흔드는 사람 섞임
+    sh.vertexShader = 'attribute float aPh;\nattribute float aSide;\nattribute float aArm;\nuniform float uT;\nuniform float uCH;\nuniform float uCA;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+      `#include <begin_vertex>
+ float ch = aSide > 0.5 ? uCH : (aSide < -0.5 ? uCA : max(uCH, uCA) * 0.6);
+ if (abs(aArm) > 0.5) {
+   float wave = 0.55 + 0.45 * sin(uT * (5.0 + aPh * 4.0) + aPh * 40.0 + aArm);
+   float up = clamp((ch - 0.1) * 1.6, 0.0, 1.0) * (aPh > 0.35 ? wave : 0.35 + 0.1 * wave) + 0.04 * sin(uT * 0.9 + aPh * 70.0);
+   vec3 pv = vec3(sign(aArm) * 0.2, 0.52, 0.0), q = transformed - pv;
+   float a = -up * 2.5, c = cos(a), s = sin(a);
+   q = vec3(q.x, q.y * c - q.z * s, q.y * s + q.z * c);
+   float b = sign(aArm) * up * 0.4; c = cos(b); s = sin(b);
+   transformed = pv + vec3(q.x * c - q.y * s, q.x * s + q.y * c, q.z);
+ }
+ float bb = abs(sin(uT * (7.0 + aPh * 3.0) + aPh * 30.0));
+ transformed.y += ch * bb * 0.38 + 0.025 * sin(uT * 1.7 + aPh * 50.0);
+ transformed.x += ch * 0.06 * sin(uT * 9.0 + aPh * 11.0);`);
   };
   return m;
 }
 const CROWD_N = lowEnd ? 2200 : isTouch ? 3000 : 4400;
 const crowd = (() => {
-  const bodyG = new T.CylinderGeometry(0.19, 0.23, 0.6, 6); bodyG.translate(0, 0.3, 0);
-  const headG = new T.SphereGeometry(0.12, 7, 5); headG.translate(0, 0.72, 0);
+  // 앉은 관중 상반신: 어깨가 있는 몸통(앞뒤로 납작) + 무릎에 올린 두 팔(정점 속성 aArm = ±1 → 환호 때 셰이더가 들어 올림)
+  const crowdBody = () => {
+    const parts = [], torso = new T.CylinderGeometry(0.2, 0.165, 0.52, 8, 1); torso.scale(1, 1, 0.62); torso.translate(0, 0.29, 0); parts.push([torso, 0]);
+    for (const s of [-1, 1]) { const a = new T.CylinderGeometry(0.052, 0.044, 0.42, 5, 1, true); a.translate(0, -0.21, 0); a.rotateX(-0.45); a.rotateZ(s * 0.12); a.translate(s * 0.2, 0.52, 0); parts.push([a, s]); }
+    const pos = [], nor = [], arm = [];
+    parts.forEach(([g0, s]) => { const g = g0.toNonIndexed(), P = g.attributes.position, N = g.attributes.normal; for (let i = 0; i < P.count; i++) { pos.push(P.getX(i), P.getY(i), P.getZ(i)); nor.push(N.getX(i), N.getY(i), N.getZ(i)); arm.push(s); } });
+    const g = new T.BufferGeometry();
+    g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.setAttribute('aArm', new T.Float32BufferAttribute(arm, 1));
+    return g;
+  };
+  // 머리: 앞쪽 아래는 얼굴(피부 = 인스턴스 색), 위·뒤는 머리카락(정점 색으로 어둡게)
+  const crowdHead = () => {
+    const g = new T.SphereGeometry(0.105, 8, 6); g.scale(0.92, 1.05, 1); g.translate(0, 0.7, 0);
+    const P = g.attributes.position, col = [], arm = [];
+    for (let i = 0; i < P.count; i++) { const y = P.getY(i) - 0.7, z = P.getZ(i), hair = y > 0.045 || (z < -0.02 && y > -0.05); const k = hair ? 0.13 : 1; col.push(k, k * 0.92, k * 0.85); arm.push(0); }
+    g.setAttribute('color', new T.Float32BufferAttribute(col, 3)); g.setAttribute('aArm', new T.Float32BufferAttribute(arm, 1));
+    return g;
+  };
+  const bodyG = crowdBody(), headG = crowdHead();
   const ph = new Float32Array(CROWD_N), side = new Float32Array(CROWD_N);
   const bodies = new T.InstancedMesh(bodyG, crowdMat(0xffffff), CROWD_N);
-  const heads = new T.InstancedMesh(headG, crowdMat(0x2a1d16), CROWD_N);
+  const hm = crowdMat(0xffffff); hm.vertexColors = true;
+  const heads = new T.InstancedMesh(headG, hm, CROWD_N);
+  const skinC = ['#f0cfb4', '#e6bf9e', '#d9ab86', '#c99772', '#a87655'].map((h) => new T.Color(h)), hc = new T.Color();
   // 샘플링: 하단 스탠드(모든 구간) + 상단 스탠드(내야)
   const segs = [];
   let tot = 0;
@@ -402,10 +542,12 @@ const crowd = (() => {
     const sc = 0.9 + Math.random() * 0.2; s4.set(sc, sc, sc);
     m4.compose(p4, q4, s4); bodies.setMatrixAt(n, m4); heads.setMatrixAt(n, m4);
     ph[n] = Math.random();
+    hc.copy(skinC[Math.floor(Math.random() * skinC.length)]).multiplyScalar(0.9 + Math.random() * 0.15); heads.setColorAt(n, hc);
     const phi = S.phiOf(p4.x, p4.z);
     side[n] = Math.abs(phi) < 40 && p4.z < -60 ? 0 : p4.x > 0 ? 1 : -1;
     place.push(side[n]);
   }
+  heads.instanceColor.needsUpdate = true;
   for (const m of [bodies, heads]) {
     m.geometry.setAttribute('aPh', new T.InstancedBufferAttribute(ph, 1));
     m.geometry.setAttribute('aSide', new T.InstancedBufferAttribute(side, 1));
@@ -489,6 +631,7 @@ function blitBoard() {
 
 /* ---------- LED 리본 ---------- */
 function paintLed(homeT, awayT) {
+  dugoutRoofs[0].color.set(homeT.c1); dugoutRoofs[1].color.set(awayT.c1);
   const c = ledRibbon.canvas, g = c.getContext('2d');
   g.fillStyle = '#05070c'; g.fillRect(0, 0, 2048, 64);
   const items = [
@@ -558,16 +701,18 @@ function applyTime(night) {
   nightMode = night;
   if (night) {
     skyU.top.value.set('#040817'); skyU.hor.value.set('#16224a'); skyU.glow.value.set('#6b76a8');
-    scene.fog.color.set('#101a3a'); hemi.color.set('#c9d4ff'); hemi.groundColor.set('#1a2a1c'); hemi.intensity = 0.5;
-    sun.color.set('#fffaf0'); sun.intensity = 0.64; sun.position.set(25, 90, 40); fill.intensity = 0.34;
+    scene.fog.color.set('#101a3a'); hemi.color.set('#c9d4ff'); hemi.groundColor.set('#1a2a1c'); hemi.intensity = 0.32;
+    sun.color.set('#fffaf0'); sun.intensity = 0.8; SUN_DIR.set(25, 90, 40).normalize(); fill.intensity = 0.25;
     stars.visible = true; towerGlows.forEach((g) => (g.visible = true)); towerPanels.forEach((p) => p.material.color.set(0xffffff));
     outerGround.material.color.set(0x0e1310);
   } else {
     skyU.top.value.set('#2f74d0'); skyU.hor.value.set('#cfe3fa'); skyU.glow.value.set('#ffffff');
-    scene.fog.color.set('#bcd4ef'); hemi.color.set('#d6e8ff'); hemi.groundColor.set('#3b4a2e'); hemi.intensity = 0.56;
-    sun.color.set('#fff1dc'); sun.intensity = 0.74; sun.position.set(-70, 95, 30); fill.intensity = 0.22;
+    scene.fog.color.set('#bcd4ef'); hemi.color.set('#d6e8ff'); hemi.groundColor.set('#3b4a2e'); hemi.intensity = 0.4;
+    sun.color.set('#fff1dc'); sun.intensity = 0.95; SUN_DIR.set(-70, 95, 30).normalize(); fill.intensity = 0.22;
     stars.visible = false; towerGlows.forEach((g) => (g.visible = false)); towerPanels.forEach((p) => p.material.color.set(0x8a8d94));
     outerGround.material.color.set(0x44503f);
   }
+  [hemi.color, hemi.groundColor, sun.color, fill.color].forEach((c) => c.convertSRGBToLinear()); // 조명 색도 선형으로 (색 관리, g0_core)
+  shadowFocus(SH.x, SH.z, SH.R);
 }
 

@@ -31,6 +31,30 @@ try {
   document.body.classList.add('no-webgl');
   throw e;
 }
+// 그래픽 품질: high = 그림자 2048 + 디테일, mid = 그림자 1024(30fps 갱신), low = 그림자 없음 (예전과 같음). 메뉴에서 바꿈
+const GFX = { q: store.get('gfx', null) || (lowEnd ? 'low' : isTouch ? 'mid' : 'high') };
+function gfxApply(q) {
+  GFX.q = q; GFX.shadows = q !== 'low'; GFX.shadowSize = q === 'high' ? 2048 : 1024; GFX.detail = q !== 'low';
+  renderer.shadowMap.enabled = GFX.shadows;
+}
+renderer.shadowMap.type = T.PCFSoftShadowMap;
+// 색 관리: 재질 색·캔버스 텍스처는 지금처럼 sRGB로 적고(THREE.Color 값은 그대로 — UI·캔버스 그리기가 같은 값을 씀),
+// 셰이더 안에서만 선형으로 바꿔 조명 계산 → 출력 때 sRGB + ACES 톤매핑. 빛이 물체에 떨어지는 모양(명암 경계·밝은 곳)이 실제처럼 부드러워짐
+// 조명이 없는 재질(전광판·LED·조준 링·불꽃 등)은 톤매핑 없이 적은 색 그대로
+{
+  const toLin = (s) => s.replace('vec4 diffuseColor = vec4( diffuse, opacity );', 'vec4 diffuseColor = vec4( pow( diffuse, vec3( 2.2 ) ), opacity );')
+    .replace('vec3 totalEmissiveRadiance = emissive;', 'vec3 totalEmissiveRadiance = pow( emissive, vec3( 2.2 ) );');
+  for (const k in T.ShaderLib) {
+    const sh = T.ShaderLib[k]; if (!sh || !sh.fragmentShader) continue;
+    sh.fragmentShader = toLin(sh.fragmentShader);
+    if (k === 'basic' || k === 'sprite' || k === 'points' || k === 'dashed') sh.fragmentShader = sh.fragmentShader.replace('#include <tonemapping_fragment>', '');
+  }
+  T.ShaderChunk.color_fragment = T.ShaderChunk.color_fragment.replace('diffuseColor.rgb *= vColor;', 'diffuseColor.rgb *= pow( vColor, vec3( 2.2 ) );');
+  renderer.outputEncoding = T.sRGBEncoding;
+  renderer.toneMapping = T.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.8;
+}
+gfxApply(GFX.q);
 let pixelRatio = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2);
 renderer.setPixelRatio(pixelRatio);
 const scene = new T.Scene();
@@ -52,6 +76,7 @@ function runTimers() {
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 function canvasTex(c, o = {}) {
   const t = new T.CanvasTexture(c);
+  t.encoding = T.sRGBEncoding; // 캔버스에 그린 색 = sRGB
   t.anisotropy = Math.min(o.aniso || 8, MAXANI);
   if (o.repeat) { t.wrapS = T.RepeatWrapping; t.wrapT = o.repeatT ? T.RepeatWrapping : T.ClampToEdgeWrapping; }
   if (o.nomip) { t.generateMipmaps = false; t.minFilter = T.LinearFilter; }
@@ -61,6 +86,7 @@ function hexA(hex, a) {
   const c = new T.Color(hex);
   return `rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${a})`;
 }
+const linColor = (hex) => new T.Color(hex).convertSRGBToLinear(); // 조명 색(셰이더가 안 바꿔 주는 값)용
 function shadeHex(hex, f) {
   const c = new T.Color(hex);
   if (f >= 0) c.lerp(new T.Color(1, 1, 1), f); else c.multiplyScalar(1 + f);

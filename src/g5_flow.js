@@ -174,7 +174,7 @@ function initFigures() {
   FIG.P = FIG.field[0];
   FIG.batR = makeFigure(Object.assign({}, base, { helmet: true, flapSide: 0.12, kind: 'B' }));
   FIG.batL = makeFigure(Object.assign({}, base, { helmet: true, flapSide: -0.12, kind: 'B' }));
-  [FIG.batR, FIG.batL].forEach((f) => { f.bat = new T.Mesh(FG.g.bat, FG.M.bat); f.root.add(f.bat); });
+  [FIG.batR, FIG.batL].forEach((f) => { f.bat = new T.Mesh(FG.g.bat, FG.M.bat); f.bat.castShadow = true; f.root.add(f.bat); });
   FIG.run = [0, 1, 2].map(() => makeFigure(Object.assign({}, base, { helmet: true, flapSide: 0.12, kind: 'R' })));
   FIG.coach = [0, 1].map(() => makeFigure(Object.assign({}, base, { kind: 'CO' })));
   const um = { jersey: '#1b2440', trim: '#1b2440', pants: '#3a3d45', cap: '#111318', socks: '#111318', kind: 'U' };
@@ -209,12 +209,12 @@ function dressField() {
 function resetField() {
   for (let i = 1; i < 9; i++) {
     const f = FIG.field[i], h = G.T ? defHome(i) : S.FIELD_HOME[i]; // 수비 작전 위치 (g5t_tactics.js)
-    showFigure(f, true); placeFig(f, h.x, h.z);
+    showFigure(f, true); placeFig(f, h.x, h.z); f.root.rotation.x = 0; f.creep = 0;
     if (i === 1) { f.root.rotation.y = Math.PI; f.tp = POSE.catcher; } else { faceTo(f, 0, -2); f.tp = POSE.stand; }
     f.mode = 'idle'; Object.assign(f.P, f.tp); applyPose(f);
   }
   const pp = G.T ? fieldTeam().pitcher : null;
-  showFigure(FIG.P, true); FIG.P.mode = 'pitch'; pitcherPose(FIG.P, 0, pp ? pp.hand : 'R', pp && pp.slot);
+  showFigure(FIG.P, true); FIG.P.mode = 'pitch'; FIG.P.root.rotation.x = 0; pitcherPose(FIG.P, 0, pp ? pp.hand : 'R', pp && pp.slot);
   FIG.coach.forEach((c, i) => { showFigure(c, true); placeFig(c, COACH_SPOT[i].x, COACH_SPOT[i].z); faceTo(c, 0, -8); c.tp = POSE.coach; c.mode = 'idle'; Object.assign(c.P, c.tp); applyPose(c); });
   FIG.ump.forEach((u, i) => { showFigure(u, true); placeFig(u, UMP_SPOT[i].x, UMP_SPOT[i].z); if (i === 0) u.root.rotation.y = Math.PI; else faceTo(u, 0, -12); u.tp = i === 0 ? POSE.ump : POSE.ready; u.mode = 'idle'; Object.assign(u.P, u.tp); applyPose(u); });
 }
@@ -527,6 +527,7 @@ function release() {
   p.g.pc++;
   G.lastSpeed = P.kmh;
   ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
+  ball.pitchSpin(P.pt);
   if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
   UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name; UI.speedBox.hidden = false;
   if (userPitching() && !G.online) {
