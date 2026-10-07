@@ -430,14 +430,16 @@ const ball = (() => {
   trail.frustumCulled = false; scene.add(trail);
   const hist = [];
   return {
-    m, sh, halo, trail, hist, N, tp, tc, hot: 0,
+    m, sh, halo, trail, hist, N, tp, tc, hot: 0, tint: null,
+    // 스킬 투구: 공 빛무리·꼬리를 스킬 색으로 (null이면 원래대로)
+    setTint(hex) { this.tint = hex ? new T.Color(hex) : null; halo.material.color.set(hex || 0xffffff); halo.material.opacity = hex ? 0.9 : 0.55; },
     set(x, y, z, big) {
       m.position.set(x, y, z); m.visible = true;
       const s = big || 1; m.scale.setScalar(s); halo.scale.setScalar(0.18 * s + 0.12);
       sh.visible = y < 30; sh.position.set(x, groundY(x, z) + 0.03, z); const k = 0.28 + Math.min(y, 20) * 0.03; sh.scale.set(k, 1, k);
       sh.material.opacity = clamp(0.9 - y * 0.04, 0.15, 0.9);
     },
-    hide() { m.visible = false; sh.visible = false; trail.visible = false; hist.length = 0; },
+    hide() { m.visible = false; sh.visible = false; trail.visible = false; hist.length = 0; if (this.tint) this.setTint(null); },
     pushTrail(on) {
       trail.visible = on;
       if (!on) { hist.length = 0; return; }
@@ -445,8 +447,9 @@ const ball = (() => {
       for (let i = 0; i < N; i++) {
         const p = hist[Math.min(i, hist.length - 1)] || m.position;
         tp[i * 3] = p.x; tp[i * 3 + 1] = p.y; tp[i * 3 + 2] = p.z;
-        const f = (1 - i / N) * (0.8 + this.hot * 0.4), h = this.hot * (i / N + 0.35);
-        tc[i * 3] = f; tc[i * 3 + 1] = f * (1 - h * 0.55); tc[i * 3 + 2] = f * (0.95 - h * 0.85);
+        const f = (1 - i / N) * (0.8 + this.hot * 0.4), h = this.hot * (i / N + 0.35), tt = this.tint;
+        if (tt) { const w = Math.max(0, 1 - i / 3) * 0.6; tc[i * 3] = f * (tt.r + (1 - tt.r) * w) * 1.3; tc[i * 3 + 1] = f * (tt.g + (1 - tt.g) * w) * 1.3; tc[i * 3 + 2] = f * (tt.b + (1 - tt.b) * w) * 1.3; }
+        else { tc[i * 3] = f; tc[i * 3 + 1] = f * (1 - h * 0.55); tc[i * 3 + 2] = f * (0.95 - h * 0.85); }
       }
       tg.attributes.position.needsUpdate = true; tg.attributes.color.needsUpdate = true;
     },

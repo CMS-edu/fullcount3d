@@ -89,7 +89,7 @@ const POS_IDX = { C: 1, '1B': 2, '2B': 3, '3B': 4, SS: 5, LF: 6, CF: 7, RF: 8 };
 const G = {
   phase: 'title', T: null, inning: 1, half: 0, outs: 0, b: 0, s: 0, bases: [null, null, null],
   maxInn: 9, limitInn: 11, userSide: 1, pitchLog: [], selType: 'FB', aimTarget: null, lastSpeed: 0,
-  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), defT: 'base', leadT: 0, leadUI: 0, bunt: false, stealReq: false, steal: null, pitch: null, play: null,
+  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), skfxOn: store.get('skfx', true), defT: 'base', leadT: 0, leadUI: 0, bunt: false, stealReq: false, steal: null, pitch: null, play: null,
   runFig: [null, null, null], batFig: null, bs: null, meter: null, gen: 0, cpuBunt: false,
 };
 function batTeam() { return G.T ? G.T[G.half] : null; }
@@ -307,7 +307,8 @@ function startGame(ov) {
   paintCrowd(G.T[1].t, G.T[0].t); paintLed(G.T[1].t, G.T[0].t);
   UI.title.hidden = true; UI.hud.hidden = false; $('#overModal').hidden = true;
   $('#pracLine').hidden = !G.prac;
-  if (G.prac) { pracStart(); return; }
+  if (G.prac) { pracStart(); muScene(); return; }
+  muSting('playball', { force: true }); // 경기 시작 팡파르 → 배경음
   startHalf();
 }
 function startHalf() {
@@ -326,6 +327,7 @@ function startHalf() {
   AU.cheer(0.5, 1.8); if (bt === G.T[1]) AU.drum('x.x.xxx.', 150);
   const gen = G.gen;
   later(2.3, () => { if (gen === G.gen) startPA(); });
+  skOnHalfStart();
 }
 
 /* ---------- 타석 ---------- */
@@ -350,6 +352,8 @@ function startPA() {
   if (bt.lastCard !== b) { bt.lastCard = b; later(0.15, () => { if (curBatter() === b) playerCard(b, bt); }); }
   UI.speedBox.hidden = true;
   camForPA(true);
+  skOnPA(); // 스킬 컷인 (등판·등장·해결사 모드)
+  { const pp = ft.pitcher; if (!pp.g.muIntro) { pp.g.muIntro = 1; muWalk(pp, ft, true); } else muWalk(b, bt, false); } // 등장곡
   if (!userBatting() && G.cpuBunt) G.bs.mode = 'bunt';
   // CPU 고의4구
   if (userBatting() && !G.online && cpuWantsIBB()) {
@@ -412,13 +416,15 @@ function nextPitch() {
     if (G.online) return;
     const b = curBatter(), plan = G.prac ? pracPlan(p, b) : S.cpuPitchPlan(p, { b: G.b, s: G.s }, S.zoneOf(b.height));
     const gen = G.gen;
-    later(0.8 + R() * 0.7, () => {
+    const go = () => {
       if (gen !== G.gen || G.phase !== 'ready') return;
+      const w = Math.max(skWait(), muWait()); if (w > 0) { later(w + 0.2, go); return; } // 스킬 컷인·등장곡이 끝난 뒤 던짐
       // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
       const pb = pickoffBase();
       if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1] * (p.skill === 'pickoff' ? 1.5 : 1)) { pickoff(); return; }
       windup(plan.type, plan.target, null);
-    });
+    };
+    later(0.8 + R() * 0.7, go);
   }
 }
 function padPick(ev) {
@@ -449,6 +455,8 @@ function meterTap() {
 }
 function windup(type, target, meter) {
   let pi = 0; G.awaitPitch = false;
+  if (userBatting()) skCutClear(); // 날아오는 공을 컷인이 가리지 않게
+  muPitchStart();
   if (G.online) {
     target = { x: r4(target.x), y: r4(target.y) }; meter = meter == null ? null : r4(meter);
     if (userPitching()) flushSubsIn();
@@ -508,6 +516,7 @@ function release() {
   ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
   if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
   UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name + (SKILLS[p.skill] ? ' ' + SKILLS[p.skill].ico : ''); UI.speedBox.hidden = false;
+  skOnRelease(P, p); // 스킬 투구 꼬리
   if (userPitching() && !G.online) {
     const b = curBatter(), zi = S.zoneInfo(S.zoneOf(b.height), P.cross.x, P.cross.y);
     if (G.cpuBunt) {
@@ -575,7 +584,7 @@ function userSwingTap(aim) {
   if (G.online) {
     if (!res.miss) { res.ev = r4(res.ev); res.la = r4(res.la); res.phi = r4(res.phi); res.q = r4(res.q || 0); res.st = { x: r4(cp.x), y: r4(cp.y), z: r4(cp.z) }; }
     res.bunt = !!G.bunt;
-    sendAct(res.miss ? { k: 'sw', pi: P.pi, miss: 1, bunt: res.bunt ? 1 : 0 } : { k: 'sw', pi: P.pi, foul: res.foul ? 1 : 0, bunt: res.bunt ? 1 : 0, ev: res.ev, la: res.la, phi: res.phi, q: res.q, st: res.st, tl: res.tl });
+    sendAct(res.miss ? { k: 'sw', pi: P.pi, miss: 1, bunt: res.bunt ? 1 : 0 } : { k: 'sw', pi: P.pi, foul: res.foul ? 1 : 0, bunt: res.bunt ? 1 : 0, ev: res.ev, la: res.la, phi: res.phi, q: res.q, st: res.st, tl: res.tl, sk: res.sk || undefined });
   }
   if (!G.bunt) {
     batterSwing(res.miss ? new T.Vector3(aim.x, aim.y, cp.z) : new T.Vector3(cp.x, cp.y, cp.z));
@@ -635,7 +644,7 @@ function call(kind) {
   }
   if (end === 'K') {
     b.g.pa++; b.g.ab++; b.g.k++; pit.g.k++; G.outs++; pit.g.outs++;
-    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300); fxStrikeout(userPitching());
+    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300); fxStrikeout(userPitching()); skOnK(pit); if (userPitching()) muSting('k');
     AU.cheer(userPitching() ? 0.8 : 0.3, 1.4); crowdPulse(G.half === 0 ? 'H' : 'A', 0.8);
     if (G.batFig) G.batFig.mode = 'bat';
     showPlayText(`${b.name}, ${kind === 'swing' ? '헛스윙' : '루킹'} 삼진`, 1600);
@@ -678,7 +687,7 @@ function afterPA(delay, noAdvance) {
   const gen = G.gen;
   if (G.phase === 'over') return;
   if (checkWalkoff()) return;
-  if (G.outs >= 3) { G.phase = 'after'; later(delay + 0.6, () => { if (gen === G.gen) endHalf(); }); return; }
+  if (G.outs >= 3) { skOnInningEnd(); G.phase = 'after'; later(delay + 0.6, () => { if (gen === G.gen) endHalf(); }); return; }
   G.phase = 'after';
   later(delay, () => { if (gen === G.gen) startPA(); });
 }
@@ -688,6 +697,7 @@ function addRuns(n, scorers) {
   bt.runs += n; bt.line[G.inning - 1] = (bt.line[G.inning - 1] || 0) + n; pit.g.r += n;
   (G.runLog = G.runLog || []).push({ a: G.T[0].runs, h: G.T[1].runs, p: [G.T[0].pitcher, G.T[1].pitcher] }); // 승리·패전 투수 판정용 (g9r_report.js)
   (scorers || []).slice(0, n).forEach((r) => r && r.g && r.g.r++);
+  if (bt === G.T[G.userSide]) muSting('score'); // 홈런 팡파르가 나오는 중이면 건너뜀
   const homeScores = bt === G.T[1];
   crowdPulse(homeScores ? 'H' : 'A', 1.2);
   AU.cheer(1, 2.6); AU.drum('x.x.xxx.x.x.xxx.', 170);
@@ -698,6 +708,7 @@ function walk(kind) {
   const b = curBatter(), pit = fieldTeam().pitcher, bt = batTeam();
   b.g.pa++; b.g.bb++; bt.bb++;
   if (kind !== 'HBP') pit.g.bb++;
+  if (kind === 'BB') skOnWalk(b);
   const B = G.bases, scored = [];
   if (B[0]) { if (B[1]) { if (B[2]) scored.push(B[2]); B[2] = B[1]; } B[1] = B[0]; }
   B[0] = b;
@@ -761,6 +772,7 @@ function finishSteal() {
   const pit = fieldTeam().pitcher;
   if (G.bases[st.k] !== st.who) { placeRunners(); return; }
   G.bases[st.k] = null;
+  skOnSteal(st.who, st.ok, st.k);
   if (st.ok) {
     G.bases[st.k + 1] = st.who; st.who.g.sb++;
     showCall('세이프!', '#37d67a', 1000); showPlayText(`${st.who.name}, ${st.k + 2}루 도루 성공!`, 1600);
@@ -785,6 +797,7 @@ function checkWalkoff() {
 }
 function endHalf() {
   const A = G.T[0].runs, H = G.T[1].runs;
+  if (!G.prac) muSting('inning');
   hideDocks(); G.phase = 'after';
   if (G.half === 0) {
     if (G.inning >= G.maxInn && H > A) return gameOver();
@@ -805,6 +818,7 @@ function gameOver() {
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const r = me.runs > op.runs ? 'win' : me.runs < op.runs ? 'lose' : 'draw';
   if (G.online) onlineResult(r);
+  muSting(r === 'win' ? 'win' : 'lose', { force: true, then: () => later(1, () => { if (G.phase === 'over') muSetBg('title'); }) });
   const rec = store.get('rec', {}), id = me.t.id;
   rec[id] = rec[id] || { w: 0, l: 0, d: 0 };
   rec[id][r === 'win' ? 'w' : r === 'lose' ? 'l' : 'd']++;

@@ -182,6 +182,8 @@ function openMenu() {
   $('#sndSw').setAttribute('aria-checked', String(AU.on));
   $('#zoneSw').setAttribute('aria-checked', String(G.zoneOn));
   $('#heatSw').setAttribute('aria-checked', String(G.heatOn));
+  $('#skfxSw').setAttribute('aria-checked', String(G.skfxOn));
+  $('#musSw').setAttribute('aria-checked', String(MU.on));
   $('#boxNow').innerHTML = `<div class="lswrap" style="margin:10px 0"><table class="lscore">${lineScoreHTML()}</table></div>` + boxHTML(G.T[G.userSide]);
   openModal('#menuModal');
 }
@@ -190,6 +192,10 @@ $('#menuBtn').addEventListener('click', () => { AU.click(); openMenu(); });
 $('#resumeBtn').addEventListener('click', closeMenu);
 $('#sndSw').addEventListener('click', (e) => { const v = !AU.on; AU.init(); AU.setOn(v); e.currentTarget.setAttribute('aria-checked', String(v)); });
 $('#zoneSw').addEventListener('click', (e) => { G.zoneOn = !G.zoneOn; store.set('zone', G.zoneOn); e.currentTarget.setAttribute('aria-checked', String(G.zoneOn)); zoneGuide.visible = G.zoneOn && userBatting() && G.phase !== 'play'; });
+$('#musSw').addEventListener('click', () => { AU.init(); muSetOn(!MU.on); });
+$('#musBtn').addEventListener('click', (e) => { e.stopPropagation(); AU.init(); muSetOn(!MU.on); toast(MU.on ? '🎵 음악 켬' : '🔇 음악 끔', 1200); });
+muSetOn(MU.on);
+$('#skfxSw').addEventListener('click', (e) => { G.skfxOn = !G.skfxOn; store.set('skfx', G.skfxOn); e.currentTarget.setAttribute('aria-checked', String(G.skfxOn)); if (!G.skfxOn) skCutClear(); });
 $('#heatSw').addEventListener('click', (e) => { G.heatOn = !G.heatOn; store.set('heat', G.heatOn); e.currentTarget.setAttribute('aria-checked', String(G.heatOn)); drawZoneHeat(); });
 $('#quitBtn').addEventListener('click', quitToTitle);
 $('#againBtn').addEventListener('click', () => { $('#overModal').hidden = true; if (G.season) { quitToTitle(); openSeason(); } else startGame(); });
@@ -203,6 +209,7 @@ function quitToTitle() {
   ball.hide(); pciRing.visible = false; targetMark.visible = false; board.flash = 0; board.msg = '';
   renderTitle(); dressTitle(); drawBoard(); camOrbit();
   showTab(TAB.cur, true);
+  muToTitle();
 }
 // 앱 전환 시 일시정지 메뉴 — 온라인은 상대가 기다리고 있으니 메뉴 없이 돌아오자마자 이어서 (화면이 꺼진 동안엔 어차피 멈춤)
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused && !G.online) openMenu(); });
@@ -232,7 +239,7 @@ function cosmetics(dt) {
     if (k !== flashTick) { flashTick = k; drawBoard(); }
     if (board.flash <= 0) { board.msg = ''; drawBoard(); }
   }
-  updateFireworks(dt); fxTick(dt);
+  updateFireworks(dt); fxTick(dt); skfxTick(dt);
   if (pciRing.visible) {
     if (pciRing.flash) { if (clock > pciRing.flash) { pciRing.visible = false; pciRing.flash = 0; } }
     pciRing.material.opacity = 0.55 + Math.sin(clock * 10) * 0.2;
@@ -245,6 +252,7 @@ function frame(now) {
   const real = Math.min(0.05, (now - last) / 1000); last = now;
   let dt = real;
   if (AUTO) dt *= AUTO.speed;
+  if (G.slowT > 0) { G.slowT -= real; if (G.phase === 'play') dt *= 0.32; } // 스킬 홈런 슬로모션 (연출만)
   if (!paused) {
     clock += dt; runTimers();
     if (G.phase === 'windup' || G.phase === 'flight') updatePitch(dt);

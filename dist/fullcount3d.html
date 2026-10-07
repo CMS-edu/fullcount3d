@@ -241,6 +241,73 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 @keyframes rays { to { transform: rotate(360deg); } }
 @keyframes shine { to { background-position: -250% 0; } }
 #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9; }
+/* ===== 스킬 컷인 (g5u_skillfx.js) — 화면을 가로지르는 띠 + 선수 얼굴 + 스킬 아이콘 ===== */
+#skcut { position: fixed; inset: 0; pointer-events: none; z-index: 35; overflow: hidden; }
+.skc { position: absolute; left: 0; right: 0; top: var(--top, 34%); height: 112px; --dur: 1.5s; font-family: var(--ui); }
+.skc.pos-low { --top: 58%; } .skc.pos-high { --top: 20%; }
+.skc-flash { position: fixed; inset: 0; background: radial-gradient(circle at var(--fx, 50%) calc(var(--top, 34%) + 56px), var(--a) 0%, transparent 60%); opacity: 0; mix-blend-mode: screen; animation: skcFlash var(--dur) ease-out both; }
+@keyframes skcFlash { 0% { opacity: 0; } 8% { opacity: 0.75; } 30% { opacity: 0.15; } 100% { opacity: 0; } }
+.skc-band { position: absolute; inset: 0 -12%; transform-origin: var(--og, left) center; background: linear-gradient(90deg, transparent 0%, var(--ad) 9%, var(--a) 34%, var(--b) 72%, var(--ad) 91%, transparent 100%);
+  box-shadow: 0 0 34px var(--a), inset 0 2px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 0 rgba(0, 0, 0, 0.35); overflow: hidden; animation: skcBand var(--dur) cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+@keyframes skcBand { 0% { transform: skewY(-5deg) scaleX(0); opacity: 0.6; } 12% { transform: skewY(-5deg) scaleX(1.04); opacity: 1; } 18% { transform: skewY(-5deg) scaleX(1); }
+  84% { transform: skewY(-5deg) scaleX(1) translateX(0); opacity: 1; } 100% { transform: skewY(-5deg) scaleX(1) translateX(var(--out, 110%)); opacity: 0; } }
+.skc-band::after { content: ""; position: absolute; inset: 0; border-top: 3px solid var(--c); border-bottom: 3px solid var(--c); opacity: 0.8; }
+.skc-lines { position: absolute; inset: 0; background: repeating-linear-gradient(100deg, transparent 0 22px, rgba(255, 255, 255, 0.28) 22px 25px, transparent 25px 52px); animation: skcLines 0.35s linear infinite; mix-blend-mode: overlay; }
+@keyframes skcLines { to { background-position: var(--lx, -104px) 0; } }
+.skc-shine { position: absolute; top: 0; bottom: 0; width: 34%; left: -40%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.85), transparent); animation: skcShine var(--dur) ease-in-out both; }
+@keyframes skcShine { 0%, 16% { left: -40%; } 46% { left: 110%; } 100% { left: 110%; } }
+.skc-tag { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) skewX(-12deg); font-family: var(--display); font-size: 96px; letter-spacing: 0.1em; color: transparent; -webkit-text-stroke: 2px rgba(255, 255, 255, 0.28); white-space: nowrap; animation: skcTag var(--dur) linear both; }
+@keyframes skcTag { from { margin-left: 60px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { margin-left: -60px; opacity: 0; } }
+.skc-row { position: absolute; inset: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px; flex-direction: var(--dir, row); }
+.skc-ava { flex: none; position: relative; width: 86px; height: 86px; border-radius: 50%; padding: 4px; background: conic-gradient(var(--c), var(--a), var(--tc), var(--b), var(--c)); box-shadow: 0 0 22px var(--a);
+  animation: skcAva var(--dur) cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+.skc-ava .ava { width: 78px !important; height: 78px !important; border: 3px solid #0b1535; }
+@keyframes skcAva { 0% { transform: translateX(var(--in, -160px)) scale(0.6); opacity: 0; } 16% { transform: none; opacity: 1; } 84% { transform: none; opacity: 1; } 100% { transform: translateX(var(--out2, 140px)); opacity: 0; } }
+.skc-txt { flex: 1; min-width: 0; display: grid; text-align: var(--ta, left); line-height: 1.15; animation: skcTxt var(--dur) ease-out both; }
+@keyframes skcTxt { 0%, 8% { transform: translateX(var(--in, -60px)); opacity: 0; } 22% { transform: none; opacity: 1; } 84% { opacity: 1; } 100% { transform: translateX(var(--out2, 80px)); opacity: 0; } }
+.skc-txt small { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.skc-txt b { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 9vw, 46px); color: transparent; letter-spacing: 0.03em;
+  background: linear-gradient(100deg, #fff 20%, var(--c) 40%, #fff 55%, var(--c) 75%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.55)) drop-shadow(0 0 10px var(--a)); animation: shine 1.1s linear infinite; }
+.skc-txt em { font-style: normal; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+.skc-ico { flex: none; position: relative; width: 96px; height: 96px; display: grid; place-items: center; }
+.skc-ico span { position: relative; font-size: 64px; filter: drop-shadow(0 0 14px var(--a)) drop-shadow(0 0 4px #fff); animation: skcIco var(--dur) cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes skcIco { 0%, 6% { transform: scale(0) rotate(-60deg); opacity: 0; } 20% { transform: scale(1.35) rotate(8deg); opacity: 1; } 30% { transform: scale(1) rotate(0); } 52% { transform: scale(1.12); } 70% { transform: scale(1); } 86% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+.skc-rays { position: absolute; inset: -46px; border-radius: 50%; background: repeating-conic-gradient(var(--a) 0deg 7deg, transparent 7deg 20deg); -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%); mask: radial-gradient(circle, #000 18%, transparent 68%);
+  opacity: 0.85; animation: rays 2.4s linear infinite, skcFade var(--dur) ease-out both; }
+@keyframes skcFade { 0%, 8% { opacity: 0; } 20%, 82% { opacity: 0.85; } 100% { opacity: 0; } }
+.skc-sparks { position: absolute; inset: 0; }
+.skc-sparks i { position: absolute; left: var(--sx, 85%); top: 50%; width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--a), 0 0 3px #fff; opacity: 0;
+  animation: skcSpark calc(var(--dur) * 0.6) var(--d, 0s) cubic-bezier(0.1, 0.8, 0.3, 1) both; }
+@keyframes skcSpark { 0% { transform: translate(0, 0) scale(1.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } }
+.skc.side-R { --dir: row-reverse; --og: right; --ta: right; --in: 160px; --out: -110%; --out2: -140px; --sx: 15%; --lx: 104px; --fx: 50%; }
+.skc.rm .skc-band, .skc.rm .skc-ava, .skc.rm .skc-txt, .skc.rm .skc-ico span { animation-name: skcRm; } .skc.rm .skc-lines, .skc.rm .skc-sparks, .skc.rm .skc-tag { display: none; }
+@keyframes skcRm { 0% { opacity: 0; } 12%, 86% { opacity: 1; } 100% { opacity: 0; } }
+.skc.out { transition: opacity 0.15s; opacity: 0 !important; }
+#skZoom { position: fixed; inset: -20%; pointer-events: none; z-index: 8; opacity: 0; background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.55) 0deg 1.2deg, transparent 1.2deg 7deg);
+  -webkit-mask: radial-gradient(circle, transparent 22%, #000 62%); mask: radial-gradient(circle, transparent 22%, #000 62%); }
+#skZoom.go { animation: skZoom var(--zd, 1.4s) ease-out both; }
+@keyframes skZoom { 0% { opacity: 0; transform: scale(1.4) rotate(0); } 12% { opacity: 0.85; } 70% { opacity: 0.6; } 100% { opacity: 0; transform: scale(1) rotate(8deg); } }
+.skb { display: inline-block; border-radius: 999px; transition: all 0.2s; }
+.skb.on { padding: 1px 7px; font-size: 11px; font-weight: 800; color: #1a1300; background: linear-gradient(90deg, var(--ska, #ffd84a), #fff3b0); box-shadow: 0 0 12px var(--ska, #ffd84a); animation: skbOn 0.9s ease-in-out infinite alternate; }
+@keyframes skbOn { from { transform: scale(1); } to { transform: scale(1.08); box-shadow: 0 0 20px var(--ska, #ffd84a); } }
+/* 음악: 지금 나오는 곡 (등장곡 제목) */
+#muNow { position: absolute; left: calc(env(safe-area-inset-left, 0px) + 10px); bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); display: flex; align-items: center; gap: 8px; max-width: 62vw;
+  padding: 7px 12px 7px 9px; border-radius: 14px; background: rgba(11, 21, 53, 0.86); border: 1px solid var(--bug-line); border-left: 4px solid var(--tc, #ffd84a); color: #fff;
+  opacity: 0; transform: translateX(24px); transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
+#muNow.show { opacity: 1; transform: none; }
+#muNow small { display: block; font-size: 11px; color: var(--bug-muted); } #muNow b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#muNow .eq { display: flex; align-items: flex-end; gap: 2px; height: 18px; flex: none; }
+#muNow .eq i { width: 3px; background: var(--tc, #ffd84a); border-radius: 2px; animation: eq 0.6s ease-in-out infinite alternate; }
+#muNow .eq i:nth-child(2) { animation-delay: -0.2s; } #muNow .eq i:nth-child(3) { animation-delay: -0.4s; } #muNow .eq i:nth-child(4) { animation-delay: -0.1s; }
+@keyframes eq { from { height: 4px; } to { height: 18px; } }
+#muNow.pit { left: auto; bottom: auto; right: calc(env(safe-area-inset-right, 0px) + 10px); top: calc(env(safe-area-inset-top, 0px) + 216px); } /* 내가 던질 땐 오른쪽 위 (아래는 투구 도크) */
+@media (orientation: landscape) and (max-height: 520px) { #muNow { bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); } #muNow.pit { top: calc(env(safe-area-inset-top, 0px) + 120px); } }
+.musbtn { position: absolute; top: 10px; right: 10px; z-index: 2; width: 40px; height: 40px; border-radius: 50%; font-size: 19px; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.35); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.musbtn[aria-pressed="true"] { animation: musPulse 1.6s ease-in-out infinite; }
+@keyframes musPulse { 50% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.12); } }
+.skl { animation: sklGlow 1.6s ease-in-out infinite alternate; }
+@keyframes sklGlow { from { text-shadow: 0 0 0 transparent; } to { text-shadow: 0 0 10px rgba(255, 216, 74, 0.9); } }
 #fxFlash { position: fixed; inset: 0; pointer-events: none; z-index: 9; opacity: 0; background: radial-gradient(circle at 50% 45%, var(--fc, #fff) 0%, transparent 75%); }
 #fxFlash.go { animation: fxFlash var(--fd, 380ms) ease-out; }
 @keyframes fxFlash { 0% { opacity: var(--fs, 0.6); } 100% { opacity: 0; } }
@@ -252,9 +319,9 @@ button:focus-visible { outline: 3px solid var(--led); outline-offset: 2px; }
 #banner .band { width: 100%; padding: 14px 16px; text-align: center; background: linear-gradient(90deg, transparent, rgba(11, 21, 53, 0.92) 18%, rgba(11, 21, 53, 0.92) 82%, transparent); border-top: 2px solid var(--led); border-bottom: 2px solid var(--led); }
 #banner .big { font-family: var(--display); font-size: clamp(30px, 10vw, 56px); color: var(--led); letter-spacing: 0.05em; line-height: 1.05; text-shadow: 0 0 18px rgba(255, 182, 39, 0.45); }
 #banner .small { margin-top: 4px; font-size: 14px; font-weight: 500; color: #dfe6ff; }
-#feedback { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 0); display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+#feedback { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 0); display: flex; flex-wrap: wrap; justify-content: center; width: max-content; max-width: 94vw; gap: 6px; opacity: 0; transition: opacity 0.15s; }
 #feedback.show { opacity: 1; }
-#feedback span { padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 14px; background: rgba(11, 21, 53, 0.85); border: 1px solid var(--bug-line); }
+#feedback span { white-space: nowrap; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 14px; background: rgba(11, 21, 53, 0.85); border: 1px solid var(--bug-line); }
 #feedback .good { color: var(--ball-c); border-color: var(--ball-c); } #feedback .ok { color: var(--strike-c); } #feedback .bad { color: #ff8a8a; }
 #playText { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); transform: translateX(-50%); max-width: 92vw; text-align: center; padding: 8px 14px; border-radius: 12px;
   background: rgba(11, 21, 53, 0.88); border: 1px solid var(--bug-line); font-weight: 700; font-size: 15px; opacity: 0; transition: opacity 0.2s; }
@@ -404,6 +471,7 @@ body.no-webgl .nogl { display: grid; }
 .skrow select { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--chip-bg); color: var(--ink); font-weight: 700; padding: 0 8px; min-width: 0; }
 .skrow .skd { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-2); }
 .skrow .skd b { color: var(--ink); }
+.skrow .skprev { grid-column: 1 / -1; margin-top: 2px; min-height: 42px; font-size: 14px; background: linear-gradient(90deg, rgba(255, 216, 74, 0.25), rgba(255, 110, 80, 0.25)); }
 .rtabs button { flex: 1; min-height: 42px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; }
 .rtabs button[aria-selected="true"] { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--accent-ink); border-color: transparent; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35); }
 .rhead { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 12px 2px 6px; letter-spacing: 0.04em; }
@@ -623,6 +691,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 <canvas id="gl" aria-label="3D 야구장"></canvas>
 <canvas id="fx" aria-hidden="true"></canvas>
 <div id="fxFlash" aria-hidden="true"></div>
+<div id="skcut" aria-live="polite"></div>
+<div id="skZoom" aria-hidden="true"></div>
 <div id="loading"><div class="ld"><svg class="ldball" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="bshD" cx="36%" cy="30%" r="78%"><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#b9b2a2" stop-opacity="0.95"/></radialGradient></defs><circle cx="20" cy="20" r="18.5" fill="#fbfaf4"/><circle cx="20" cy="20" r="18.5" fill="url(#bshD)"/><path d="M8.5 7.5c6 5.5 6.5 19 0 25M31.5 7.5c-6 5.5-6.5 19 0 25" fill="none" stroke="#d7263d" stroke-width="1.5"/><path d="M8.5 7.5c6 5.5 6.5 19 0 25M31.5 7.5c-6 5.5-6.5 19 0 25" fill="none" stroke="#d7263d" stroke-width="3.2" stroke-dasharray="1 2.4" opacity="0.8"/></svg><b>풀카운트</b><span>경기장 조명 켜는 중…</span></div></div>
 <div class="nogl"><div><p style="font-size:20px;font-weight:700">이 브라우저에서는 3D(WebGL)를 쓸 수 없어요</p><p>최신 Chrome, Safari, Edge에서 다시 열어 주세요.</p></div></div>
 
@@ -633,6 +703,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
         <div class="hero">
           <div class="lights" aria-hidden="true"><i></i><i></i></div>
           <svg class="ball3" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="bshA" cx="36%" cy="30%" r="78%"><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#b9b2a2" stop-opacity="0.95"/></radialGradient></defs><circle cx="20" cy="20" r="18.5" fill="#fbfaf4"/><circle cx="20" cy="20" r="18.5" fill="url(#bshA)"/><path d="M8.5 7.5c6 5.5 6.5 19 0 25M31.5 7.5c-6 5.5-6.5 19 0 25" fill="none" stroke="#d7263d" stroke-width="1.5"/><path d="M8.5 7.5c6 5.5 6.5 19 0 25M31.5 7.5c-6 5.5-6.5 19 0 25" fill="none" stroke="#d7263d" stroke-width="3.2" stroke-dasharray="1 2.4" opacity="0.8"/></svg><svg class="ball3 l" viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="bshB" cx="36%" cy="30%" r="78%"><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#b9b2a2" stop-opacity="0.95"/></radialGradient></defs><circle cx="20" cy="20" r="18.5" fill="#fbfaf4"/><circle cx="20" cy="20" r="18.5" fill="url(#bshB)"/><path d="M8.5 7.5c6 5.5 6.5 19 0 25M31.5 7.5c-6 5.5-6.5 19 0 25" fill="none" stroke="#d7263d" stroke-width="1.5"/><path d="M8.5 7.5c6 5.5 6.5 19 0 25M31.5 7.5c-6 5.5-6.5 19 0 25" fill="none" stroke="#d7263d" stroke-width="3.2" stroke-dasharray="1 2.4" opacity="0.8"/></svg>
+          <button class="musbtn" id="musBtn" aria-pressed="true" aria-label="음악 켜기/끄기">🎵</button>
           <h1 class="logo">풀카운트<small>3D</small></h1>
           <div class="tagline">KBO 2026 · 직접 치고 던지는 야구</div>
           <div class="ticker" aria-hidden="true"><div class="ticker-in"><span id="tickA">오늘도 풀카운트!</span><span id="tickB">오늘도 풀카운트!</span></div></div>
@@ -739,6 +810,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   <div id="call"></div>
   <div id="banner"><div class="band"><div class="big"></div><div class="small"></div></div></div>
   <div id="feedback"></div>
+  <div id="muNow" aria-live="polite"></div>
   <div id="playText"></div>
   <button class="chatbubble pe" id="chatBubble" aria-label="채팅 열기"></button>
   <section class="chatbox pe" id="chatBox" aria-label="채팅" hidden>
@@ -781,6 +853,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <div class="toggle-row"><span>피치클락 <small style="opacity:.7">(주자 없음 18초 · 있음 23초, 넘기면 자동 볼)</small></span><button class="switch" id="pcSw" role="switch" aria-checked="true" aria-label="피치클락"></button></div>
     <div class="toggle-row"><span>스트라이크존 가이드</span><button class="switch" id="zoneSw" role="switch" aria-checked="true" aria-label="존 가이드"></button></div>
     <div class="toggle-row"><span>핫·콜드 존 <small style="opacity:.7">(칠 때 존에 표시 · 빨강 = 강한 코스, 파랑 = 약한 코스)</small></span><button class="switch" id="heatSw" role="switch" aria-checked="true" aria-label="핫콜드 존"></button></div>
+    <div class="toggle-row"><span>스킬 연출 <small style="opacity:.7">(컷인 · 오라 · 투구 꼬리 · 임팩트 · 효과음)</small></span><button class="switch" id="skfxSw" role="switch" aria-checked="true" aria-label="스킬 연출"></button></div>
+    <div class="toggle-row"><span>음악 <small style="opacity:.7">(타이틀 · 응원 · 등장곡 · 팡파르)</small></span><button class="switch mus-sw" id="musSw" role="switch" aria-checked="true" aria-label="음악"></button></div>
     <div id="boxNow"></div>
     <button class="mbtn primary" id="resumeBtn">계속하기</button>
     <button class="mbtn danger" id="quitBtn">경기 포기하고 나가기</button>
@@ -2649,14 +2723,16 @@ const ball = (() => {
   trail.frustumCulled = false; scene.add(trail);
   const hist = [];
   return {
-    m, sh, halo, trail, hist, N, tp, tc, hot: 0,
+    m, sh, halo, trail, hist, N, tp, tc, hot: 0, tint: null,
+    // 스킬 투구: 공 빛무리·꼬리를 스킬 색으로 (null이면 원래대로)
+    setTint(hex) { this.tint = hex ? new T.Color(hex) : null; halo.material.color.set(hex || 0xffffff); halo.material.opacity = hex ? 0.9 : 0.55; },
     set(x, y, z, big) {
       m.position.set(x, y, z); m.visible = true;
       const s = big || 1; m.scale.setScalar(s); halo.scale.setScalar(0.18 * s + 0.12);
       sh.visible = y < 30; sh.position.set(x, groundY(x, z) + 0.03, z); const k = 0.28 + Math.min(y, 20) * 0.03; sh.scale.set(k, 1, k);
       sh.material.opacity = clamp(0.9 - y * 0.04, 0.15, 0.9);
     },
-    hide() { m.visible = false; sh.visible = false; trail.visible = false; hist.length = 0; },
+    hide() { m.visible = false; sh.visible = false; trail.visible = false; hist.length = 0; if (this.tint) this.setTint(null); },
     pushTrail(on) {
       trail.visible = on;
       if (!on) { hist.length = 0; return; }
@@ -2664,8 +2740,9 @@ const ball = (() => {
       for (let i = 0; i < N; i++) {
         const p = hist[Math.min(i, hist.length - 1)] || m.position;
         tp[i * 3] = p.x; tp[i * 3 + 1] = p.y; tp[i * 3 + 2] = p.z;
-        const f = (1 - i / N) * (0.8 + this.hot * 0.4), h = this.hot * (i / N + 0.35);
-        tc[i * 3] = f; tc[i * 3 + 1] = f * (1 - h * 0.55); tc[i * 3 + 2] = f * (0.95 - h * 0.85);
+        const f = (1 - i / N) * (0.8 + this.hot * 0.4), h = this.hot * (i / N + 0.35), tt = this.tint;
+        if (tt) { const w = Math.max(0, 1 - i / 3) * 0.6; tc[i * 3] = f * (tt.r + (1 - tt.r) * w) * 1.3; tc[i * 3 + 1] = f * (tt.g + (1 - tt.g) * w) * 1.3; tc[i * 3 + 2] = f * (tt.b + (1 - tt.b) * w) * 1.3; }
+        else { tc[i * 3] = f; tc[i * 3 + 1] = f * (1 - h * 0.55); tc[i * 3 + 2] = f * (0.95 - h * 0.85); }
       }
       tg.attributes.position.needsUpdate = true; tg.attributes.color.needsUpdate = true;
     },
@@ -2743,6 +2820,341 @@ const AU = {
   },
 };
 
+/* ===================== 음악 (WebAudio로 직접 합성하는 오리지널 곡) ===================== */
+// 실제 응원가·등장곡은 저작권이 있어서 쓰지 않고, 전부 여기서 작곡·합성함.
+//  · 타이틀 테마(신스팝) · 응원 비트(우리 공격) · 구장 오르간(상대 공격) — 배경 루프
+//  · 등장곡: 선수 이름으로 정해지는 나만의 곡 (스킬에 따라 록·일렉트로·에픽·펑크·힙합·행진·트로트·K팝·로파이)
+//  · 짧은 음악 신호: 플레이볼 · 홈런 · 득점 · 삼진 · 공수교대 · 승리 · 패배
+const MU = { on: store.get('music', true), ready: false, c: null, out: null, rev: null, players: [], bg: null, bgKind: null, walk: null, sting: null, duck: 1, hidden: false };
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const nm = (s) => { const m = /^([A-G])([#b]?)(-?\d)$/.exec(s); return 12 * (+m[3] + 1) + NOTE[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0); };
+
+/* ---------- 악기 ---------- */
+function muEnv(g, t, a, peak, d, s, rel, end) { // 공격·감쇠·유지·놓기
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.setTargetAtTime(peak * s, t + a, d);
+  g.gain.setValueAtTime(peak * s, Math.max(t + a, end)); g.gain.exponentialRampToValueAtTime(0.0001, end + rel);
+}
+function muOsc(c, type, f, t, end, dest, detune = 0) { const o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune; o.connect(dest); o.start(t); o.stop(end); return o; }
+function muNoise(c, t, dur, dest, rate = 1) { const s = c.createBufferSource(); s.buffer = AU.noiseBuf; s.loop = true; s.playbackRate.value = rate; s.connect(dest); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05); return s; }
+let _dist = null;
+function muDistCurve() { if (_dist) return _dist; const n = 2048, cv = new Float32Array(n); for (let i = 0; i < n; i++) { const x = (i / n) * 2 - 1; cv[i] = Math.tanh(x * 6) * 0.8; } return (_dist = cv); }
+const INS = {
+  lead(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(4200, t); fl.frequency.exponentialRampToValueAtTime(1600, t + 0.25); fl.Q.value = 2;
+    fl.connect(g); g.connect(d); muEnv(g, t, 0.01, 0.16 * v, 0.12, 0.6, 0.09, t + dur); muOsc(c, 'square', f, t, t + dur + 0.2, fl); muOsc(c, 'sawtooth', f, t, t + dur + 0.2, fl, 7); },
+  lead2(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 3200; fl.connect(g); g.connect(d); muEnv(g, t, 0.012, 0.12 * v, 0.15, 0.7, 0.12, t + dur);
+    [-9, 0, 9].forEach((dt) => muOsc(c, 'sawtooth', f, t, t + dur + 0.25, fl, dt)); const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 5.5; lg.gain.value = 0; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.006, t + 0.3); lfo.connect(lg); lfo.start(t); lfo.stop(t + dur + 0.25); },
+  pluck(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(5000, t); fl.frequency.exponentialRampToValueAtTime(500, t + 0.25); fl.connect(g); g.connect(d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.13 * v, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(0.45, dur + 0.2)); muOsc(c, 'square', f, t, t + 0.5, fl); muOsc(c, 'triangle', f * 2, t, t + 0.5, fl); },
+  arp(c, d, t, f, dur, v) { INS.pluck(c, d, t, f, Math.min(dur, 0.12), v * 0.8); },
+  bell(c, d, t, f, dur, v) { [[1, 0.12, 1.4], [2.76, 0.05, 0.5], [5.4, 0.025, 0.2]].forEach(([k, a, dc]) => { const g = c.createGain(); g.connect(d); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(a * v, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + dc); muOsc(c, 'sine', f * k, t, t + dc + 0.05, g); }); },
+  bass(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.setValueAtTime(1100, t); fl.frequency.exponentialRampToValueAtTime(420, t + 0.15); fl.connect(g); g.connect(d);
+    muEnv(g, t, 0.006, 0.32 * v, 0.1, 0.75, 0.06, t + dur); muOsc(c, 'triangle', f, t, t + dur + 0.15, fl); muOsc(c, 'sawtooth', f, t, t + dur + 0.15, fl, 5); },
+  sub(c, d, t, f, dur, v) { const g = c.createGain(); g.connect(d); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.45 * v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.3, dur + 0.25));
+    const o = c.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(f * 2.2, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.06); o.connect(g); o.start(t); o.stop(t + dur + 0.4); },
+  slap(c, d, t, f, dur, v) { INS.bass(c, d, t, f, Math.min(dur, 0.18), v * 1.1); const g = c.createGain(); g.connect(d); g.gain.setValueAtTime(0.12 * v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04); muNoise(c, t, 0.05, g, 2); },
+  pad(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1500; fl.connect(g); g.connect(d); muEnv(g, t, 0.25, 0.05 * v, 0.6, 0.85, 0.5, t + dur);
+    [-12, 0, 12].forEach((dt) => muOsc(c, 'sawtooth', f, t, t + dur + 0.6, fl, dt)); },
+  choir(c, d, t, f, dur, v) { const g = c.createGain(), b1 = c.createBiquadFilter(), b2 = c.createBiquadFilter(); b1.type = b2.type = 'bandpass'; b1.frequency.value = 800; b2.frequency.value = 1150; b1.Q.value = b2.Q.value = 4;
+    b1.connect(g); b2.connect(g); g.connect(d); muEnv(g, t, 0.3, 0.16 * v, 0.6, 0.9, 0.5, t + dur);
+    [-6, 6].forEach((dt) => { const o = muOsc(c, 'sawtooth', f, t, t + dur + 0.6, b1, dt); o.connect(b2); }); },
+  brass(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 1.5; fl.frequency.setValueAtTime(350, t); fl.frequency.linearRampToValueAtTime(2800, t + 0.06); fl.frequency.setTargetAtTime(1500, t + 0.07, 0.15);
+    fl.connect(g); g.connect(d); muEnv(g, t, 0.03, 0.14 * v, 0.2, 0.75, 0.1, t + dur);
+    const o1 = muOsc(c, 'sawtooth', f, t, t + dur + 0.2, fl, -5), o2 = muOsc(c, 'sawtooth', f, t, t + dur + 0.2, fl, 6);
+    if (dur > 0.25) { const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.008, t + 0.35); lfo.connect(lg); lg.connect(o1.frequency); lg.connect(o2.frequency); lfo.start(t); lfo.stop(t + dur + 0.2); } },
+  organ(c, d, t, f, dur, v) { const g = c.createGain(), trem = c.createGain(), lfo = c.createOscillator(), lg = c.createGain(); trem.gain.value = 0.8; lfo.frequency.value = 6.4; lg.gain.value = 0.22; lfo.connect(lg); lg.connect(trem.gain); lfo.start(t); lfo.stop(t + dur + 0.15);
+    trem.connect(g); g.connect(d); muEnv(g, t, 0.008, 0.07 * v, 0.1, 0.9, 0.06, t + dur);
+    [[1, 1], [2, 0.65], [3, 0.4], [4, 0.25], [6, 0.12]].forEach(([k, a]) => { const og = c.createGain(); og.gain.value = a; og.connect(trem); muOsc(c, 'sine', f * k, t, t + dur + 0.15, og); }); },
+  clav(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1300; fl.Q.value = 2.5; fl.connect(g); g.connect(d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * v, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2); muOsc(c, 'square', f, t, t + 0.25, fl); },
+  accord(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1700; fl.Q.value = 0.8; fl.connect(g); g.connect(d); muEnv(g, t, 0.02, 0.12 * v, 0.2, 0.85, 0.08, t + dur);
+    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 6.2; lg.gain.value = f * 0.01; lfo.connect(lg); lfo.start(t); lfo.stop(t + dur + 0.15);
+    [[-14, 'square'], [0, 'sawtooth'], [14, 'square']].forEach(([dt, ty]) => { const o = muOsc(c, ty, f, t, t + dur + 0.15, fl, dt); lg.connect(o.frequency); }); },
+  guitar(c, d, t, f, dur, v) { const ws = c.createWaveShaper(), g = c.createGain(), fl = c.createBiquadFilter(), pre = c.createGain(); ws.curve = muDistCurve(); fl.type = 'lowpass'; fl.frequency.value = 2600; pre.gain.value = 0.5;
+    pre.connect(ws); ws.connect(fl); fl.connect(g); g.connect(d); muEnv(g, t, 0.005, 0.11 * v, 0.15, 0.7, 0.06, t + dur);
+    [1, 1.5, 2].forEach((k, i) => muOsc(c, 'sawtooth', f * k, t, t + dur + 0.1, pre, i ? 4 : -4)); },
+  timp(c, d, t, f, dur, v) { const g = c.createGain(); g.connect(d); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5 * v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    const o = c.createOscillator(); o.frequency.setValueAtTime(f * 1.05, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.12); o.connect(g); o.start(t); o.stop(t + 1.2);
+    const ng = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 400; ng.gain.setValueAtTime(0.2 * v, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.3); fl.connect(ng); ng.connect(d); muNoise(c, t, 0.3, fl); },
+  // 드럼 (f 무시)
+  kick(c, d, t, f, dur, v) { const g = c.createGain(); g.connect(d); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.9 * v, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+    const o = c.createOscillator(); o.frequency.setValueAtTime(155, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.14); o.connect(g); o.start(t); o.stop(t + 0.35); },
+  snare(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1900; fl.Q.value = 0.7; fl.connect(g); g.connect(d); g.gain.setValueAtTime(0.42 * v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17); muNoise(c, t, 0.2, fl);
+    const g2 = c.createGain(); g2.connect(d); g2.gain.setValueAtTime(0.22 * v, t); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.09); muOsc(c, 'triangle', 190, t, t + 0.1, g2); },
+  hat(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'highpass'; fl.frequency.value = 7600; fl.connect(g); g.connect(d); g.gain.setValueAtTime(0.16 * v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045); muNoise(c, t, 0.06, fl, 1.6); },
+  ohat(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'highpass'; fl.frequency.value = 7000; fl.connect(g); g.connect(d); g.gain.setValueAtTime(0.14 * v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28); muNoise(c, t, 0.3, fl, 1.5); },
+  clap(c, d, t, f, dur, v) { const fl = c.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1500; fl.Q.value = 1.1; fl.connect(d);
+    [0, 0.011, 0.023].forEach((o, i) => { const g = c.createGain(); g.connect(fl); g.gain.setValueAtTime(0.0001, t + o); g.gain.linearRampToValueAtTime(0.5 * v, t + o + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + o + (i === 2 ? 0.16 : 0.02)); muNoise(c, t + o, 0.18, g, 1.2); }); },
+  tom(c, d, t, f, dur, v) { const g = c.createGain(); g.connect(d); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.55 * v, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    const o = c.createOscillator(); o.frequency.setValueAtTime(f || 130, t); o.frequency.exponentialRampToValueAtTime((f || 130) * 0.62, t + 0.25); o.connect(g); o.start(t); o.stop(t + 0.32); },
+  crash(c, d, t, f, dur, v) { const g = c.createGain(), fl = c.createBiquadFilter(); fl.type = 'highpass'; fl.frequency.value = 4500; fl.connect(g); g.connect(d); g.gain.setValueAtTime(0.22 * v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8); muNoise(c, t, 1.9, fl, 1.3); },
+};
+
+/* ---------- 곡 만들기 도구 ---------- */
+// 곡 = { bpm, len(16분음표 칸 수), ev[칸] = [{i, f[], d(칸), v}], loop, vol, rev }
+function mkSong(bpm, bars, o = {}) { return Object.assign({ bpm, len: bars * 16, ev: Array.from({ length: bars * 16 }, () => []), loop: false, vol: 1, rev: 0.35 }, o); }
+function put(S, i, st, notes, d = 1, v = 1) { if (st < 0 || st >= S.len) return; S.ev[st].push({ i, f: (Array.isArray(notes) ? notes : [notes]).map((n) => (n == null ? 0 : mtof(typeof n === 'string' ? nm(n) : n))), d, v }); }
+// 선율: 'G4:2 C5:2 r:2 …' (숫자 = 16분음표 길이)
+function mel(S, i, st, txt, v = 1, tr = 0) { let p = st; txt.trim().split(/\s+/).forEach((tok) => { const [n, l] = tok.split(':'), L = +l || 1; if (n !== 'r') put(S, i, p, nm(n) + tr, L, v); p += L; }); return p; }
+// 드럼 한 마디: 'x...' (x 세게 · o 약하게)
+function beat(S, i, bar, pat, v = 1, f) { for (let k = 0; k < 16 && k < pat.length; k++) { const ch = pat[k]; if (ch === 'x' || ch === 'o') put(S, i, bar * 16 + k, f || 0, 1, ch === 'x' ? v : v * 0.55); } }
+const CH = { maj: [0, 4, 7], min: [0, 3, 7], m7: [0, 3, 7, 10], M7: [0, 4, 7, 11], d7: [0, 4, 7, 10], sus: [0, 5, 7], five: [0, 7, 12] };
+const chord = (root, ty) => CH[ty].map((x) => root + x);
+
+/* ---------- 고정 곡 ---------- */
+const SONGS = {};
+// 타이틀 테마: 밝은 신스팝, 124bpm, C – G – Am – F | C – G – F – G
+SONGS.title = (() => {
+  const S = mkSong(124, 8, { loop: true, vol: 0.85, title: '풀카운트 메인 테마' });
+  const prog = [[48, 'maj'], [43, 'maj'], [45, 'min'], [41, 'maj'], [48, 'maj'], [43, 'maj'], [41, 'maj'], [43, 'maj']];
+  prog.forEach(([r, ty], b) => {
+    put(S, 'pad', b * 16, chord(r + 12, ty), 16, 0.9);
+    for (let k = 0; k < 16; k += 2) put(S, 'bass', b * 16 + k, r - 12 + (k % 8 === 6 ? 12 : 0), 2, k % 4 ? 0.7 : 1);
+    const ct = chord(r + 24, ty); for (let k = 0; k < 16; k++) if (k % 2 === 0 || b >= 4) put(S, 'arp', b * 16 + k, ct[(k + b) % ct.length] + (k % 8 >= 4 ? 12 : 0), 1, 0.45);
+    beat(S, 'kick', b, 'x...x...x...x...'); beat(S, 'snare', b, b === 7 ? '....x.......x.xx' : '....x.......x...', 0.8); beat(S, 'hat', b, '.x.x.x.x.x.x.x.x', 0.6); beat(S, 'ohat', b, '..x...x...x...x.', 0.35);
+  });
+  put(S, 'crash', 0, 0, 1, 0.7);
+  mel(S, 'lead2', 0, 'G4:2 C5:2 E5:2 G5:4 E5:2 D5:2 C5:2  D5:2 B4:2 D5:2 G5:6 F5:2 E5:2  E5:2 C5:2 E5:2 A5:4 G5:2 E5:2 C5:2  F5:4 E5:2 D5:2 C5:4 D5:4', 0.9);
+  mel(S, 'lead2', 64, 'G4:2 C5:2 E5:2 G5:4 A5:2 G5:2 E5:2  D5:2 G5:2 B5:4 A5:2 G5:2 F5:2 D5:2  C6:4 A5:2 F5:2 A5:4 G5:4  G5:2 A5:2 B5:2 D6:6 r:4', 0.9);
+  return S;
+})();
+// 우리 공격 응원 비트: 큰북 + "짝짝 짝짝짝" 박수 + 브라스 콜, 132bpm (G)
+SONGS.cheer = (() => {
+  const S = mkSong(132, 4, { loop: true, vol: 0.62, title: '응원 비트' });
+  for (let b = 0; b < 4; b++) {
+    beat(S, 'kick', b, 'x...x...x.x.x...'); beat(S, 'tom', b, b === 3 ? '........x.x.x.xx' : '', 0.8, 50); beat(S, 'clap', b, 'x...x...x.x.x...', 0.85);
+    beat(S, 'snare', b, '....x.......x...', 0.5);
+    const r = [43, 48, 43, 50][b]; for (let k = 0; k < 16; k += 4) put(S, 'bass', b * 16 + k, r - 12, 3, 0.9);
+  }
+  mel(S, 'brass', 0, 'G4:2 G4:2 r:2 B4:2 D5:4 B4:2 D5:2  G5:6 F#5:2 E5:4 D5:4', 0.95);
+  mel(S, 'brass', 32, 'E5:2 E5:2 r:2 D5:2 C5:4 B4:2 A4:2  G4:4 B4:4 D5:4 G5:4', 0.95);
+  mel(S, 'brass', 0, 'B4:2 B4:2 r:2 D5:2 G4:4 D5:2 G4:2  B4:6 A4:2 G4:4 F#4:4', 0.5);
+  return S;
+})();
+// 상대 공격·쉬는 시간: 구장 오르간, 100bpm (F) — 2·4박 화음 + 걷는 베이스
+SONGS.organ = (() => {
+  const S = mkSong(100, 8, { loop: true, vol: 0.62, title: '구장 오르간', rev: 0.5 });
+  const prog = [[53, 'maj'], [50, 'min'], [46, 'maj'], [48, 'd7'], [53, 'maj'], [45, 'min'], [46, 'maj'], [48, 'd7']];
+  prog.forEach(([r, ty], b) => {
+    put(S, 'organ', b * 16 + 4, chord(r + 12, ty), 3, 0.8); put(S, 'organ', b * 16 + 12, chord(r + 12, ty), 3, 0.8);
+    [0, 4, 8, 12].forEach((k, i) => put(S, 'bass', b * 16 + k, r - 12 + [0, 4, 7, 9][i], 4, 0.75));
+    beat(S, 'hat', b, 'x..xx..xx..xx..x', 0.35);
+  });
+  mel(S, 'organ', 0, 'r:8 A5:2 C6:2 F6:4  E6:2 D6:2 C6:4 A5:8  r:8 F5:2 G5:2 A5:4  G5:8 r:8', 0.8);
+  mel(S, 'organ', 64, 'r:8 C6:2 A5:2 F5:4  E5:2 F5:2 G5:4 A5:8  r:8 D6:2 C6:2 A5:4  C6:12 r:4', 0.8);
+  return S;
+})();
+// 짧은 신호들
+SONGS.playball = (() => { const S = mkSong(140, 2, { vol: 1 }); put(S, 'crash', 0, 0, 1); put(S, 'timp', 0, 'C3', 4); put(S, 'timp', 24, 'G2', 4); put(S, 'timp', 28, 'C3', 4);
+  mel(S, 'brass', 0, 'C5:2 C5:2 C5:2 G4:2 C5:4 E5:4  G5:12 r:4'); mel(S, 'brass', 0, 'E4:2 E4:2 E4:2 D4:2 E4:4 G4:4  C5:12 r:4', 0.7); put(S, 'pad', 16, chord(48, 'maj'), 14, 1.2); put(S, 'crash', 16, 0, 1); return S; })();
+SONGS.hr = (() => { const S = mkSong(150, 4, { vol: 1.05 }); // 나팔 "돌격!" 신호 느낌의 오리지널 팡파르 + 드럼 롤
+  mel(S, 'organ', 0, 'G4:2 C5:2 E5:2 G5:3 E5:1 G5:8'); mel(S, 'brass', 0, 'G4:2 C5:2 E5:2 G5:3 E5:1 G5:8', 0.9);
+  for (let k = 16; k < 32; k++) put(S, 'snare', k, 0, 1, 0.35 + (k - 16) * 0.04);
+  put(S, 'crash', 32, 0, 1); put(S, 'timp', 32, 'C3', 8); put(S, 'brass', 32, chord(60, 'maj'), 24, 1); put(S, 'organ', 32, chord(72, 'maj'), 24, 1); put(S, 'kick', 32, 0, 1); put(S, 'kick', 40, 0, 1);
+  return S; })();
+SONGS.score = (() => { const S = mkSong(140, 1, { vol: 0.95 }); mel(S, 'brass', 0, 'C5:2 E5:2 G5:2 C6:10'); put(S, 'brass', 6, chord(60, 'maj'), 10, 0.7); put(S, 'crash', 6, 0, 1); put(S, 'kick', 6, 0, 1); return S; })();
+SONGS.k = (() => { const S = mkSong(150, 1, { vol: 1.3 }); mel(S, 'organ', 0, 'E5:1 G5:1 C6:3 r:1 G5:1 C6:6'); put(S, 'brass', 2, chord(60, 'maj'), 3, 0.6); put(S, 'brass', 7, chord(60, 'maj'), 6, 0.8); put(S, 'snare', 7, 0, 1); return S; })();
+SONGS.inning = (() => { const S = mkSong(120, 2, { vol: 1.4, rev: 0.5 }); mel(S, 'organ', 0, 'C5:2 E5:2 G5:2 A5:2 G5:4 E5:4  F5:2 E5:2 D5:2 B4:2 C5:8'); put(S, 'organ', 16, chord(48, 'maj'), 8, 0.6); return S; })();
+SONGS.win = (() => { const S = mkSong(128, 4, { vol: 0.88 });
+  [[48, 'maj'], [53, 'maj'], [43, 'maj'], [48, 'maj']].forEach(([r, ty], b) => { put(S, 'pad', b * 16, chord(r + 12, ty), 16, 1.1); for (let k = 0; k < 16; k += 2) put(S, 'bass', b * 16 + k, r - 12, 2, 0.9); beat(S, 'kick', b, 'x...x...x...x...'); beat(S, 'snare', b, b === 3 ? 'x.x.x.x.xxxxxxxx' : '....x.......x...', 0.8); beat(S, 'hat', b, 'xxxxxxxxxxxxxxxx', 0.4); });
+  put(S, 'crash', 0, 0, 1); put(S, 'crash', 32, 0, 1);
+  mel(S, 'brass', 0, 'C5:2 E5:2 G5:2 C6:6 B5:2 A5:2  A5:4 C6:4 F6:8  D6:2 B5:2 G5:2 D6:6 C6:2 B5:2  C6:16', 1);
+  mel(S, 'lead2', 0, 'E5:2 G5:2 C6:2 E6:6 D6:2 C6:2  C6:4 F6:4 A6:8  B5:2 G5:2 D6:2 G6:6 E6:2 D6:2  E6:16', 0.5);
+  put(S, 'timp', 48, 'C3', 8); put(S, 'crash', 48, 0, 1); return S; })();
+SONGS.lose = (() => { const S = mkSong(76, 2, { vol: 1.4, rev: 0.6 }); put(S, 'pad', 0, chord(57, 'min'), 16, 1); put(S, 'pad', 16, chord(53, 'maj'), 8, 1); put(S, 'pad', 24, chord(52, 'min'), 8, 1);
+  mel(S, 'organ', 0, 'E5:4 D5:4 C5:4 B4:4  A4:8 G#4:8', 0.8); return S; })();
+// 끝판왕 등판 테마: 팀파니 + 합창 + 브라스, 더 길고 웅장하게
+SONGS.closer = (() => { const S = mkSong(96, 4, { vol: 1, rev: 0.6, title: '끝판왕 테마' });
+  [[45, 'min'], [41, 'maj'], [48, 'maj'], [43, 'maj']].forEach(([r, ty], b) => { put(S, 'choir', b * 16, chord(r + 12, ty), 16, 1); put(S, 'timp', b * 16, r - 12 + 12, 4, 1); put(S, 'timp', b * 16 + 8, r - 12 + 12, 4, 0.7); put(S, 'bass', b * 16, r - 12, 16, 0.9);
+    beat(S, 'tom', b, 'x.....x.x...x.xx', 0.6, 45); });
+  put(S, 'crash', 0, 0, 1); put(S, 'crash', 48, 0, 1);
+  mel(S, 'brass', 0, 'A4:4 C5:4 E5:8  F5:4 E5:2 D5:2 C5:8  E5:4 G5:4 C6:8  B5:4 A5:2 G5:2 A5:8', 1); return S; })();
+
+/* ---------- 등장곡 생성 ---------- */
+const MU_STYLE = {
+  rock: { bpm: 140, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 6, 0], lead: 'lead2', chordI: 'guitar', bass: 'bass', minor: true,
+    drums: { kick: 'x.....x.x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' }, rhy: [[2, 2, 2, 2], [4, 2, 2], [2, 2, 4], [3, 1, 2, 2]] },
+  electro: { bpm: 128, scale: [0, 2, 3, 5, 7, 8, 10], prog: [5, 3, 0, 4], lead: 'lead', chordI: 'arp', bass: 'sub', minor: true,
+    drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: '..x...x...x...x.', ohat: '.x.x.x.x.x.x.x.x' }, rhy: [[1, 1, 2, 1, 1, 2], [2, 1, 1, 2, 2], [1, 1, 1, 1, 4]] },
+  epic: { bpm: 100, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 2, 6], lead: 'brass', chordI: 'choir', bass: 'timp', minor: true,
+    drums: { tom: 'x.....x.x...x.xx', kick: 'x.......x.......' }, rhy: [[4, 4], [2, 2, 4], [6, 2]] },
+  funk: { bpm: 108, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 3, 0, 3], lead: 'brass', chordI: 'clav', bass: 'slap', minor: true, sev: true,
+    drums: { kick: 'x..x..x...x.....', snare: '....x..o....x..o', hat: 'xxxxxxxxxxxxxxxx' }, rhy: [[1, 1, 2, 1, 3], [2, 1, 1, 2, 2], [3, 1, 2, 2]] },
+  hiphop: { bpm: 92, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4], lead: 'bell', chordI: 'pad', bass: 'sub', minor: true,
+    drums: { kick: 'x......x.x......', snare: '....x.......x...', hat: 'x.xxx.x.x.xxx.x.' }, rhy: [[2, 2, 4], [1, 1, 2, 4], [4, 2, 2]] },
+  march: { bpm: 116, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 0], lead: 'brass', chordI: 'brass', bass: 'bass',
+    drums: { kick: 'x.......x.......', snare: 'x.xx..x.x.xx..x.', crash: '' }, rhy: [[2, 2, 2, 2], [3, 1, 4], [2, 2, 4]] },
+  trot: { bpm: 124, scale: [0, 2, 4, 7, 9], prog: [0, 3, 4, 0], lead: 'accord', chordI: 'organ', bass: 'bass', pent: true, oompah: true,
+    drums: { kick: 'x.......x.......', snare: '....x.......x...', hat: '..x...x...x...x.' }, rhy: [[3, 1, 2, 2], [2, 2, 4], [1, 1, 2, 4]] },
+  kpop: { bpm: 120, scale: [0, 2, 4, 5, 7, 9, 11], prog: [5, 3, 0, 4], lead: 'lead2', chordI: 'pad', bass: 'bass',
+    drums: { kick: 'x...x...x...x...', clap: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' }, rhy: [[2, 1, 1, 2, 2], [1, 1, 2, 4], [2, 2, 2, 2]] },
+  lofi: { bpm: 82, scale: [0, 2, 4, 5, 7, 9, 11], prog: [3, 2, 1, 4], lead: 'bell', chordI: 'pad', bass: 'bass', sev: true,
+    drums: { kick: 'x.......x..x....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' }, rhy: [[4, 4], [2, 2, 4], [6, 2]] },
+};
+const STYLE_NM = { rock: '록', electro: '일렉트로', epic: '에픽', funk: '펑크', hiphop: '힙합', march: '행진곡', trot: '트로트', kpop: 'K팝', lofi: '로파이' };
+const SONG_NM = {
+  rock: ['헤비 스윙', '레드존', '불타는 배트', '풀스윙 로큰롤'], electro: ['썬더 대시', '네온 러너', '스파크 런', '번개 질주'], epic: ['라스트 찬스', '영웅의 시간', '9회말 투아웃', '결전의 타석'],
+  funk: ['그루브 히터', '컨택 펑크', '리듬 앤 배트'], hiphop: ['초구 플로우', '스윙 바운스', '배터스 박스'], march: ['끈기의 행진', '버티는 자', '한 걸음 더'],
+  trot: ['안타 아리랑', '홈런 블루스', '사랑의 1루타', '내야 땅볼 연가'], kpop: ['풀카운트 러브', '스트라이크 하트', '빛나는 타석'], lofi: ['고요한 눈', '스트라이크존 산책', '볼넷 한 잔'],
+};
+const SKILL_STYLE = { slug: 'rock', pull: 'rock', speed: 'electro', clutch: 'epic', contact: 'funk', first: 'hiphop', eye: 'lofi', tough: 'march',
+  heat: 'rock', magic: 'electro', ctrl: 'electro', gb: 'march', escape: 'epic', eater: 'march', closer: 'epic', pickoff: 'funk', sub: 'lofi' };
+function muRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function muHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+// 선수의 등장곡: 이름으로 시드를 정해서 같은 선수는 늘 같은 곡
+function walkSong(p) {
+  const key = (p.eng || p.name) + '|' + (p.kbo || ''), rnd = muRng(muHash(key) ^ 0x9e3779b9); rnd(); rnd(); rnd();
+  // 스킬이 있으면 스킬 분위기, 없으면 선수 유형으로 후보를 좁힌 뒤 이름으로 고름 (같은 선수 = 늘 같은 곡)
+  const pool = p.role ? (p.role === 'SP' ? ['rock', 'epic', 'march', 'electro'] : ['electro', 'rock', 'hiphop', 'funk'])
+    : p.pow >= 70 ? ['rock', 'hiphop', 'epic', 'rock'] : p.spd >= 68 ? ['electro', 'kpop', 'funk', 'electro'] : p.con >= 68 ? ['funk', 'kpop', 'march', 'trot']
+    : ['rock', 'electro', 'funk', 'hiphop', 'kpop', 'trot', 'march', 'lofi'];
+  const style = (p.skill && SKILL_STYLE[p.skill]) || pool[Math.floor(rnd() * pool.length)];
+  const St = MU_STYLE[style], bars = St.bpm >= 110 ? 4 : 3, S = mkSong(St.bpm, bars, { vol: 0.95, rev: style === 'epic' || style === 'lofi' ? 0.55 : 0.32 });
+  const root = 50 + Math.floor(rnd() * 8), sc = St.scale, deg = (d) => root + sc[((d % sc.length) + sc.length) % sc.length] + 12 * Math.floor(d / sc.length);
+  const triad = (d) => [deg(d), deg(d + 2), deg(d + 4)].concat(St.sev ? [deg(d + 6)] : []);
+  for (let b = 0; b < bars; b++) {
+    const d0 = St.prog[b % St.prog.length], ch = triad(d0), bs = deg(d0) - 12;
+    // 반주
+    if (St.chordI === 'guitar') for (let k = 0; k < 16; k += 2) put(S, 'guitar', b * 16 + k, deg(d0) - 12, k % 8 === 6 ? 2 : 1, k % 4 ? 0.7 : 1);
+    else if (St.chordI === 'arp') for (let k = 0; k < 16; k++) put(S, 'arp', b * 16 + k, ch[k % ch.length] + 12 + (k % 8 >= 4 ? 12 : 0), 1, 0.5);
+    else if (St.chordI === 'clav') ['x.x..x.x.x..x.x.'].forEach((pat) => { for (let k = 0; k < 16; k++) if (pat[k] === 'x') put(S, 'clav', b * 16 + k, ch.map((n) => n + 12), 1, 0.7); });
+    else if (St.oompah) { for (let k = 0; k < 16; k += 8) { put(S, 'bass', b * 16 + k, bs, 3, 1); put(S, St.chordI, b * 16 + k + 4, ch.map((n) => n + 12), 3, 0.7); } }
+    else if (St.chordI === 'brass') { put(S, 'brass', b * 16, ch, 3, 0.6); put(S, 'brass', b * 16 + 8, ch, 3, 0.55); }
+    else put(S, St.chordI, b * 16, ch.map((n) => n + 12), 16, style === 'epic' ? 1 : 0.8);
+    // 베이스
+    if (!St.oompah) { if (St.bass === 'timp') { put(S, 'timp', b * 16, bs + 12, 4, 0.9); put(S, 'timp', b * 16 + 10, bs + 12, 4, 0.6); }
+      else if (St.bass === 'slap') { 'x..x..x.x..x.x..'.split('').forEach((c, k) => { if (c === 'x') put(S, 'slap', b * 16 + k, k % 6 === 3 ? bs + 12 : bs, 1, 0.9); }); }
+      else if (St.bass === 'sub') { put(S, 'sub', b * 16, bs, 6, 1); put(S, 'sub', b * 16 + 10, bs, 4, 0.8); }
+      else for (let k = 0; k < 16; k += 4) put(S, 'bass', b * 16 + k, bs + (k === 12 && rnd() < 0.5 ? 7 : 0), 3, 0.9); }
+    // 드럼
+    for (const dk in St.drums) beat(S, dk === 'tom' ? 'tom' : dk, b, b === bars - 1 && dk === 'snare' ? 'x.x.x.x.xxxxxxxx' : St.drums[dk], 0.85, dk === 'tom' ? 47 : undefined);
+  }
+  // 선율: 동기(A) → 화음 따라 옮김(A') → 변주(B) → 으뜸음으로 마무리
+  const rhy = St.rhy[Math.floor(rnd() * St.rhy.length)], motif = []; let d = 7 + Math.floor(rnd() * 3);
+  rhy.forEach(() => { d += [-2, -1, 1, 2, 0, 3][Math.floor(rnd() * 6)]; d = Math.max(4, Math.min(13, d)); motif.push(d); });
+  const play = (bar, shift, vary) => { let st = bar * 16; for (let h = 0; h < 2; h++) { rhy.forEach((L, i) => { const dd = motif[i] + shift + (vary && i === rhy.length - 1 ? (h ? -2 : 1) : 0); put(S, St.lead, st, deg(dd), L, 0.95); st += L; }); } };
+  for (let b = 0; b < bars - 1; b++) play(b, b === 0 ? 0 : St.prog[b % St.prog.length] - St.prog[0], b === bars - 2);
+  put(S, St.lead, (bars - 1) * 16, deg(7), 6, 1); put(S, St.lead, (bars - 1) * 16 + 8, deg(St.prog[0] + 7), 8, 1);
+  put(S, 'crash', 0, 0, 1, 0.8); put(S, 'crash', (bars - 1) * 16 + 8, 0, 1, 0.6);
+  const names = SONG_NM[style];
+  S.title = `${names[Math.floor(rnd() * names.length)]}`; S.style = STYLE_NM[style];
+  return S;
+}
+
+/* ---------- 재생 엔진 (내다보며 미리 예약하는 스케줄러) ---------- */
+function muInit() {
+  if (MU.ready || !AU.ctx) return;
+  const c = MU.c = AU.ctx;
+  MU.out = c.createGain(); MU.out.gain.value = MU.on && !MU.hidden ? 0.55 : 0;
+  const comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3.5; MU.out.connect(comp); comp.connect(c.destination);
+  const len = Math.round(c.sampleRate * 2.2), ir = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const dd = ir.getChannelData(ch); for (let i = 0; i < len; i++) dd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
+  MU.rev = c.createConvolver(); MU.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = 0.3; MU.rev.connect(rg); rg.connect(MU.out);
+  MU.ready = true;
+  setInterval(muTick, 45);
+  muScene();
+}
+function muPlay(S, o = {}) {
+  if (!MU.ready) return null;
+  const c = MU.c, g = c.createGain(), send = c.createGain(), t = c.currentTime;
+  const vol = (o.vol != null ? o.vol : 1) * S.vol;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + (o.fadeIn || 0.04));
+  send.gain.value = S.rev; g.connect(MU.out); g.connect(send); send.connect(MU.rev);
+  const pl = { S, g, vol, t0: t + 0.08, pos: 0, sd: 60 / S.bpm / 4, loop: !!S.loop, dead: false, onEnd: o.onEnd, kind: o.kind, duck: 1 };
+  MU.players.push(pl); return pl;
+}
+function muStop(pl, fade = 0.5) {
+  if (!pl || pl.dead) return; pl.dead = true;
+  const t = MU.c.currentTime; pl.g.gain.cancelScheduledValues(t); pl.g.gain.setValueAtTime(Math.max(0.0001, pl.g.gain.value), t); pl.g.gain.exponentialRampToValueAtTime(0.0001, t + fade);
+  setTimeout(() => { try { pl.g.disconnect(); } catch (e) { /* */ } }, (fade + 0.6) * 1000);
+}
+function muTick() {
+  if (!MU.ready) return;
+  const c = MU.c, now = c.currentTime, ahead = now + 0.32;
+  muDuckTick();
+  MU.players = MU.players.filter((pl) => !pl.gone);
+  for (const pl of MU.players) {
+    if (pl.dead) { pl.gone = true; continue; }
+    const S = pl.S;
+    while (true) {
+      const t = pl.t0 + pl.pos * pl.sd;
+      if (t >= ahead) break;
+      if (!pl.loop && pl.pos >= S.len) { pl.ended = pl.ended || t; break; }
+      const st = pl.pos % S.len;
+      if (t >= now - 0.05 && MU.on && !MU.hidden) for (const e of S.ev[st]) { const dur = e.d * pl.sd; for (const f of e.f) { try { INS[e.i](c, pl.g, t, f, dur, e.v); } catch (x) { /* 오래된 브라우저 */ } } }
+      pl.pos++;
+    }
+    if (pl.ended && now > pl.ended + 1.4) { pl.dead = pl.gone = true; try { pl.g.disconnect(); } catch (e) { /* */ } if (pl.onEnd) pl.onEnd(); }
+  }
+}
+// 투구 중에는 배경음을 줄임 (타격 집중), 타구가 날아가는 동안도 조금
+function muDuckTick() {
+  const bg = MU.bg; if (!bg || bg.dead) return;
+  const ph = G.phase, want = ph === 'windup' || ph === 'flight' ? 0.3 : ph === 'play' ? 0.55 : 1;
+  if (Math.abs(want - bg.duck) > 0.01) { bg.duck = want; const t = MU.c.currentTime; bg.g.gain.setTargetAtTime(bg.vol * want, t, 0.12); }
+}
+
+/* ---------- 장면 전환 ---------- */
+function muSetBg(kind) {
+  if (!MU.ready) return;
+  if (MU.bgKind === kind && MU.bg && !MU.bg.dead) return;
+  if (MU.bg) muStop(MU.bg, 0.8);
+  MU.bgKind = kind; MU.bg = kind ? muPlay(SONGS[kind], { fadeIn: 1.2, kind }) : null;
+}
+// 지금 상황에 맞는 배경음: 타이틀 / 우리 공격 응원 / 상대 공격 오르간 (등장곡·신호가 나오는 중이면 기다림)
+function muScene() {
+  if (!MU.ready) return;
+  if ((MU.walk && !MU.walk.dead) || (MU.sting && !MU.sting.dead)) return;
+  if (!G.T || !UI.title.hidden) { muSetBg('title'); return; }
+  if (G.phase === 'over') { muSetBg(null); return; }
+  muSetBg(userBatting() ? 'cheer' : 'organ');
+}
+function muToTitle() { if (!MU.ready) return; if (MU.walk) { muStop(MU.walk, 0.4); MU.walk = null; } if (MU.sting) { muStop(MU.sting, 0.4); MU.sting = null; } muSetBg('title'); }
+function muSting(name, o = {}) {
+  if (!MU.ready || !SONGS[name]) return;
+  if (MU.sting && !MU.sting.dead && !o.force) return;
+  if (MU.walk) { muStop(MU.walk, 0.3); MU.walk = null; }
+  if (MU.bg) { muStop(MU.bg, 0.25); MU.bg = null; MU.bgKind = null; }
+  MU.stingName = name;
+  MU.sting = muPlay(SONGS[name], { onEnd: () => { MU.sting = null; if (o.then) o.then(); else muScene(); } });
+}
+// 등장곡: 타석·등판 때. 지금 곡 제목을 화면 구석에 잠깐
+function muWalk(p, tm, pitcher) {
+  if (!MU.ready || !MU.on || G.prac) return;
+  // 홈런·승패 팡파르는 끝까지, 짧은 신호(공수교대·득점·삼진·플레이볼)는 등장곡이 끊고 들어감
+  if (MU.sting && !MU.sting.dead) { if (['hr', 'win', 'lose'].includes(MU.stingName)) return; muStop(MU.sting, 0.6); MU.sting = null; }
+  if (MU.walk) muStop(MU.walk, 0.3);
+  if (MU.bg) { muStop(MU.bg, 0.5); MU.bg = null; MU.bgKind = null; }
+  const S = pitcher && p.skill === 'closer' ? SONGS.closer : walkSong(p);
+  MU.walk = muPlay(S, { vol: tm === (G.T && G.T[G.userSide]) ? 1 : 0.8, onEnd: () => { MU.walk = null; muScene(); } });
+  MU.walkT = performance.now(); MU.walkLen = (S.len * 60) / S.bpm / 4;
+  muNowShow(`${p.name} 등장곡`, `「${S.title}」 · ${S.style || '테마'}`, tm);
+}
+// 투구가 시작되면 등장곡은 줄이며 끝냄 (실제 구장처럼)
+function muPitchStart() { if (MU.walk && !MU.walk.dead) { muStop(MU.walk, 0.9); MU.walk = null; setTimeout(muScene, 950); } }
+// CPU 투수는 등장곡을 4초쯤 들려준 뒤에 던짐
+const muWait = () => (MU.walk && !MU.walk.dead && MU.on ? Math.max(0, Math.min(MU.walkLen, 4.2) - (performance.now() - MU.walkT) / 1000) : 0);
+function muNowShow(a, b, tm) {
+  const el = $('#muNow'); if (!el) return;
+  el.style.setProperty('--tc', tm && tm.t ? tm.t.c1 : '#ffd84a'); el.classList.toggle('pit', userPitching());
+  el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span><small>${esc(a)}</small><b>${esc(b)}</b></span>`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(MU.nowT); MU.nowT = setTimeout(() => el.classList.remove('show'), 5200);
+}
+function muSetOn(v) {
+  MU.on = v; store.set('music', v);
+  if (MU.ready) MU.out.gain.setTargetAtTime(v && !MU.hidden ? 0.55 : 0, MU.c.currentTime, 0.1);
+  $$('.mus-sw').forEach((b) => b.setAttribute('aria-checked', String(v)));
+  const hb = $('#musBtn'); if (hb) { hb.setAttribute('aria-pressed', String(v)); hb.textContent = v ? '🎵' : '🔇'; }
+}
+document.addEventListener('visibilitychange', () => { MU.hidden = document.hidden; if (MU.ready) MU.out.gain.setTargetAtTime(MU.on && !MU.hidden ? 0.55 : 0, MU.c.currentTime, 0.15); });
+// 브라우저는 사용자가 한 번 눌러야 소리를 낼 수 있음 → 첫 터치에 오디오를 깨우고 음악 시작
+{
+  const _init = AU.init.bind(AU);
+  AU.init = function () { _init(); muInit(); };
+  const wake = () => { AU.init(); document.removeEventListener('pointerdown', wake, true); document.removeEventListener('keydown', wake, true); };
+  document.addEventListener('pointerdown', wake, true); document.addEventListener('keydown', wake, true);
+}
 /* ===================== 타자 성향 (tools/batter_tend.js가 생성 — 직접 고치지 말 것) =====================
    네이버 스포츠 문자중계의 투구 위치·결과와 타석 결과(2026-03-28~2026-09-27 정규시즌 671경기)를 타자별로 집계.
    BAT_TEND: KBO 선수 ID → [타석 수, [당겨친 비율, 가운데, 밀어친 비율], 땅볼 비율, 칸 13개 [스윙률, 헛스윙률(스윙 중), 타율]]
@@ -2926,6 +3338,8 @@ function fxSparks(x, y, n, colors, spd = 1) {
     fxAdd({ k: 's', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, c: colors[i % colors.length], life: rnd(0.25, 0.6), t: 0, lw: rnd(1.5, 3.5) });
   }
 }
+// 그리는 함수를 직접 주는 파티클: o에 x, y, life, add(가산 합성) 등 아무 값이나
+function fxFn(f, o) { fxAdd(Object.assign({ k: 'fn', f, t: 0, life: 1, x: 0, y: 0 }, o)); }
 function fxRing(x, y, color, size = 1) { fxAdd({ k: 'r', x, y, c: color, life: 0.55, t: 0, s: size }); }
 function fxText(x, y, text, color, size = 34) { fxAdd({ k: 't', x, y, text, c: color, life: 1.4, t: 0, s: size }); }
 function fxShake(amp, dur = 0.45) { if (reduceMotion) return; if (amp >= FX.shake * (FX.shakeT / FX.shakeD || 0)) { FX.shake = amp; FX.shakeT = FX.shakeD = dur; } }
@@ -2966,6 +3380,9 @@ function fxTick(dt) {
       const e = 1 - (1 - u) ** 3;
       g.globalAlpha = 1 - u; g.strokeStyle = p.c; g.lineWidth = 10 * (1 - u) * p.s + 1;
       g.beginPath(); g.arc(p.x, p.y, (20 + e * 150) * p.s, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
+    } else if (p.k === 'fn') {
+      // 직접 그리는 파티클 (스킬 연출: 불꽃·번개·파편·충격파 등, g5u_skillfx.js) — p.f(g, p, u, dt)
+      g.save(); if (p.add) g.globalCompositeOperation = 'lighter'; p.f(g, p, u, dt); g.restore();
     } else if (p.k === 't') {
       const e = Math.min(1, p.t / 0.18), sc = 0.6 + 0.4 * (1 - (1 - e) ** 3) + (e < 1 ? 0 : Math.max(0, 0.15 - (p.t - 0.18)) * 0.8);
       g.save(); g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; g.translate(p.x, p.y - p.t * 46); g.scale(sc, sc);
@@ -2994,6 +3411,7 @@ function fxHit(kind, tm) {
   fxText(FX.w / 2, FX.h * 0.3, kind === '3B' ? '3루타!' : kind === '2B' ? '2루타!' : '안타!', kind === '1B' || kind === 'IFH' || kind === 'BUNT_HIT' ? '#9fe8ff' : '#ffd84a', 40 + big * 10);
 }
 function fxHomeRun(tm) {
+  if (G.T && tm === G.T[G.userSide]) muSting('hr', { force: true }); // 홈런 팡파르
   const cols = teamCols(tm).concat(GOLD);
   fxFlash('#fff2c2', 0.75, 520); fxShake(2.2, 0.9);
   setTimeout(() => fxFlash('#ffd84a', 0.35, 420), 260);
@@ -3573,9 +3991,9 @@ function updateLines() {
   const bt = batTeam(), ft = fieldTeam(), b = curBatter(), p = ft.pitcher;
   if (!b || !p) return;
   const today = b.g.pa ? `${b.g.ab}타수 ${b.g.h}안타${b.g.hr ? ` ${b.g.hr}홈런` : ''}` : '첫 타석';
-  UI.batLine.innerHTML = `${avatarHTML(b, 'xs')}<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}${SKILLS[b.skill] ? ` <i class="skb" title="${SKILLS[b.skill].nm}">${SKILLS[b.skill].ico}</i>` : ""}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
+  UI.batLine.innerHTML = `${avatarHTML(b, 'xs')}<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}${skBadge(b, G.skArmB)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
   const fat = S.fatigueOf(p, p.g.pc);
-  UI.pitLine.innerHTML = `${avatarHTML(p, 'xs')}<span class="k">투수</span><b>${esc(p.name)}${SKILLS[p.skill] ? ` <i class="skb" title="${SKILLS[p.skill].nm}">${SKILLS[p.skill].ico}</i>` : ""}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
+  UI.pitLine.innerHTML = `${avatarHTML(p, 'xs')}<span class="k">투수</span><b>${esc(p.name)}${skBadge(p, G.skArmP)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
   if (UI.stam) UI.stam.style.width = Math.round((1 - fat) * 100) + '%';
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
 }
@@ -3919,7 +4337,7 @@ const POS_IDX = { C: 1, '1B': 2, '2B': 3, '3B': 4, SS: 5, LF: 6, CF: 7, RF: 8 };
 const G = {
   phase: 'title', T: null, inning: 1, half: 0, outs: 0, b: 0, s: 0, bases: [null, null, null],
   maxInn: 9, limitInn: 11, userSide: 1, pitchLog: [], selType: 'FB', aimTarget: null, lastSpeed: 0,
-  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), defT: 'base', leadT: 0, leadUI: 0, bunt: false, stealReq: false, steal: null, pitch: null, play: null,
+  diff: DIFF.rookie, zoneOn: store.get('zone', true), heatOn: store.get('heat', true), skfxOn: store.get('skfx', true), defT: 'base', leadT: 0, leadUI: 0, bunt: false, stealReq: false, steal: null, pitch: null, play: null,
   runFig: [null, null, null], batFig: null, bs: null, meter: null, gen: 0, cpuBunt: false,
 };
 function batTeam() { return G.T ? G.T[G.half] : null; }
@@ -4137,7 +4555,8 @@ function startGame(ov) {
   paintCrowd(G.T[1].t, G.T[0].t); paintLed(G.T[1].t, G.T[0].t);
   UI.title.hidden = true; UI.hud.hidden = false; $('#overModal').hidden = true;
   $('#pracLine').hidden = !G.prac;
-  if (G.prac) { pracStart(); return; }
+  if (G.prac) { pracStart(); muScene(); return; }
+  muSting('playball', { force: true }); // 경기 시작 팡파르 → 배경음
   startHalf();
 }
 function startHalf() {
@@ -4156,6 +4575,7 @@ function startHalf() {
   AU.cheer(0.5, 1.8); if (bt === G.T[1]) AU.drum('x.x.xxx.', 150);
   const gen = G.gen;
   later(2.3, () => { if (gen === G.gen) startPA(); });
+  skOnHalfStart();
 }
 
 /* ---------- 타석 ---------- */
@@ -4180,6 +4600,8 @@ function startPA() {
   if (bt.lastCard !== b) { bt.lastCard = b; later(0.15, () => { if (curBatter() === b) playerCard(b, bt); }); }
   UI.speedBox.hidden = true;
   camForPA(true);
+  skOnPA(); // 스킬 컷인 (등판·등장·해결사 모드)
+  { const pp = ft.pitcher; if (!pp.g.muIntro) { pp.g.muIntro = 1; muWalk(pp, ft, true); } else muWalk(b, bt, false); } // 등장곡
   if (!userBatting() && G.cpuBunt) G.bs.mode = 'bunt';
   // CPU 고의4구
   if (userBatting() && !G.online && cpuWantsIBB()) {
@@ -4242,13 +4664,15 @@ function nextPitch() {
     if (G.online) return;
     const b = curBatter(), plan = G.prac ? pracPlan(p, b) : S.cpuPitchPlan(p, { b: G.b, s: G.s }, S.zoneOf(b.height));
     const gen = G.gen;
-    later(0.8 + R() * 0.7, () => {
+    const go = () => {
       if (gen !== G.gen || G.phase !== 'ready') return;
+      const w = Math.max(skWait(), muWait()); if (w > 0) { later(w + 0.2, go); return; } // 스킬 컷인·등장곡이 끝난 뒤 던짐
       // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
       const pb = pickoffBase();
       if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1] * (p.skill === 'pickoff' ? 1.5 : 1)) { pickoff(); return; }
       windup(plan.type, plan.target, null);
-    });
+    };
+    later(0.8 + R() * 0.7, go);
   }
 }
 function padPick(ev) {
@@ -4279,6 +4703,8 @@ function meterTap() {
 }
 function windup(type, target, meter) {
   let pi = 0; G.awaitPitch = false;
+  if (userBatting()) skCutClear(); // 날아오는 공을 컷인이 가리지 않게
+  muPitchStart();
   if (G.online) {
     target = { x: r4(target.x), y: r4(target.y) }; meter = meter == null ? null : r4(meter);
     if (userPitching()) flushSubsIn();
@@ -4338,6 +4764,7 @@ function release() {
   ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
   if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
   UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name + (SKILLS[p.skill] ? ' ' + SKILLS[p.skill].ico : ''); UI.speedBox.hidden = false;
+  skOnRelease(P, p); // 스킬 투구 꼬리
   if (userPitching() && !G.online) {
     const b = curBatter(), zi = S.zoneInfo(S.zoneOf(b.height), P.cross.x, P.cross.y);
     if (G.cpuBunt) {
@@ -4405,7 +4832,7 @@ function userSwingTap(aim) {
   if (G.online) {
     if (!res.miss) { res.ev = r4(res.ev); res.la = r4(res.la); res.phi = r4(res.phi); res.q = r4(res.q || 0); res.st = { x: r4(cp.x), y: r4(cp.y), z: r4(cp.z) }; }
     res.bunt = !!G.bunt;
-    sendAct(res.miss ? { k: 'sw', pi: P.pi, miss: 1, bunt: res.bunt ? 1 : 0 } : { k: 'sw', pi: P.pi, foul: res.foul ? 1 : 0, bunt: res.bunt ? 1 : 0, ev: res.ev, la: res.la, phi: res.phi, q: res.q, st: res.st, tl: res.tl });
+    sendAct(res.miss ? { k: 'sw', pi: P.pi, miss: 1, bunt: res.bunt ? 1 : 0 } : { k: 'sw', pi: P.pi, foul: res.foul ? 1 : 0, bunt: res.bunt ? 1 : 0, ev: res.ev, la: res.la, phi: res.phi, q: res.q, st: res.st, tl: res.tl, sk: res.sk || undefined });
   }
   if (!G.bunt) {
     batterSwing(res.miss ? new T.Vector3(aim.x, aim.y, cp.z) : new T.Vector3(cp.x, cp.y, cp.z));
@@ -4465,7 +4892,7 @@ function call(kind) {
   }
   if (end === 'K') {
     b.g.pa++; b.g.ab++; b.g.k++; pit.g.k++; G.outs++; pit.g.outs++;
-    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300); fxStrikeout(userPitching());
+    showCall(kind === 'swing' ? '헛스윙 삼진!' : '루킹 삼진!', '#ff4b4b', 1300); fxStrikeout(userPitching()); skOnK(pit); if (userPitching()) muSting('k');
     AU.cheer(userPitching() ? 0.8 : 0.3, 1.4); crowdPulse(G.half === 0 ? 'H' : 'A', 0.8);
     if (G.batFig) G.batFig.mode = 'bat';
     showPlayText(`${b.name}, ${kind === 'swing' ? '헛스윙' : '루킹'} 삼진`, 1600);
@@ -4508,7 +4935,7 @@ function afterPA(delay, noAdvance) {
   const gen = G.gen;
   if (G.phase === 'over') return;
   if (checkWalkoff()) return;
-  if (G.outs >= 3) { G.phase = 'after'; later(delay + 0.6, () => { if (gen === G.gen) endHalf(); }); return; }
+  if (G.outs >= 3) { skOnInningEnd(); G.phase = 'after'; later(delay + 0.6, () => { if (gen === G.gen) endHalf(); }); return; }
   G.phase = 'after';
   later(delay, () => { if (gen === G.gen) startPA(); });
 }
@@ -4518,6 +4945,7 @@ function addRuns(n, scorers) {
   bt.runs += n; bt.line[G.inning - 1] = (bt.line[G.inning - 1] || 0) + n; pit.g.r += n;
   (G.runLog = G.runLog || []).push({ a: G.T[0].runs, h: G.T[1].runs, p: [G.T[0].pitcher, G.T[1].pitcher] }); // 승리·패전 투수 판정용 (g9r_report.js)
   (scorers || []).slice(0, n).forEach((r) => r && r.g && r.g.r++);
+  if (bt === G.T[G.userSide]) muSting('score'); // 홈런 팡파르가 나오는 중이면 건너뜀
   const homeScores = bt === G.T[1];
   crowdPulse(homeScores ? 'H' : 'A', 1.2);
   AU.cheer(1, 2.6); AU.drum('x.x.xxx.x.x.xxx.', 170);
@@ -4528,6 +4956,7 @@ function walk(kind) {
   const b = curBatter(), pit = fieldTeam().pitcher, bt = batTeam();
   b.g.pa++; b.g.bb++; bt.bb++;
   if (kind !== 'HBP') pit.g.bb++;
+  if (kind === 'BB') skOnWalk(b);
   const B = G.bases, scored = [];
   if (B[0]) { if (B[1]) { if (B[2]) scored.push(B[2]); B[2] = B[1]; } B[1] = B[0]; }
   B[0] = b;
@@ -4591,6 +5020,7 @@ function finishSteal() {
   const pit = fieldTeam().pitcher;
   if (G.bases[st.k] !== st.who) { placeRunners(); return; }
   G.bases[st.k] = null;
+  skOnSteal(st.who, st.ok, st.k);
   if (st.ok) {
     G.bases[st.k + 1] = st.who; st.who.g.sb++;
     showCall('세이프!', '#37d67a', 1000); showPlayText(`${st.who.name}, ${st.k + 2}루 도루 성공!`, 1600);
@@ -4615,6 +5045,7 @@ function checkWalkoff() {
 }
 function endHalf() {
   const A = G.T[0].runs, H = G.T[1].runs;
+  if (!G.prac) muSting('inning');
   hideDocks(); G.phase = 'after';
   if (G.half === 0) {
     if (G.inning >= G.maxInn && H > A) return gameOver();
@@ -4635,6 +5066,7 @@ function gameOver() {
   const me = G.T[G.userSide], op = G.T[1 - G.userSide];
   const r = me.runs > op.runs ? 'win' : me.runs < op.runs ? 'lose' : 'draw';
   if (G.online) onlineResult(r);
+  muSting(r === 'win' ? 'win' : 'lose', { force: true, then: () => later(1, () => { if (G.phase === 'over') muSetBg('title'); }) });
   const rec = store.get('rec', {}), id = me.t.id;
   rec[id] = rec[id] || { w: 0, l: 0, d: 0 };
   rec[id][r === 'win' ? 'w' : r === 'lose' ? 'l' : 'd']++;
@@ -4867,6 +5299,7 @@ function pickoff(remote) {
   G.pko = { k, out, who: r, fig: f, cover: [2, 5, 4][k], t: 0, lead: f ? f.lead || 2 : 2, balk: !out && G.pk >= PK_MAX };
   if (f) f.mode = 'pko';
   G.phase = 'pko';
+  skOnPickoffStart(p);
   // 카메라: 투수 어깨 너머로 베이스를 보는 화면으로 바로 전환 (투수 → 베이스 송구가 화면 안쪽으로 날아감)
   const b = S.basePos(k + 1), dx = -b.x, dz = -18.44 - b.z, L = Math.hypot(dx, dz) || 1;
   CAM.mode = 'adv'; camTo([(dx / L) * 8, 4.2, -18.44 + (dz / L) * 8], [b.x, 0.6, b.z], innerWidth < innerHeight ? 44 : 32, 3, 3, true);
@@ -4904,6 +5337,7 @@ function finishPickoff() {
   if (K.out) {
     G.bases[K.k] = null; G.outs++; fieldTeam().pitcher.g.outs++;
     K.who.g.pko = (K.who.g.pko || 0) + 1; batTeam().ro = (batTeam().ro || 0) + 1;
+    skOnPickoffOut(fieldTeam().pitcher, K.k);
     showPlayText(`견제사! ${K.who.name} 아웃`, 1700); AU.cheer(userPitching() ? 0.8 : 0.3, 1.2);
   } else if (!K.balk && G.pk === PK_MAX - 1 && userPitching()) toast('다음 견제가 실패하면 보크예요 (타석당 3번까지)', 2400);
   resetField(); placeRunners(); updateBug(); drawBoard(); updateLines();
@@ -5112,6 +5546,418 @@ $('#leadBtn').addEventListener('click', () => {
   if (G.online) requestSub({ t: 'ld', v }, `리드 ${LEAD_T[v].nm}`); // 견제·도루 판정에 쓰이므로 상대 기기와 같은 공부터 적용
   else { G.leadT = v; toast(LEAD_T[v].tip, 2200); }
 });
+/* ===================== 스킬 연출 (순수 연출 — 경기 결과에 영향 없음) ===================== */
+// 주의: Math.random만 씀 (경기 난수 GR을 쓰면 온라인 두 기기가 어긋남)
+//  ① 컷인: 화면을 가로지르는 띠 + 선수 얼굴 + 스킬 아이콘 + 대사 (등판·등장·발동 순간)
+//  ② 3D 오라: 스킬 가진 타자·투수·주자 발밑의 빛 고리 + 빛기둥 + 떠오르는 빛가루 (조건이 맞아 "준비"되면 더 밝게)
+//  ③ 투구 꼬리: 파이어볼러 불꽃 · 마구 보랏빛 반짝이 · 핀포인트 레이저 · 잠수함 물결 · 끝판왕 금빛 …
+//  ④ 임팩트: 거포 충격파 · 해결사 불기둥 · 초구 킬러 "POW!" · 끈질김 바위 파편 · 당겨치기 자기장 · 대도 번개 …
+//  ⑤ 스킬별 합성 효과음
+const SKFX = {
+  slug: { c: ['#b04dff', '#ff3df0', '#ffe066'], line: '한 방이면 끝!', snd: 'boom', hit: 'blast' },
+  contact: { c: ['#10c99a', '#9dffdf', '#ffffff'], line: '어디로 오든 맞힌다', snd: 'chime', hit: 'target' },
+  speed: { c: ['#ffcc00', '#fff6a8', '#6fd8ff'], line: '번개처럼 달린다!', snd: 'zap', hit: 'bolt' },
+  eye: { c: ['#2fb3ff', '#d6f4ff', '#ffffff'], line: '공이 다 보인다', snd: 'shine', hit: 'glint' },
+  clutch: { c: ['#ff3d1f', '#ffb627', '#fff3b0'], line: '찬스는 내가 끝낸다!', snd: 'flame', hit: 'flame' },
+  first: { c: ['#ff7a1a', '#ffd166', '#ffffff'], line: '초구부터 간다!', snd: 'punch', hit: 'pow' },
+  pull: { c: ['#ff2e63', '#3d8bff', '#ffffff'], line: '끌어당겨 날린다', snd: 'magnet', hit: 'magnet' },
+  tough: { c: ['#8d8a86', '#e7e5e4', '#ffd84a'], line: '절대 안 물러선다', snd: 'rock', hit: 'rock' },
+  heat: { c: ['#ff4d00', '#ffd84a', '#fff3b0'], line: '불꽃 강속구!', snd: 'flame', trail: 'fire' },
+  magic: { c: ['#8b5cf6', '#f0abfc', '#ffffff'], line: '마구가 춤춘다', snd: 'magic', trail: 'magic' },
+  ctrl: { c: ['#06d6f0', '#a5f3fc', '#ffffff'], line: '원하는 곳에 정확히', snd: 'laser', trail: 'laser' },
+  gb: { c: ['#c08552', '#f5d0a9', '#ffffff'], line: '땅으로 굴려라', snd: 'rock', trail: 'dust' },
+  escape: { c: ['#3b82f6', '#bfdbfe', '#ffffff'], line: '위기? 문제없다', snd: 'shield', trail: 'shield' },
+  eater: { c: ['#22c55e', '#bbf7d0', '#ffffff'], line: '오늘도 길게 간다', snd: 'chime', trail: null },
+  closer: { c: ['#ffd84a', '#ff3b3b', '#ffffff'], line: '경기를 끝내러 왔다', snd: 'lock', trail: 'gold' },
+  pickoff: { c: ['#16a34a', '#86efac', '#ffffff'], line: '움직이면 잡는다', snd: 'hiss', trail: 'snake' },
+  sub: { c: ['#06b6d4', '#67e8f9', '#ffffff'], line: '바닥에서 솟아오른다', snd: 'wave', trail: 'wave' },
+};
+const skOn = () => G.skfxOn !== false;
+const TAU = Math.PI * 2;
+const shade = (hex, k) => { const c = new T.Color(hex); c.multiplyScalar(k); return '#' + c.getHexString(); };
+const rgba = (hex, a) => { const c = new T.Color(hex); return `rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${a})`; };
+
+/* ---------- ⑤ 효과음 ---------- */
+Object.assign(AU, {
+  skReady() { const t = this.now(); this.tone(t, 0.12, 988, 988, 0.08); this.tone(t + 0.09, 0.22, 1480, 1480, 0.08); this.tone(t + 0.09, 0.22, 2960, 2960, 0.02); },
+  skWhoosh() { const t = this.now(); this.noise(t, 0.4, 1100, 0.7, 0.3, 'highpass', 0.1); this.tone(t, 0.3, 160, 1500, 0.09, 'sawtooth'); this.tone(t + 0.04, 0.45, 95, 55, 0.45); },
+  sk(kind) {
+    const c = this.ctx; if (!c || !this.on) return; const t = c.currentTime + 0.1;
+    if (kind === 'boom') { this.noise(t, 1, 140, 0.7, 0.9, 'lowpass'); this.tone(t, 0.7, 120, 30, 0.75); this.noise(t + 0.02, 0.35, 2600, 0.8, 0.3, 'highpass'); }
+    else if (kind === 'chime') [880, 1175, 1568, 2093].forEach((f, i) => { this.tone(t + i * 0.07, 0.55, f, f, 0.1); this.tone(t + i * 0.07, 0.55, f * 2, f * 2, 0.025); });
+    else if (kind === 'zap') { for (let i = 0; i < 8; i++) this.tone(t + i * 0.032, 0.05, 500 + Math.random() * 2600, 200 + Math.random() * 900, 0.07, 'square'); this.noise(t, 0.3, 4200, 1, 0.22, 'highpass'); }
+    else if (kind === 'shine') { this.tone(t, 0.8, 1100, 3600, 0.08); this.tone(t + 0.12, 0.7, 1650, 4900, 0.05); this.tone(t + 0.24, 0.6, 2200, 5200, 0.03); }
+    else if (kind === 'flame') { this.noise(t, 0.9, 650, 0.5, 0.5, 'bandpass', 0.05); this.noise(t + 0.08, 0.7, 1900, 0.7, 0.2, 'bandpass', 0.1); this.tone(t, 0.55, 65, 150, 0.25, 'sawtooth'); }
+    else if (kind === 'punch') { this.tone(t, 0.2, 170, 45, 0.85); this.noise(t, 0.09, 2600, 1.2, 0.55, 'bandpass', 0.001); this.tone(t + 0.1, 0.25, 900, 1400, 0.06, 'square'); }
+    else if (kind === 'magnet') {
+      const o = c.createOscillator(), l = c.createOscillator(), lg = c.createGain(), g = c.createGain();
+      o.frequency.value = 230; l.frequency.value = 16; lg.gain.value = 70; l.connect(lg); lg.connect(o.frequency);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+      o.connect(g); g.connect(this.master); o.start(t); l.start(t); o.stop(t + 0.85); l.stop(t + 0.85);
+    } else if (kind === 'rock') { this.noise(t, 0.55, 240, 0.9, 0.75, 'lowpass', 0.002); this.noise(t + 0.04, 0.3, 1500, 1.5, 0.32, 'bandpass', 0.001); this.noise(t + 0.15, 0.2, 900, 1.5, 0.2, 'bandpass', 0.001); }
+    else if (kind === 'magic') [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => { this.tone(t + i * 0.055, 0.5, f, f * 1.01, 0.065, 'triangle'); this.tone(t + i * 0.055, 0.5, f * 1.5, f * 1.5, 0.025); });
+    else if (kind === 'laser') { this.tone(t, 0.38, 2800, 280, 0.12, 'sawtooth'); this.tone(t + 0.02, 0.32, 1900, 220, 0.08); this.tone(t + 0.3, 0.12, 3200, 3200, 0.04, 'square'); }
+    else if (kind === 'shield') { this.tone(t, 1, 660, 660, 0.12, 'triangle'); this.tone(t, 1, 990, 990, 0.08, 'triangle'); this.tone(t, 1, 1320, 1318, 0.05); this.noise(t, 0.15, 3000, 2, 0.15, 'bandpass'); }
+    else if (kind === 'lock') { this.tone(t, 0.06, 1900, 1200, 0.2, 'square'); this.tone(t + 0.12, 0.06, 1900, 1200, 0.2, 'square'); this.tone(t + 0.24, 0.45, 130, 55, 0.65); this.noise(t + 0.24, 0.22, 500, 1, 0.45, 'lowpass'); }
+    else if (kind === 'hiss') { this.noise(t, 0.75, 5200, 0.8, 0.32, 'highpass', 0.08); this.tone(t + 0.55, 0.12, 320, 90, 0.45); this.noise(t + 0.55, 0.1, 1800, 1, 0.3, 'bandpass', 0.001); }
+    else if (kind === 'wave') { this.noise(t, 1.2, 480, 0.5, 0.45, 'lowpass', 0.35); this.noise(t + 0.2, 0.9, 1300, 0.6, 0.16, 'bandpass', 0.3); this.tone(t, 1, 180, 320, 0.05); }
+  },
+});
+
+/* ---------- ① 컷인 ---------- */
+const SKC = { q: [], busyUntil: 0, cur: null, timer: 0 };
+const skHost = () => $('#skcut');
+// p: 선수, tm: { t: 팀 }, o: { tag: '등판'·'발동!'…, line: 대사, pos: 'mid'|'low'|'high', side: 'L'|'R', count: 발동 횟수 셀지, preview }
+function skCutIn(p, tm, o = {}) {
+  const S0 = p && SKILLS[p.skill]; if (!S0) return;
+  if (!skOn() && !o.preview) { showPlayText(`${S0.ico} ${p.name} · ${S0.nm} ${o.tag || '발동!'}`, 1500); if (o.count && p.g) p.g.skN = (p.g.skN || 0) + 1; return; }
+  if (o.count && p.g) p.g.skN = (p.g.skN || 0) + 1;
+  if (SKC.q.length >= 3) SKC.q.shift();
+  SKC.q.push({ p, tm, o });
+  if (!SKC.cur) skCutNext();
+}
+function skCutNext() {
+  const it = SKC.q.shift(); SKC.cur = null; if (!it) return;
+  const { p, tm, o } = it, S0 = SKILLS[p.skill], F = SKFX[p.skill], [a, b, c] = F.c;
+  const dur = reduceMotion ? 1100 : 1500;
+  const el = document.createElement('div');
+  el.className = `skc side-${o.side || 'L'} pos-${o.pos || 'mid'}${reduceMotion ? ' rm' : ''}`;
+  el.style.cssText = `--a:${a};--b:${b};--c:${c};--ad:${shade(a, 0.45)};--tc:${tm && tm.t ? tm.t.c1 : a};--dur:${dur}ms`;
+  const n = FX_LITE ? 8 : 16;
+  const sparks = Array.from({ length: n }, (_, i) => { const ang = (i / n) * TAU + Math.random() * 0.4, d = 70 + Math.random() * 120; return `<i style="--dx:${(Math.cos(ang) * d).toFixed(0)}px;--dy:${(Math.sin(ang) * d * 0.7).toFixed(0)}px;--d:${(0.12 + Math.random() * 0.15).toFixed(2)}s"></i>`; }).join('');
+  el.innerHTML = `<div class="skc-flash"></div><div class="skc-band"><div class="skc-lines"></div><div class="skc-shine"></div></div><div class="skc-tag">SKILL</div>
+    <div class="skc-row"><div class="skc-ava">${avatarHTML(p, 'lg')}</div>
+    <div class="skc-txt"><small>${esc(tm && tm.t ? tm.t.city : '')} · ${esc(p.name)} · ${esc(o.tag || '스킬 발동!')}</small><b>${esc(S0.nm)}</b><em>“${esc(o.line || F.line)}”</em></div>
+    <div class="skc-ico"><div class="skc-rays"></div><span>${S0.ico}</span></div></div><div class="skc-sparks">${sparks}</div>`;
+  skHost().appendChild(el);
+  SKC.cur = el; SKC.busyUntil = performance.now() + dur;
+  AU.skWhoosh(); AU.sk(F.snd);
+  if (G.T) { fxFlash(a, 0.22, 420); fxShake(0.5, 0.25); }
+  clearTimeout(SKC.timer);
+  SKC.timer = setTimeout(() => { el.remove(); if (SKC.cur === el) SKC.cur = null; skCutNext(); }, dur);
+}
+// 투구가 시작되면 (내가 칠 때) 공을 가리지 않게 컷인을 바로 치움
+function skCutClear() {
+  SKC.q.length = 0; clearTimeout(SKC.timer); SKC.busyUntil = 0;
+  const el = SKC.cur; SKC.cur = null; if (el) { el.classList.add('out'); setTimeout(() => el.remove(), 160); }
+}
+const skWait = () => Math.max(0, (SKC.busyUntil - performance.now()) / 1000) + (SKC.q.length ? SKC.q.length * 1.5 : 0);
+const sideOf = (tm) => (G.T && tm === G.T[G.userSide] ? 'L' : 'R'); // 우리 팀은 왼쪽에서, 상대는 오른쪽에서
+
+/* ---------- ④ 2D 임팩트 재료 ---------- */
+function fxShock(x, y, color, maxR = 220, w = 18, life = 0.55, delay = 0) {
+  fxFn((g, p, u) => { const v = Math.max(0, (p.t - delay) / (life - delay)); if (v <= 0) return; const e = 1 - (1 - v) ** 3;
+    g.globalAlpha = (1 - v) ** 1.5; g.strokeStyle = color; g.lineWidth = w * (1 - v) + 1; g.shadowColor = color; g.shadowBlur = 24;
+    g.beginPath(); g.arc(p.x, p.y, 10 + e * maxR, 0, TAU); g.stroke(); }, { x, y, life, add: true });
+}
+function fxFlames(x, y, n, colors, spread = 1, up = 1) {
+  n = Math.round(n * (FX_LITE ? 0.5 : 1));
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6 * spread, sp = (160 + Math.random() * 380) * up, r0 = 8 + Math.random() * 14, col = colors[i % colors.length];
+    fxFn((g, p, u, dt) => { p.vx *= 1 - 1.8 * dt; p.vy = p.vy * (1 - 1.5 * dt) - 120 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      const r = p.r0 * (1 - u * 0.7) * (0.8 + u * 0.6), gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+      gr.addColorStop(0, `rgba(255,250,220,${0.95 * (1 - u)})`); gr.addColorStop(0.35, rgba(p.c, 0.8 * (1 - u))); gr.addColorStop(1, rgba(p.c, 0));
+      g.fillStyle = gr; g.beginPath(); g.arc(p.x, p.y, r, 0, TAU); g.fill(); },
+    { x: x + (Math.random() - 0.5) * 20, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r0, c: col, life: 0.5 + Math.random() * 0.5, add: true });
+  }
+}
+function fxStarBurst(x, y, text, fill, stroke, size = 120) {
+  fxFn((g, p, u) => { const pop = u < 0.15 ? 1.35 * (u / 0.15) : u < 0.25 ? 1.35 - (u - 0.15) * 3.5 : 1; const s = size * pop;
+    g.globalAlpha = u > 0.75 ? (1 - u) / 0.25 : 1; g.translate(p.x, p.y); g.rotate(-0.12 + u * 0.08);
+    g.beginPath(); for (let i = 0; i < 32; i++) { const r = i % 2 ? s * 0.55 : s * (0.95 + ((i * 37) % 7) / 30); const a = (i / 32) * TAU; g.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.78); }
+    g.closePath(); g.fillStyle = fill; g.fill(); g.lineWidth = 7; g.strokeStyle = stroke; g.stroke();
+    g.font = `${Math.round(s * 0.42)}px ${FONT_DISP}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 8; g.strokeStyle = '#1a0a00'; g.strokeText(text, 0, 2); g.fillStyle = '#fff'; g.fillText(text, 0, 2); },
+  { x, y, life: 1.1 });
+}
+function fxShards(x, y, n, colors) {
+  n = Math.round(n * (FX_LITE ? 0.5 : 1));
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, sp = 250 + Math.random() * 650, s = 6 + Math.random() * 14;
+    fxFn((g, p, u, dt) => { p.vy += 900 * dt; p.vx *= 1 - 0.8 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(-p.s, -p.s * 0.6); g.lineTo(p.s * 0.9, -p.s * 0.2); g.lineTo(-p.s * 0.2, p.s); g.closePath(); g.fill(); g.stroke(); },
+    { x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 200, r: Math.random() * 6, vr: (Math.random() - 0.5) * 18, s, c: colors[i % colors.length], life: 0.9 + Math.random() * 0.5 });
+  }
+}
+function fxCracks(x, y, n, color) {
+  const lines = Array.from({ length: n }, (_, i) => { const a = (i / n) * TAU + Math.random() * 0.5; const pts = [[0, 0]]; let r = 0; while (r < 160) { r += 18 + Math.random() * 26; const j = (Math.random() - 0.5) * 0.5; pts.push([Math.cos(a + j) * r, Math.sin(a + j) * r]); } return pts; });
+  fxFn((g, p, u) => { const v = Math.min(1, u / 0.25); g.globalAlpha = u > 0.6 ? (1 - u) / 0.4 : 1; g.strokeStyle = color; g.lineWidth = 3; g.shadowColor = '#000'; g.shadowBlur = 4;
+    lines.forEach((pts) => { const m = Math.max(2, Math.ceil(pts.length * v)); g.beginPath(); g.moveTo(p.x, p.y); for (let i = 1; i < m; i++) g.lineTo(p.x + pts[i][0], p.y + pts[i][1]); g.stroke(); }); },
+  { x, y, life: 1 });
+}
+function fxArcs(x, y, n, c1, c2) {
+  for (let i = 0; i < n; i++) {
+    const side = i % 2 ? 1 : -1, r0 = 70 + i * 22;
+    fxFn((g, p, u) => { const r = p.r0 * (1 - u * 0.75); g.globalAlpha = 1 - u; g.strokeStyle = p.c; g.lineWidth = 4; g.shadowColor = p.c; g.shadowBlur = 16;
+      g.beginPath(); g.arc(p.x + p.side * r * 0.35, p.y, r, p.side > 0 ? -Math.PI / 2 : Math.PI / 2, p.side > 0 ? Math.PI / 2 : Math.PI * 1.5); g.stroke(); },
+    { x, y, r0, side, c: side > 0 ? c2 : c1, life: 0.7, add: true });
+  }
+}
+function fxTargets(x, y, color) {
+  for (let i = 0; i < 3; i++) fxShock(x, y, color, 70 + i * 60, 6, 0.75 + i * 0.12, i * 0.1);
+  fxFn((g, p, u) => { g.globalAlpha = 1 - u; g.strokeStyle = color; g.lineWidth = 3; const L = 40 + u * 90;
+    g.beginPath(); g.moveTo(p.x - L, p.y); g.lineTo(p.x - 14, p.y); g.moveTo(p.x + 14, p.y); g.lineTo(p.x + L, p.y); g.moveTo(p.x, p.y - L); g.lineTo(p.x, p.y - 14); g.moveTo(p.x, p.y + 14); g.lineTo(p.x, p.y + L); g.stroke(); },
+  { x, y, life: 0.8, add: true });
+}
+function fxGlint(x, y, color, size = 120, life = 0.8) {
+  fxFn((g, p, u) => { const s = p.size * Math.sin(Math.min(1, u * 2.2) * Math.PI / 2) * (1 - u * 0.4); g.globalAlpha = 1 - u; g.translate(p.x, p.y); g.rotate(u * 1.2);
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, s * 0.35); gr.addColorStop(0, '#fff'); gr.addColorStop(1, rgba(p.c, 0)); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, s * 0.35, 0, TAU); g.fill();
+    g.fillStyle = '#fff'; for (let k = 0; k < 4; k++) { g.rotate(Math.PI / 2); g.beginPath(); g.moveTo(0, -4); g.lineTo(s, 0); g.lineTo(0, 4); g.closePath(); g.fill(); } },
+  { x, y, size, c: color, life, add: true });
+}
+function fxBolt(x0, y0, x1, y1, color, life = 0.32, w = 4) {
+  const pts = [], n = 9; for (let i = 0; i <= n; i++) { const t = i / n, j = i === 0 || i === n ? 0 : (Math.random() - 0.5) * 46; pts.push([x0 + (x1 - x0) * t + j, y0 + (y1 - y0) * t + j * 0.4]); }
+  fxFn((g, p, u) => { g.globalAlpha = (1 - u) * (Math.random() < 0.2 ? 0.4 : 1); g.lineJoin = 'round';
+    [[w * 3, p.c, 22], [w, '#fff', 0]].forEach(([lw, col, bl]) => { g.lineWidth = lw; g.strokeStyle = col; g.shadowColor = p.c; g.shadowBlur = bl; g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); g.stroke(); }); },
+  { c: color, life, add: true });
+}
+function fxHex(x, y, color, size = 60, life = 0.6) {
+  fxFn((g, p, u) => { const s = p.size * (0.8 + u * 0.6); g.globalAlpha = (1 - u) * 0.9; g.strokeStyle = p.c; g.fillStyle = rgba(p.c, 0.12 * (1 - u)); g.lineWidth = 3; g.shadowColor = p.c; g.shadowBlur = 14;
+    g.beginPath(); for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU + Math.PI / 6; g.lineTo(p.x + Math.cos(a) * s, p.y + Math.sin(a) * s); } g.closePath(); g.fill(); g.stroke(); },
+  { x, y, size, c: color, life, add: true });
+}
+function fxRipples(x, y, color, n = 3, size = 1) {
+  for (let i = 0; i < n; i++) fxFn((g, p, u) => { const v = Math.max(0, u - p.d); if (v <= 0) return; const r = (20 + v * 160) * size; g.globalAlpha = (1 - v) * 0.9; g.strokeStyle = p.c; g.lineWidth = 3; g.shadowColor = p.c; g.shadowBlur = 10;
+    g.beginPath(); g.ellipse(p.x, p.y, r, r * 0.38, 0, 0, TAU); g.stroke(); }, { x, y, c: color, d: i * 0.15, life: 1, add: true });
+}
+function fxSparkles(x, y, n, colors, spread = 90) {
+  n = Math.round(n * (FX_LITE ? 0.5 : 1));
+  for (let i = 0; i < n; i++) fxFn((g, p, u) => { const s = p.s * Math.sin(u * Math.PI); g.globalAlpha = 1; g.fillStyle = p.c; g.shadowColor = p.c; g.shadowBlur = 10; g.translate(p.x, p.y - u * 30); g.rotate(u * 3);
+    g.beginPath(); for (let k = 0; k < 8; k++) { const r = k % 2 ? s * 0.28 : s; const a = (k / 8) * TAU; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); },
+  { x: x + (Math.random() - 0.5) * spread * 2, y: y + (Math.random() - 0.5) * spread, s: 5 + Math.random() * 9, c: colors[i % colors.length], life: 0.5 + Math.random() * 0.6, add: true });
+}
+function fxBigIcon(x, y, ico, size = 90) {
+  fxFn((g, p, u) => { const pop = u < 0.18 ? (u / 0.18) * 1.3 : u < 0.3 ? 1.3 - (u - 0.18) * 2.5 : 1; g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; g.font = `${Math.round(p.size * pop)}px sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.shadowColor = '#fff'; g.shadowBlur = 20; g.fillText(p.ico, p.x, p.y - u * 30); }, { x, y, ico, size, life: 1.2 });
+}
+
+// 스킬별 임팩트 (배트에 맞은 순간 · 삼진 · 도루 성공 등)
+function skImpact(id, x, y, big = 1) {
+  if (!skOn()) return;
+  const F = SKFX[id]; if (!F) return; const [a, b, c] = F.c, s = big;
+  const kind = F.hit || F.trail;
+  if (kind === 'blast') { fxFlash('#7c1fff', 0.5, 520); fxShake(1.8 * s, 0.65); [0, 0.07, 0.15].forEach((d, i) => fxShock(x, y, [a, b, c][i], 260 * s, 22, 0.75, d)); fxSparks(x, y, 40, [a, b, c, '#fff'], 1.3); fxText(x, y - 70, 'BOOM!', b, 64); }
+  else if (kind === 'flame') { fxFlash('#ff5a1f', 0.38, 460); fxShake(1 * s, 0.4); fxFlames(x, y, 46, [a, b, c], 1.1, 1.3); fxShock(x, y, b, 180, 14); }
+  else if (kind === 'pow') { fxShake(1.2 * s, 0.35); fxStarBurst(x, y - 10, 'POW!', b, a, 120 * s); fxSparks(x, y, 22, [a, b, '#fff'], 1); }
+  else if (kind === 'rock') { fxShake(1.1 * s, 0.4); fxCracks(x, y, 9, '#f5f5f4'); fxShards(x, y, 22, ['#78716c', '#a8a29e', '#d6d3d1', '#57534e']); fxShock(x, y, c, 150, 10); }
+  else if (kind === 'magnet') { fxArcs(x, y, 8, a, b); fxSparks(x, y, 24, [a, b, '#fff'], 0.9); fxBigIcon(x, y - 60, '🧲', 70); }
+  else if (kind === 'target') { fxTargets(x, y, a); fxSparkles(x, y, 16, [a, b, '#fff']); }
+  else if (kind === 'glint') { fxGlint(x, y, a, 160); fxFlash(b, 0.25, 360); fxSparkles(x, y, 14, [a, '#fff']); }
+  else if (kind === 'bolt') { fxFlash(c, 0.4, 300); for (let i = 0; i < 4; i++) fxBolt(x + (Math.random() - 0.5) * 220, -10, x, y, i % 2 ? a : c, 0.35, 4); fxShock(x, y, a, 160, 12); fxSparks(x, y, 26, [a, b, '#fff'], 1.1); }
+  else if (kind === 'fire') { fxFlames(x, y, 40, [a, b, c], 1.4, 1.1); fxShock(x, y, a, 170, 14); fxFlash(a, 0.3, 380); }
+  else if (kind === 'magic') { fxSparkles(x, y, 34, [a, b, c], 120); for (let i = 0; i < 3; i++) fxShock(x, y, i % 2 ? b : a, 120 + i * 40, 6, 0.8, i * 0.1); fxFlash(a, 0.28, 380); }
+  else if (kind === 'laser') { fxTargets(x, y, a); fxGlint(x, y, a, 110, 0.6); }
+  else if (kind === 'dust') { fxShards(x, y, 18, ['#a47148', '#c08552', '#e6ccb2']); fxRipples(x, y + 20, b, 2, 1.2); }
+  else if (kind === 'shield') { fxHex(x, y, a, 70, 0.8); fxHex(x, y, b, 100, 0.95); fxShock(x, y, a, 150, 10); fxFlash(a, 0.25, 380); }
+  else if (kind === 'gold') { fxFlash('#ffd84a', 0.35, 420); fxSparkles(x, y, 30, [a, '#fff3b0', '#fff'], 120); fxShock(x, y, a, 200, 16); fxBigIcon(x, y - 70, '🔒', 80); }
+  else if (kind === 'snake') { fxShock(x, y, a, 140, 12); fxSparkles(x, y, 18, [a, b]); fxBigIcon(x, y - 60, '🐍', 72); }
+  else if (kind === 'wave') { fxRipples(x, y, a, 4, 1.4); fxRipples(x, y, b, 3, 0.9); fxSparkles(x, y, 16, [a, b, '#fff']); }
+  else { fxShock(x, y, a, 160, 12); fxSparkles(x, y, 16, [a, b, c]); }
+}
+
+/* ---------- ② 3D 오라 ---------- */
+const AURA = (() => {
+  const rc = makeCanvas(256, 256), g = rc.getContext('2d');
+  // 바닥 고리: 밝은 테두리 + 룬 같은 눈금 + 안쪽 은은한 빛
+  const gr = g.createRadialGradient(128, 128, 30, 128, 128, 126); gr.addColorStop(0, 'rgba(255,255,255,0.18)'); gr.addColorStop(0.75, 'rgba(255,255,255,0.05)'); gr.addColorStop(0.86, 'rgba(255,255,255,0.95)'); gr.addColorStop(0.92, 'rgba(255,255,255,0.25)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 3;
+  for (let i = 0; i < 24; i++) { const a = (i / 24) * TAU, r0 = i % 3 ? 86 : 78; g.beginPath(); g.moveTo(128 + Math.cos(a) * r0, 128 + Math.sin(a) * r0); g.lineTo(128 + Math.cos(a) * 96, 128 + Math.sin(a) * 96); g.stroke(); }
+  g.lineWidth = 2; g.beginPath(); g.arc(128, 128, 60, 0, TAU); g.stroke();
+  const ringTex = canvasTex(rc, { nomip: true });
+  const bc = makeCanvas(8, 128), bg = bc.getContext('2d'), bgr = bg.createLinearGradient(0, 128, 0, 0);
+  bgr.addColorStop(0, 'rgba(255,255,255,0.75)'); bgr.addColorStop(0.35, 'rgba(255,255,255,0.25)'); bgr.addColorStop(1, 'rgba(255,255,255,0)'); bg.fillStyle = bgr; bg.fillRect(0, 0, 8, 128);
+  const beamTex = canvasTex(bc, { nomip: true });
+  const ringGeo = new T.PlaneGeometry(2.4, 2.4), beamGeo = new T.CylinderGeometry(0.42, 0.66, 2.4, 22, 1, true); beamGeo.translate(0, 1.2, 0);
+  const mk = () => {
+    const grp = new T.Group(); grp.visible = false;
+    const am = (map) => new T.MeshBasicMaterial({ map, color: 0xffffff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false });
+    const ring = new T.Mesh(ringGeo, am(ringTex)); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05;
+    const ring2 = new T.Mesh(ringGeo, am(ringTex)); ring2.rotation.x = -Math.PI / 2; ring2.position.y = 0.06; ring2.scale.setScalar(0.6);
+    const beam = new T.Mesh(beamGeo, am(beamTex));
+    grp.add(ring, ring2, beam);
+    const motes = [];
+    for (let i = 0; i < 12; i++) { const s = new T.Sprite(new T.SpriteMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, fog: false })); s.u = Math.random(); s.a = Math.random() * TAU; s.sp = 0.35 + Math.random() * 0.4; grp.add(s); motes.push(s); }
+    scene.add(grp);
+    return { grp, ring, ring2, beam, motes, k: 0, pulse: 0, fig: null, id: null };
+  };
+  return { list: Array.from({ length: 5 }, mk), t: 0 };
+})();
+function skArmed(p, bat) {
+  if (!p || !p.skill) return 0;
+  const risp = !!(G.bases[1] || G.bases[2]);
+  if (bat) return (p.skill === 'clutch' && risp) || (p.skill === 'first' && G.b === 0 && G.s === 0) || (p.skill === 'tough' && G.s === 2) ? 1 : 0.42;
+  return (p.skill === 'escape' && risp) || (p.skill === 'closer' && closerOn()) ? 1 : 0.42;
+}
+// 타자·투수 줄의 스킬 배지: 상황 스킬이 준비되면 "해결사 준비!"처럼 빛나는 알약으로
+function skBadge(p, armed) {
+  const S0 = p && SKILLS[p.skill]; if (!S0) return '';
+  return armed && skOn() ? ` <i class="skb on" style="--ska:${SKFX[p.skill].c[0]}" title="${S0.nm}">${S0.ico} ${S0.nm} 준비!</i>` : ` <i class="skb" title="${S0.nm}">${S0.ico}</i>`;
+}
+// 상황 스킬이 준비 상태로 바뀌는 순간: 배지 갱신 + 딩동 + 오라 번쩍
+function skArmWatch() {
+  if (!G.T || G.prac || !['ready', 'aim', 'meter'].includes(G.phase)) return;
+  const b = curBatter(), p = fieldTeam().pitcher, ab = !!b && skArmed(b, true) >= 1, ap = !!p && skArmed(p, false) >= 1;
+  if (ab === !!G.skArmB && ap === !!G.skArmP) return;
+  const on = (ab && !G.skArmB) || (ap && !G.skArmP);
+  G.skArmB = ab; G.skArmP = ap; updateLines();
+  if (on && skOn()) { AU.skReady(); if (ab) skPulse(G.batFig); if (ap) skPulse(FIG.P); }
+}
+function skPulse(fig) { const a = AURA.list.find((x) => x.fig === fig); if (a) a.pulse = 1; }
+function skAuraTick(dt) {
+  AURA.t += dt;
+  const want = [];
+  const ph = G.phase, live = G.T && skOn() && !G.prac && ['ready', 'aim', 'meter', 'windup', 'flight', 'call', 'pko', 'intro'].includes(ph);
+  if (live) {
+    const b = curBatter(), p = fieldTeam().pitcher;
+    if (b && b.skill && G.batFig && G.batFig.root.visible) want.push([G.batFig, b.skill, skArmed(b, true)]);
+    if (p && p.skill && FIG.P.root.visible) want.push([FIG.P, p.skill, skArmed(p, false)]);
+    G.runFig.forEach((f, k) => { const r = G.bases[k]; if (f && r && r.skill && f.root.visible) want.push([f, r.skill, G.steal && G.steal.who === r ? 1 : 0.4]); });
+  }
+  AURA.list.forEach((a) => { a.target = 0; });
+  want.forEach(([fig, id, k]) => {
+    let a = AURA.list.find((x) => x.fig === fig) || AURA.list.find((x) => !x.fig || x.k < 0.02 && !want.some((w) => w[0] === x.fig));
+    if (!a) return;
+    if (a.fig !== fig || a.id !== id) { a.fig = fig; a.id = id; const col = new T.Color(SKFX[id].c[0]), col2 = new T.Color(SKFX[id].c[1]); a.ring.material.color.copy(col); a.ring2.material.color.copy(col2); a.beam.material.color.copy(col); a.motes.forEach((m, i) => m.material.color.copy(i % 2 ? col2 : col)); }
+    a.target = k;
+  });
+  AURA.list.forEach((a) => {
+    a.k += ((a.target || 0) - a.k) * Math.min(1, dt * 5); a.pulse = Math.max(0, a.pulse - dt * 1.2);
+    const vis = a.k > 0.02 && a.fig; a.grp.visible = !!vis; if (!vis) { if (a.k <= 0.02) a.fig = null; return; }
+    const pos = a.fig.root.position; a.grp.position.set(pos.x, pos.y, pos.z);
+    const k = Math.min(1.4, a.k + a.pulse), t = AURA.t, armed = a.target >= 1;
+    a.ring.rotation.z += dt * (armed ? 2.2 : 0.8); a.ring2.rotation.z -= dt * (armed ? 3 : 1.1);
+    const sc = 1 + Math.sin(t * (armed ? 6 : 2.5)) * 0.06 + a.pulse * 0.5; a.ring.scale.setScalar(sc);
+    a.ring.material.opacity = 0.55 * k; a.ring2.material.opacity = 0.45 * k;
+    a.beam.material.opacity = (armed ? 0.32 : 0.14) * k * (0.85 + Math.sin(t * 9) * 0.15); a.beam.scale.set(1 + a.pulse * 0.5, 1 + a.pulse * 0.6, 1 + a.pulse * 0.5);
+    a.motes.forEach((m) => { m.u += dt * m.sp * (armed ? 1.6 : 1); if (m.u > 1) { m.u -= 1; m.a = Math.random() * TAU; }
+      const r = 0.55 + Math.sin(m.u * 6 + m.a) * 0.15; m.position.set(Math.cos(m.a + m.u * 3) * r, 0.1 + m.u * 2.3, Math.sin(m.a + m.u * 3) * r);
+      m.scale.setScalar((armed ? 0.24 : 0.16) * (1 - m.u * 0.5)); m.material.opacity = Math.sin(m.u * Math.PI) * 0.9 * k; });
+  });
+}
+
+/* ---------- ③ 투구 꼬리 ---------- */
+const _skv = new T.Vector3();
+function ballScreen() {
+  const s = toScreen(ball.m.position); if (!s.ok) return null;
+  _skv.copy(ball.m.position); _skv.y += 0.05; const s2 = toScreen(_skv);
+  s.r = clamp(Math.abs(s2.y - s.y), 1.5, 40); return s;
+}
+let _trT = 0;
+function skTrailTick(dt) {
+  if (!skOn()) return;
+  // 투구 중 꼬리
+  const P = G.pitch, kind = P && P.skfx;
+  if (kind && (G.phase === 'flight') && ball.m.visible) {
+    const s = ballScreen(); if (!s) return;
+    const F = SKFX[P.skId], [a, b, c] = F.c, r = s.r;
+    _trT += dt;
+    if (kind === 'fire') fxFlames(s.x, s.y, 2, [a, b, c], 3, 0.25 * Math.max(0.5, r / 6));
+    else if (kind === 'magic') { const ang = AURA.t * 18; fxSparkles(s.x + Math.cos(ang) * r * 2.4, s.y + Math.sin(ang) * r * 2.4, 1, [a, b, c], 2); fxSparkles(s.x - Math.cos(ang) * r * 2.4, s.y - Math.sin(ang) * r * 2.4, 1, [b, a], 2); }
+    else if (kind === 'gold') { fxSparkles(s.x, s.y, 2, [a, '#fff3b0', '#ffffff'], r * 2); }
+    else if (kind === 'wave') { if (_trT > 0.06) { _trT = 0; fxRipples(s.x, s.y, a, 1, Math.max(0.15, r / 14)); } }
+    else if (kind === 'shield') { if (_trT > 0.08) { _trT = 0; fxHex(s.x, s.y, a, r * 3.2, 0.35); } }
+    else if (kind === 'dust') { if (_trT > 0.05) { _trT = 0; fxFn((g, p, u) => { g.globalAlpha = (1 - u) * 0.35; g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.r0 * (1 + u * 2), 0, TAU); g.fill(); }, { x: s.x, y: s.y, r0: r * 1.6, c: b, life: 0.5 }); } }
+    else if (kind === 'laser') { fxFn((g, p, u) => { g.globalAlpha = 1 - u; g.strokeStyle = p.c; g.lineWidth = p.w * (1 - u); g.shadowColor = p.c; g.shadowBlur = 12; g.beginPath(); g.arc(p.x, p.y, p.w, 0, TAU); g.stroke(); }, { x: s.x, y: s.y, w: Math.max(2, r * 1.3), c: a, life: 0.25, add: true }); }
+  }
+  // 견제 달인의 견제구: 초록 뱀 꼬리
+  if (G.pko && G.pko.sk && ball.m.visible) { const s = ballScreen(); if (s) fxSparkles(s.x, s.y, 2, ['#16a34a', '#86efac'], 6); }
+  // 대도 도루: 주자 뒤로 번개
+  if (G.steal && G.steal.who && G.steal.who.skill === 'speed' && G.steal.fig && skOn()) {
+    const f = G.steal.fig.root.position; _skv.set(f.x, f.y + 1, f.z); const s = toScreen(_skv);
+    if (s.ok) { if (SKC.lastS && Math.random() < 0.7) fxBolt(SKC.lastS.x, SKC.lastS.y, s.x, s.y, Math.random() < 0.5 ? '#ffcc00' : '#6fd8ff', 0.22, 2.5); SKC.lastS = s; }
+  } else SKC.lastS = null;
+}
+function skfxTick(dt) { skAuraTick(dt); skTrailTick(dt); skArmWatch(); }
+
+/* ---------- 경기 이벤트에 연결 ---------- */
+const HITK = { '1B': 1, '2B': 1, '3B': 1, HR: 1, IFH: 1, BUNT_HIT: 1 };
+// 타석 시작: 스킬 투수 첫 등판 · 스킬 타자 첫 등장 · 해결사 득점권 준비
+function skOnPA() {
+  if (!G.T || G.prac) return;
+  const b = curBatter(), p = fieldTeam().pitcher, bt = batTeam(), ft = fieldTeam();
+  G.paRisp = !!(G.bases[1] || G.bases[2]);
+  if (p.skill && !p.g.skIntro) { p.g.skIntro = 1; skCutIn(p, ft, { tag: p.skill === 'closer' && closerOn() ? '세이브 상황 등판!' : '마운드에 오른다', side: sideOf(ft), pos: 'mid' }); }
+  if (b.skill) {
+    const first = !b.g.skIntro; b.g.skIntro = 1;
+    if (b.skill === 'clutch' && G.paRisp) skCutIn(b, bt, { tag: '해결사 모드!', line: '찬스다… 내가 끝낸다!', side: sideOf(bt), pos: 'mid' });
+    else if (first) skCutIn(b, bt, { tag: '타석에 들어선다', side: sideOf(bt), pos: 'mid' });
+    if (b.skill === 'tough' && G.s === 2) { /* 2스트라이크 때는 오라만 밝아짐 */ }
+  }
+}
+// 공을 던지는 순간: 꼬리 종류 정하고, 손끝에서 작은 폭발
+function skOnRelease(P, p) {
+  P.skfx = null; P.skId = null;
+  if (!p.skill || !skOn() || G.prac) return;
+  const F = SKFX[p.skill], fast = { FB: 1, TS: 1, CT: 1 }[P.type], brk = S.PITCHES[P.type].brk, risp = !!(G.bases[1] || G.bases[2]);
+  const on = (p.skill === 'heat' && fast) || (p.skill === 'magic' && brk) || p.skill === 'ctrl' || (p.skill === 'gb' && (P.type === 'TS' || P.type === 'CT' || P.type === 'FK' || P.type === 'CH'))
+    || (p.skill === 'escape' && risp) || (p.skill === 'closer' && closerOn()) || p.skill === 'sub';
+  if (!on || !F.trail) return;
+  P.skfx = F.trail; P.skId = p.skill;
+  ball.setTint(F.c[0]);
+  const s = ballScreen();
+  if (s) {
+    if (F.trail === 'wave') fxRipples(s.x, s.y + 10, F.c[0], 3, 0.5);
+    else if (F.trail === 'fire') fxFlames(s.x, s.y, 14, F.c, 2, 0.6);
+    else if (F.trail === 'laser' && userPitching()) { const t = toScreen({ x: P.aim.x, y: P.aim.y, z: 0 }); if (t.ok) { fxFn((g, q, u) => { g.globalAlpha = (1 - u) * 0.9; g.strokeStyle = q.c; g.lineWidth = 3; g.shadowColor = q.c; g.shadowBlur = 16; g.setLineDash([10, 6]); g.beginPath(); g.moveTo(q.x, q.y); g.lineTo(q.x1, q.y1); g.stroke(); }, { x: s.x, y: s.y, x1: t.x, y1: t.y, c: F.c[0], life: 0.5, add: true }); fxTargets(t.x, t.y, F.c[0]); } }
+    else fxSparkles(s.x, s.y, 8, F.c, 10);
+  }
+  skPulse(FIG.P);
+}
+// 타구 결과가 나온 순간 (startPlay): 성공한 스킬 타격이면 임팩트 + 컷인, 땅볼 유도 투수의 병살이면 투수 컷인
+function skOnPlay(res, sw, b, bt) {
+  if (!G.T || G.prac || res.kind === 'FOUL') return;
+  const cp = G.lastCp ? toScreen(G.lastCp) : null, x = cp && cp.ok ? cp.x : FX.w / 2, y = cp && cp.ok ? cp.y : FX.h * 0.5;
+  const ft = fieldTeam(), p = ft.pitcher;
+  if (res.kind === 'DP' && p.skill === 'gb') { skImpact('gb', x, y, 1); later(0.5, () => skCutIn(p, ft, { tag: '병살 유도!', side: sideOf(ft), pos: 'low', count: true })); }
+  const id = b.skill; if (!id) return;
+  const hit = HITK[res.kind], big = res.kind === 'HR' ? 1.5 : res.kind === '2B' || res.kind === '3B' ? 1.2 : 1;
+  const tagged = !!sw.sk;
+  // 발동 조건: 상황 스킬은 실제로 보너스를 받은 타구(sw.sk), 항상 켜진 스킬은 안타일 때
+  const success = hit && (tagged || id === 'contact' || id === 'eye' || (id === 'speed' && (res.kind === 'IFH' || res.kind === 'BUNT_HIT' || res.kind === '3B')))
+    || (res.kind === 'SF' && id === 'clutch' && tagged);
+  if (tagged || success) { skImpact(id, x, y, big); skPulse(G.batFig); }
+  if (success && res.kind === 'HR' && skOn()) {
+    G.slowT = 1.25; const z = $('#skZoom'); z.style.setProperty('--zd', '1.6s'); z.classList.remove('go'); void z.offsetWidth; z.classList.add('go');
+    const cols = SKFX[id].c;
+    for (let i = 0; i < (FX_LITE ? 4 : 8); i++) later(1.2 + i * 0.22, () => { burst(rnd(-60, 60), rnd(50, 82), rnd(-160, -115), cols[i % 3], 130, { kind: i % 3 === 1 ? 'ring' : null }); AU.boom(); });
+  }
+  if (success) {
+    const tag = res.kind === 'HR' ? '홈런!' : res.kind === 'IFH' || res.kind === 'BUNT_HIT' ? '내야안타!' : res.kind === 'SF' ? '희생플라이!' : `${{ '1B': '안타', '2B': '2루타', '3B': '3루타' }[res.kind] || '안타'}!`;
+    later(res.kind === 'HR' ? 1.4 : 0.45, () => skCutIn(b, bt, { tag: `${tag}`, side: sideOf(bt), pos: 'low', count: true }));
+  }
+}
+// 삼진: 스킬 투수면 스킬색 임팩트 + 컷인
+function skOnK(pit) {
+  if (!pit.skill || G.prac) return;
+  const ft = fieldTeam(), cr = G.pitch && G.pitch.cross, s = cr ? toScreen({ x: cr.x, y: cr.y, z: 0 }) : null;
+  skImpact(pit.skill, s && s.ok ? s.x : FX.w / 2, s && s.ok ? s.y : FX.h * 0.45, 1);
+  skPulse(FIG.P);
+  if (['heat', 'magic', 'ctrl', 'closer', 'sub'].includes(pit.skill)) later(0.5, () => skCutIn(pit, ft, { tag: '삼진!', side: sideOf(ft), pos: 'mid', count: true }));
+}
+function skOnWalk(b) { if (b.skill === 'eye' && !G.prac) { const bt = batTeam(); skImpact('eye', FX.w / 2, FX.h * 0.42, 1); later(0.3, () => skCutIn(b, bt, { tag: '볼넷 골라냄!', line: '그런 공엔 안 속는다', side: sideOf(bt), pos: 'mid', count: true })); } }
+function skOnSteal(r, ok, k) {
+  if (G.prac) return; const bt = batTeam(), ft = fieldTeam(), p = ft.pitcher;
+  const bp = S.basePos(k + 2), s = toScreen({ x: bp.x, y: 0.5, z: bp.z }), x = s.ok ? s.x : FX.w / 2, y = s.ok ? s.y : FX.h / 2;
+  if (ok && r.skill === 'speed') { skImpact('speed', x, y, 1); later(0.3, () => skCutIn(r, bt, { tag: `${k + 2}루 도루 성공!`, side: sideOf(bt), pos: 'mid', count: true })); }
+  else if (!ok && p.skill === 'pickoff') { skImpact('pickoff', x, y, 1); later(0.3, () => skCutIn(p, ft, { tag: '도루 저지!', side: sideOf(ft), pos: 'mid', count: true })); }
+}
+function skOnPickoffStart(p) { if (G.pko) G.pko.sk = p.skill === 'pickoff' && skOn(); if (p.skill === 'pickoff') skPulse(FIG.P); }
+function skOnPickoffOut(p, k) {
+  if (p.skill !== 'pickoff') return; const ft = fieldTeam();
+  const bp = S.basePos(k + 1), s = toScreen({ x: bp.x, y: 0.5, z: bp.z }); skImpact('pickoff', s.ok ? s.x : FX.w / 2, s.ok ? s.y : FX.h / 2, 1);
+  later(0.3, () => skCutIn(p, ft, { tag: '견제사!', side: sideOf(ft), pos: 'mid', count: true }));
+}
+// 이닝 마지막 아웃 때 득점권 주자를 남겼으면 위기관리 성공
+function skOnInningEnd() {
+  const ft = fieldTeam(), p = ft && ft.pitcher;
+  if (p && p.skill === 'escape' && G.paRisp && !G.prac) { skImpact('escape', FX.w / 2, FX.h * 0.45, 1.2); skCutIn(p, ft, { tag: '위기 탈출!', side: sideOf(ft), pos: 'mid', count: true }); }
+}
+// 반 이닝 시작: 이닝이터가 3회 넘게 던지고 있으면 한마디
+function skOnHalfStart() {
+  const ft = fieldTeam(), p = ft && ft.pitcher;
+  if (p && p.skill === 'eater' && p.g.outs >= 6 && !G.prac) later(2.4, () => { if (skOn()) { fxText(FX.w / 2, FX.h * 0.3, '⏱️ 이닝이터 · 아직 쌩쌩!', '#bbf7d0', 26); skPulse(FIG.P); } });
+}
 /* ===================== 인플레이 ===================== */
 const _pv = new T.Vector3();
 function contact(sw) {
@@ -5122,10 +5968,9 @@ function contact(sw) {
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
   if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
-  if (sw.sk && !tr.foul && !userBatting()) showPlayText(`${curBatter().name} · ${sw.sk} 발동!`, 1500); // CPU 타자 스킬
   G.pitchLog.push({ x: P.cross.x, y: P.cross.y, res: tr.foul ? 'strike' : 'play' });
   if (userBatting() && sw.foul) showFeedback([['파울', 'm'], [`타이밍 ${sw.tl || ''}`, 'm']], 1000);
-  startPlay(tr, sw);
+  G.lastCp = cp; startPlay(tr, sw);
 }
 function trackPos(tr, t, out) {
   const pts = tr.pts, n = pts.length;
@@ -5157,6 +6002,7 @@ function startPlay(tr, sw) {
   const fl = fieldersOf(ft);
   const F = S.makeFielders(fl.map((pl, i) => (i === 0 ? 50 : pl ? pl.spd : 55)), defHomes()); // 수비 작전 위치
   const res = S.resolvePlay(tr, { bases: G.bases.slice(), outs: G.outs, batter: b, fielders: F, bunt: !!sw.bunt, def: G.defT, lead: G.leadT || 0 });
+  skOnPlay(res, sw, b, bt); // 스킬 임팩트·컷인
   const hr = res.kind === 'HR';
   const sc = hr ? 0.42 : 1;
   if (hr) res.runners.forEach((r) => { r.t0 = 1.6 + (r.t0 - 0.6) * sc; r.t1 = 1.6 + (r.t1 - 0.6) * sc; });
@@ -5586,6 +6432,8 @@ function openMenu() {
   $('#sndSw').setAttribute('aria-checked', String(AU.on));
   $('#zoneSw').setAttribute('aria-checked', String(G.zoneOn));
   $('#heatSw').setAttribute('aria-checked', String(G.heatOn));
+  $('#skfxSw').setAttribute('aria-checked', String(G.skfxOn));
+  $('#musSw').setAttribute('aria-checked', String(MU.on));
   $('#boxNow').innerHTML = `<div class="lswrap" style="margin:10px 0"><table class="lscore">${lineScoreHTML()}</table></div>` + boxHTML(G.T[G.userSide]);
   openModal('#menuModal');
 }
@@ -5594,6 +6442,10 @@ $('#menuBtn').addEventListener('click', () => { AU.click(); openMenu(); });
 $('#resumeBtn').addEventListener('click', closeMenu);
 $('#sndSw').addEventListener('click', (e) => { const v = !AU.on; AU.init(); AU.setOn(v); e.currentTarget.setAttribute('aria-checked', String(v)); });
 $('#zoneSw').addEventListener('click', (e) => { G.zoneOn = !G.zoneOn; store.set('zone', G.zoneOn); e.currentTarget.setAttribute('aria-checked', String(G.zoneOn)); zoneGuide.visible = G.zoneOn && userBatting() && G.phase !== 'play'; });
+$('#musSw').addEventListener('click', () => { AU.init(); muSetOn(!MU.on); });
+$('#musBtn').addEventListener('click', (e) => { e.stopPropagation(); AU.init(); muSetOn(!MU.on); toast(MU.on ? '🎵 음악 켬' : '🔇 음악 끔', 1200); });
+muSetOn(MU.on);
+$('#skfxSw').addEventListener('click', (e) => { G.skfxOn = !G.skfxOn; store.set('skfx', G.skfxOn); e.currentTarget.setAttribute('aria-checked', String(G.skfxOn)); if (!G.skfxOn) skCutClear(); });
 $('#heatSw').addEventListener('click', (e) => { G.heatOn = !G.heatOn; store.set('heat', G.heatOn); e.currentTarget.setAttribute('aria-checked', String(G.heatOn)); drawZoneHeat(); });
 $('#quitBtn').addEventListener('click', quitToTitle);
 $('#againBtn').addEventListener('click', () => { $('#overModal').hidden = true; if (G.season) { quitToTitle(); openSeason(); } else startGame(); });
@@ -5607,6 +6459,7 @@ function quitToTitle() {
   ball.hide(); pciRing.visible = false; targetMark.visible = false; board.flash = 0; board.msg = '';
   renderTitle(); dressTitle(); drawBoard(); camOrbit();
   showTab(TAB.cur, true);
+  muToTitle();
 }
 // 앱 전환 시 일시정지 메뉴 — 온라인은 상대가 기다리고 있으니 메뉴 없이 돌아오자마자 이어서 (화면이 꺼진 동안엔 어차피 멈춤)
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.T && G.phase !== 'over' && !paused && !G.online) openMenu(); });
@@ -5636,7 +6489,7 @@ function cosmetics(dt) {
     if (k !== flashTick) { flashTick = k; drawBoard(); }
     if (board.flash <= 0) { board.msg = ''; drawBoard(); }
   }
-  updateFireworks(dt); fxTick(dt);
+  updateFireworks(dt); fxTick(dt); skfxTick(dt);
   if (pciRing.visible) {
     if (pciRing.flash) { if (clock > pciRing.flash) { pciRing.visible = false; pciRing.flash = 0; } }
     pciRing.material.opacity = 0.55 + Math.sin(clock * 10) * 0.2;
@@ -5649,6 +6502,7 @@ function frame(now) {
   const real = Math.min(0.05, (now - last) / 1000); last = now;
   let dt = real;
   if (AUTO) dt *= AUTO.speed;
+  if (G.slowT > 0) { G.slowT -= real; if (G.phase === 'play') dt *= 0.32; } // 스킬 홈런 슬로모션 (연출만)
   if (!paused) {
     clock += dt; runTimers();
     if (G.phase === 'windup' || G.phase === 'flight') updatePitch(dt);
@@ -5769,7 +6623,8 @@ function renderSkillTab(L) {
     const d = document.createElement('div'); d.className = 'skrow';
     d.innerHTML = `<select data-skp="${bat ? 'B' : 'P'}${i}" aria-label="선수">${players.map((k) => `<option value="${k}"${k === cur[0] ? ' selected' : ''}>${esc(edName(k))}${ED.base[k].role ? ' · ' + (ED.base[k].role === 'SP' ? '선발' : ED.base[k].role === 'CL' ? '마무리' : '불펜') : ' · ' + POS_K[ED.base[k].pos]}</option>`).join('')}</select>`
       + `<select data-sks="${bat ? 'B' : 'P'}${i}" aria-label="스킬">${skills.map((id) => `<option value="${id}"${id === cur[1] ? ' selected' : ''}>${SKILLS[id].ico} ${SKILLS[id].nm}</option>`).join('')}</select>`
-      + `<div class="skd">${cur[1] ? `<b>${SKILLS[cur[1]].ico} ${SKILLS[cur[1]].nm}</b> — ${SKILLS[cur[1]].desc}` : ''}${cur[0] ? `<br>${esc(cur[0][0] === 'B' ? batInfo(ED.base[cur[0]]) : pitInfo(ED.base[cur[0]]))}` : ''}</div>`;
+      + `<div class="skd">${cur[1] ? `<b>${SKILLS[cur[1]].ico} ${SKILLS[cur[1]].nm}</b> — ${SKILLS[cur[1]].desc}` : ''}${cur[0] ? `<br>${esc(cur[0][0] === 'B' ? batInfo(ED.base[cur[0]]) : pitInfo(ED.base[cur[0]]))}` : ''}</div>`
+      + (cur[0] && cur[1] ? `<button class="mbtn skprev" data-skprev="${cur[0]}|${cur[1]}">▶ 발동 효과 미리보기</button>` : '');
     L.appendChild(d);
   };
   const h = (t) => { const e = document.createElement('div'); e.className = 'rhead'; e.textContent = t; L.appendChild(e); };
@@ -5855,6 +6710,10 @@ $('#rosterList').addEventListener('click', (e) => {
   const av = e.target.closest('.nm .ava');
   if (av) { ED.photo = av.closest('.nm').dataset.k; ED.sel = null; ED.posSel = null; renderRoster(); $('#panes').scrollTop = 0; AU.click(); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.skprev) { // 스킬 컷인 미리보기 (소리 포함)
+    AU.init(); const [k, id] = b.dataset.skprev.split('|'), pl = Object.assign({}, ED.base[k], { name: edName(k), skill: id });
+    skCutIn(pl, { t: S.TEAMS[ED.team] }, { preview: true, tag: '미리보기', side: 'L', pos: 'mid' }); return;
+  }
   if (b.dataset.skauto) { ED.sk = (AUTO_SK[S.TEAMS[ED.team].id] || []).map((x) => x.slice()); ED.dirty = true; AU.click(); renderRoster(); toast('2026 기록 기준 추천 스킬로 바꿨어요'); return; }
   if (b.dataset.ek) { ED.editing = b.dataset.ek; ED.sel = null; ED.posSel = null; renderRoster(); return; }
   if (b.dataset.sp != null && b.classList.contains('sp')) { ED.sp = b.dataset.sp || null; ED.dirty = true; AU.click(); renderRoster(); return; }
@@ -6557,9 +7416,10 @@ function playersOf(tm) {
 }
 function statLine(x) {
   const g = x.p.g;
-  if (!x.bat) return `${fmtIP(g.outs)}이닝 ${g.pc}구 ${g.h}피안타 ${g.r}실점 ${g.k}K${g.bb ? ` ${g.bb}볼넷` : ''}`;
+  const sk = g.skN ? ` · ✨스킬 ${g.skN}회` : '';
+  if (!x.bat) return `${fmtIP(g.outs)}이닝 ${g.pc}구 ${g.h}피안타 ${g.r}실점 ${g.k}K${g.bb ? ` ${g.bb}볼넷` : ''}${sk}`;
   const extra = [g.hr && `${g.hr}홈런`, g.rbi && `${g.rbi}타점`, g.r && `${g.r}득점`, g.bb && `${g.bb}볼넷`, g.sb && `${g.sb}도루`, g.k && `${g.k}삼진`, (g.cs || 0) + (g.pko || 0) && `주루사 ${(g.cs || 0) + (g.pko || 0)}`].filter(Boolean);
-  return `${g.ab}타수 ${g.h}안타${extra.length ? ' · ' + extra.join(' ') : ''}`;
+  return `${g.ab}타수 ${g.h}안타${extra.length ? ' · ' + extra.join(' ') : ''}${sk}`;
 }
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const LINES = {
@@ -6623,6 +7483,7 @@ function teamAwards(tm, res) {
   const bats = ps.filter((x) => x.bat), pits = ps.filter((x) => !x.bat);
   const top = (arr, f, min) => arr.filter((x) => !used.has(x.p) && f(x.p.g) >= min).sort((a, b) => f(b.p.g) - f(a.p.g))[0];
   const titles = [
+    [ps, (g) => g.skN || 0, 2, (g) => ({ fx: 'gold', ico: '✨', t: '스킬 마스터', sub: `스킬 ${g.skN}번 발동` })],
     [bats, (g) => g.hr, 1, (g) => ({ fx: 'boom', ico: '💥', t: g.hr >= 2 ? '멀티 홈런쇼' : '홈런 한 방', sub: `담장 밖으로 ${g.hr}개` })],
     [bats, (g) => g.rbi, 3, (g) => ({ fx: 'pulse', ico: '👑', t: '타점 기계', sub: `혼자 ${g.rbi}타점` })],
     [bats, (g) => g.h + g.bb, 3, (g) => ({ fx: 'pulse', ico: '🚀', t: '출루 머신', sub: `${g.h + g.bb}번 출루` })],
@@ -7080,7 +7941,7 @@ function onlineTick() {
     ON.q.shift();
     P.remoteIn = true;
     if (a.take) P.cpu = { swing: false };
-    else P.cpu = { swing: true, contact: !a.miss, bunt: !!a.bunt, foul: !!a.foul, ev: a.ev, la: a.la, phi: a.phi, q: a.q, st: a.st, tl: a.tl };
+    else P.cpu = { swing: true, contact: !a.miss, bunt: !!a.bunt, foul: !!a.foul, ev: a.ev, la: a.la, phi: a.phi, q: a.q, st: a.st, tl: a.tl, sk: a.sk };
     return;
   }
   // 투수 쪽 행동 → 내가 타자이고 대기 상태일 때 적용
@@ -7324,7 +8185,7 @@ function renderMe() {
   };
 }
 
-if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter, AUTO_SK, SKILLS });
+if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter, AUTO_SK, SKILLS, skImpact, skCutIn, skOnPlay, FX, MU, SONGS, walkSong, INS, AU });
 
 // 경기에서 돌아오면 보던 탭 그대로 (시즌 경기 → 시즌 탭, 온라인 경기 → 온라인 탭)
 showTab(store.get('tab', 'home'), true);

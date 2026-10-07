@@ -14,9 +14,10 @@ function playersOf(tm) {
 }
 function statLine(x) {
   const g = x.p.g;
-  if (!x.bat) return `${fmtIP(g.outs)}이닝 ${g.pc}구 ${g.h}피안타 ${g.r}실점 ${g.k}K${g.bb ? ` ${g.bb}볼넷` : ''}`;
+  const sk = g.skN ? ` · ✨스킬 ${g.skN}회` : '';
+  if (!x.bat) return `${fmtIP(g.outs)}이닝 ${g.pc}구 ${g.h}피안타 ${g.r}실점 ${g.k}K${g.bb ? ` ${g.bb}볼넷` : ''}${sk}`;
   const extra = [g.hr && `${g.hr}홈런`, g.rbi && `${g.rbi}타점`, g.r && `${g.r}득점`, g.bb && `${g.bb}볼넷`, g.sb && `${g.sb}도루`, g.k && `${g.k}삼진`, (g.cs || 0) + (g.pko || 0) && `주루사 ${(g.cs || 0) + (g.pko || 0)}`].filter(Boolean);
-  return `${g.ab}타수 ${g.h}안타${extra.length ? ' · ' + extra.join(' ') : ''}`;
+  return `${g.ab}타수 ${g.h}안타${extra.length ? ' · ' + extra.join(' ') : ''}${sk}`;
 }
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const LINES = {
@@ -80,6 +81,7 @@ function teamAwards(tm, res) {
   const bats = ps.filter((x) => x.bat), pits = ps.filter((x) => !x.bat);
   const top = (arr, f, min) => arr.filter((x) => !used.has(x.p) && f(x.p.g) >= min).sort((a, b) => f(b.p.g) - f(a.p.g))[0];
   const titles = [
+    [ps, (g) => g.skN || 0, 2, (g) => ({ fx: 'gold', ico: '✨', t: '스킬 마스터', sub: `스킬 ${g.skN}번 발동` })],
     [bats, (g) => g.hr, 1, (g) => ({ fx: 'boom', ico: '💥', t: g.hr >= 2 ? '멀티 홈런쇼' : '홈런 한 방', sub: `담장 밖으로 ${g.hr}개` })],
     [bats, (g) => g.rbi, 3, (g) => ({ fx: 'pulse', ico: '👑', t: '타점 기계', sub: `혼자 ${g.rbi}타점` })],
     [bats, (g) => g.h + g.bb, 3, (g) => ({ fx: 'pulse', ico: '🚀', t: '출루 머신', sub: `${g.h + g.bb}번 출루` })],

@@ -48,7 +48,8 @@ function renderSkillTab(L) {
     const d = document.createElement('div'); d.className = 'skrow';
     d.innerHTML = `<select data-skp="${bat ? 'B' : 'P'}${i}" aria-label="선수">${players.map((k) => `<option value="${k}"${k === cur[0] ? ' selected' : ''}>${esc(edName(k))}${ED.base[k].role ? ' · ' + (ED.base[k].role === 'SP' ? '선발' : ED.base[k].role === 'CL' ? '마무리' : '불펜') : ' · ' + POS_K[ED.base[k].pos]}</option>`).join('')}</select>`
       + `<select data-sks="${bat ? 'B' : 'P'}${i}" aria-label="스킬">${skills.map((id) => `<option value="${id}"${id === cur[1] ? ' selected' : ''}>${SKILLS[id].ico} ${SKILLS[id].nm}</option>`).join('')}</select>`
-      + `<div class="skd">${cur[1] ? `<b>${SKILLS[cur[1]].ico} ${SKILLS[cur[1]].nm}</b> — ${SKILLS[cur[1]].desc}` : ''}${cur[0] ? `<br>${esc(cur[0][0] === 'B' ? batInfo(ED.base[cur[0]]) : pitInfo(ED.base[cur[0]]))}` : ''}</div>`;
+      + `<div class="skd">${cur[1] ? `<b>${SKILLS[cur[1]].ico} ${SKILLS[cur[1]].nm}</b> — ${SKILLS[cur[1]].desc}` : ''}${cur[0] ? `<br>${esc(cur[0][0] === 'B' ? batInfo(ED.base[cur[0]]) : pitInfo(ED.base[cur[0]]))}` : ''}</div>`
+      + (cur[0] && cur[1] ? `<button class="mbtn skprev" data-skprev="${cur[0]}|${cur[1]}">▶ 발동 효과 미리보기</button>` : '');
     L.appendChild(d);
   };
   const h = (t) => { const e = document.createElement('div'); e.className = 'rhead'; e.textContent = t; L.appendChild(e); };
@@ -134,6 +135,10 @@ $('#rosterList').addEventListener('click', (e) => {
   const av = e.target.closest('.nm .ava');
   if (av) { ED.photo = av.closest('.nm').dataset.k; ED.sel = null; ED.posSel = null; renderRoster(); $('#panes').scrollTop = 0; AU.click(); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.skprev) { // 스킬 컷인 미리보기 (소리 포함)
+    AU.init(); const [k, id] = b.dataset.skprev.split('|'), pl = Object.assign({}, ED.base[k], { name: edName(k), skill: id });
+    skCutIn(pl, { t: S.TEAMS[ED.team] }, { preview: true, tag: '미리보기', side: 'L', pos: 'mid' }); return;
+  }
   if (b.dataset.skauto) { ED.sk = (AUTO_SK[S.TEAMS[ED.team].id] || []).map((x) => x.slice()); ED.dirty = true; AU.click(); renderRoster(); toast('2026 기록 기준 추천 스킬로 바꿨어요'); return; }
   if (b.dataset.ek) { ED.editing = b.dataset.ek; ED.sel = null; ED.posSel = null; renderRoster(); return; }
   if (b.dataset.sp != null && b.classList.contains('sp')) { ED.sp = b.dataset.sp || null; ED.dirty = true; AU.click(); renderRoster(); return; }

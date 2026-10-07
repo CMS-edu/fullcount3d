@@ -117,6 +117,7 @@ function pickoff(remote) {
   G.pko = { k, out, who: r, fig: f, cover: [2, 5, 4][k], t: 0, lead: f ? f.lead || 2 : 2, balk: !out && G.pk >= PK_MAX };
   if (f) f.mode = 'pko';
   G.phase = 'pko';
+  skOnPickoffStart(p);
   // 카메라: 투수 어깨 너머로 베이스를 보는 화면으로 바로 전환 (투수 → 베이스 송구가 화면 안쪽으로 날아감)
   const b = S.basePos(k + 1), dx = -b.x, dz = -18.44 - b.z, L = Math.hypot(dx, dz) || 1;
   CAM.mode = 'adv'; camTo([(dx / L) * 8, 4.2, -18.44 + (dz / L) * 8], [b.x, 0.6, b.z], innerWidth < innerHeight ? 44 : 32, 3, 3, true);
@@ -154,6 +155,7 @@ function finishPickoff() {
   if (K.out) {
     G.bases[K.k] = null; G.outs++; fieldTeam().pitcher.g.outs++;
     K.who.g.pko = (K.who.g.pko || 0) + 1; batTeam().ro = (batTeam().ro || 0) + 1;
+    skOnPickoffOut(fieldTeam().pitcher, K.k);
     showPlayText(`견제사! ${K.who.name} 아웃`, 1700); AU.cheer(userPitching() ? 0.8 : 0.3, 1.2);
   } else if (!K.balk && G.pk === PK_MAX - 1 && userPitching()) toast('다음 견제가 실패하면 보크예요 (타석당 3번까지)', 2400);
   resetField(); placeRunners(); updateBug(); drawBoard(); updateLines();

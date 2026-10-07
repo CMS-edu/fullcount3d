@@ -42,6 +42,8 @@ function fxSparks(x, y, n, colors, spd = 1) {
     fxAdd({ k: 's', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, c: colors[i % colors.length], life: rnd(0.25, 0.6), t: 0, lw: rnd(1.5, 3.5) });
   }
 }
+// 그리는 함수를 직접 주는 파티클: o에 x, y, life, add(가산 합성) 등 아무 값이나
+function fxFn(f, o) { fxAdd(Object.assign({ k: 'fn', f, t: 0, life: 1, x: 0, y: 0 }, o)); }
 function fxRing(x, y, color, size = 1) { fxAdd({ k: 'r', x, y, c: color, life: 0.55, t: 0, s: size }); }
 function fxText(x, y, text, color, size = 34) { fxAdd({ k: 't', x, y, text, c: color, life: 1.4, t: 0, s: size }); }
 function fxShake(amp, dur = 0.45) { if (reduceMotion) return; if (amp >= FX.shake * (FX.shakeT / FX.shakeD || 0)) { FX.shake = amp; FX.shakeT = FX.shakeD = dur; } }
@@ -82,6 +84,9 @@ function fxTick(dt) {
       const e = 1 - (1 - u) ** 3;
       g.globalAlpha = 1 - u; g.strokeStyle = p.c; g.lineWidth = 10 * (1 - u) * p.s + 1;
       g.beginPath(); g.arc(p.x, p.y, (20 + e * 150) * p.s, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
+    } else if (p.k === 'fn') {
+      // 직접 그리는 파티클 (스킬 연출: 불꽃·번개·파편·충격파 등, g5u_skillfx.js) — p.f(g, p, u, dt)
+      g.save(); if (p.add) g.globalCompositeOperation = 'lighter'; p.f(g, p, u, dt); g.restore();
     } else if (p.k === 't') {
       const e = Math.min(1, p.t / 0.18), sc = 0.6 + 0.4 * (1 - (1 - e) ** 3) + (e < 1 ? 0 : Math.max(0, 0.15 - (p.t - 0.18)) * 0.8);
       g.save(); g.globalAlpha = u > 0.7 ? (1 - u) / 0.3 : 1; g.translate(p.x, p.y - p.t * 46); g.scale(sc, sc);
@@ -110,6 +115,7 @@ function fxHit(kind, tm) {
   fxText(FX.w / 2, FX.h * 0.3, kind === '3B' ? '3루타!' : kind === '2B' ? '2루타!' : '안타!', kind === '1B' || kind === 'IFH' || kind === 'BUNT_HIT' ? '#9fe8ff' : '#ffd84a', 40 + big * 10);
 }
 function fxHomeRun(tm) {
+  if (G.T && tm === G.T[G.userSide]) muSting('hr', { force: true }); // 홈런 팡파르
   const cols = teamCols(tm).concat(GOLD);
   fxFlash('#fff2c2', 0.75, 520); fxShake(2.2, 0.9);
   setTimeout(() => fxFlash('#ffd84a', 0.35, 420), 260);

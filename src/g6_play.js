@@ -8,10 +8,9 @@ function contact(sw) {
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
   if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
-  if (sw.sk && !tr.foul && !userBatting()) showPlayText(`${curBatter().name} · ${sw.sk} 발동!`, 1500); // CPU 타자 스킬
   G.pitchLog.push({ x: P.cross.x, y: P.cross.y, res: tr.foul ? 'strike' : 'play' });
   if (userBatting() && sw.foul) showFeedback([['파울', 'm'], [`타이밍 ${sw.tl || ''}`, 'm']], 1000);
-  startPlay(tr, sw);
+  G.lastCp = cp; startPlay(tr, sw);
 }
 function trackPos(tr, t, out) {
   const pts = tr.pts, n = pts.length;
@@ -43,6 +42,7 @@ function startPlay(tr, sw) {
   const fl = fieldersOf(ft);
   const F = S.makeFielders(fl.map((pl, i) => (i === 0 ? 50 : pl ? pl.spd : 55)), defHomes()); // 수비 작전 위치
   const res = S.resolvePlay(tr, { bases: G.bases.slice(), outs: G.outs, batter: b, fielders: F, bunt: !!sw.bunt, def: G.defT, lead: G.leadT || 0 });
+  skOnPlay(res, sw, b, bt); // 스킬 임팩트·컷인
   const hr = res.kind === 'HR';
   const sc = hr ? 0.42 : 1;
   if (hr) res.runners.forEach((r) => { r.t0 = 1.6 + (r.t0 - 0.6) * sc; r.t1 = 1.6 + (r.t1 - 0.6) * sc; });

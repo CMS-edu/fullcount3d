@@ -378,7 +378,7 @@ function onlineTick() {
     ON.q.shift();
     P.remoteIn = true;
     if (a.take) P.cpu = { swing: false };
-    else P.cpu = { swing: true, contact: !a.miss, bunt: !!a.bunt, foul: !!a.foul, ev: a.ev, la: a.la, phi: a.phi, q: a.q, st: a.st, tl: a.tl };
+    else P.cpu = { swing: true, contact: !a.miss, bunt: !!a.bunt, foul: !!a.foul, ev: a.ev, la: a.la, phi: a.phi, q: a.q, st: a.st, tl: a.tl, sk: a.sk };
     return;
   }
   // 투수 쪽 행동 → 내가 타자이고 대기 상태일 때 적용
