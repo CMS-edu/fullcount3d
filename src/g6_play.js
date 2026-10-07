@@ -8,6 +8,7 @@ function contact(sw) {
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
   if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
+  if (sw.sk && !tr.foul && !userBatting()) showPlayText(`${curBatter().name} · ${sw.sk} 발동!`, 1500); // CPU 타자 스킬
   G.pitchLog.push({ x: P.cross.x, y: P.cross.y, res: tr.foul ? 'strike' : 'play' });
   if (userBatting() && sw.foul) showFeedback([['파울', 'm'], [`타이밍 ${sw.tl || ''}`, 'm']], 1000);
   startPlay(tr, sw);

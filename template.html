@@ -398,6 +398,12 @@ body.no-webgl .nogl { display: grid; }
 .rteam { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .rteam .arrow { min-width: 44px; min-height: 44px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); }
 .rtabs { display: flex; gap: 6px; margin: 4px 0 10px; }
+.skb { font-style: normal; font-size: 0.95em; }
+.skl { display: block; font-size: 12px; font-weight: 700; color: #ffd84a; }
+.skrow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); margin-bottom: 8px; }
+.skrow select { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--chip-bg); color: var(--ink); font-weight: 700; padding: 0 8px; min-width: 0; }
+.skrow .skd { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-2); }
+.skrow .skd b { color: var(--ink); }
 .rtabs button { flex: 1; min-height: 42px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; }
 .rtabs button[aria-selected="true"] { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--accent-ink); border-color: transparent; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35); }
 .rhead { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 12px 2px 6px; letter-spacing: 0.04em; }
@@ -682,7 +688,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <div class="pane" id="pane-roster" role="tabpanel" aria-labelledby="tab-roster" hidden>
       <div class="card panel">
         <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
-        <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
+        <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="skill" aria-selected="false">✨ 스킬</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
         <p class="sub" id="rosterHint"></p>
         <div id="rosterList"></div>
         <button class="mbtn primary" id="rosterSave">저장</button>

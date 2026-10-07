@@ -4,7 +4,7 @@
 const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [],
   cfg: Object.assign({ inn: 3, side: 1, night: 1, diff: 'pro' }, store.get('oncfg', {})) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
-const PROTO = 4; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
+const PROTO = 5; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
 const LOST_WAIT = 90; // 상대 연결이 끊겼을 때 기다리는 시간(초) — 메신저 잠깐 다녀오는 정도는 버팀
 function hashSeed(a, b, c) { let h = (a ^ 0x9e3779b9) >>> 0; h = Math.imul(h ^ (b + 0x7f4a7c15), 2654435761) >>> 0; h = Math.imul(h ^ (c * 40503 + 17), 2246822519) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
 function onSeed(pi, tag) { return S.mulberry32(hashSeed(G.online.seed, pi, tag)); }

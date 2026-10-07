@@ -398,6 +398,12 @@ body.no-webgl .nogl { display: grid; }
 .rteam { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .rteam .arrow { min-width: 44px; min-height: 44px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); }
 .rtabs { display: flex; gap: 6px; margin: 4px 0 10px; }
+.skb { font-style: normal; font-size: 0.95em; }
+.skl { display: block; font-size: 12px; font-weight: 700; color: #ffd84a; }
+.skrow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--border); margin-bottom: 8px; }
+.skrow select { min-height: 42px; border-radius: 10px; border: 1px solid var(--border); background: var(--chip-bg); color: var(--ink); font-weight: 700; padding: 0 8px; min-width: 0; }
+.skrow .skd { grid-column: 1 / -1; font-size: 12.5px; color: var(--ink-2); }
+.skrow .skd b { color: var(--ink); }
 .rtabs button { flex: 1; min-height: 42px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); font-weight: 700; }
 .rtabs button[aria-selected="true"] { background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--accent-ink); border-color: transparent; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35); }
 .rhead { font-size: 12px; font-weight: 700; color: var(--ink-2); margin: 12px 2px 6px; letter-spacing: 0.04em; }
@@ -682,7 +688,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
     <div class="pane" id="pane-roster" role="tabpanel" aria-labelledby="tab-roster" hidden>
       <div class="card panel">
         <div class="rteam"><button class="arrow" id="rtPrev" aria-label="이전 팀">◀</button><h2 id="rosterH" style="margin:0;text-align:center">구단 관리</h2><button class="arrow" id="rtNext" aria-label="다음 팀">▶</button></div>
-        <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
+        <div class="rtabs" role="tablist"><button role="tab" data-tab="bat" aria-selected="true">타순 · 수비</button><button role="tab" data-tab="pit" aria-selected="false">투수진</button><button role="tab" data-tab="skill" aria-selected="false">✨ 스킬</button><button role="tab" data-tab="paste" aria-selected="false">📋 붙여넣기</button></div>
         <p class="sub" id="rosterHint"></p>
         <div id="rosterList"></div>
         <button class="mbtn primary" id="rosterSave">저장</button>
@@ -900,7 +906,8 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
     const armSign = pitcher.hand === 'R' ? -1 : 1;
     const rel = { x: 0.55 * armSign, y: 1.78, z: -16.9 };
     const mv = pitcher.mv && pitcher.mv[type]; // 투수마다 실제 무브먼트 [가로(팔 쪽 +), 떨어짐] (m)
-    const bx = (mv ? mv[0] : p.arm) * armSign, by = -(mv ? mv[1] : p.drop);
+    const mg = pitcher.skill === 'magic' && p.brk ? 1.3 : 1; // 마구 스킬: 변화구가 더 휨
+    const bx = (mv ? mv[0] : p.arm) * armSign * mg, by = -(mv ? mv[1] : p.drop) * mg;
     const dur = Math.abs(rel.z) / (kmh / 3.6);
     return { type, kmh, rel, target, bx, by, arc: p.arc * (145 / kmh), dur };
   }
@@ -1281,8 +1288,9 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
 
   /* ---------- 스윙 판정 (유저 타격) ---------- */
   // e: 타이밍 오차(초, 음수=빠름), aim/ball: 홈플레이트 평면 좌표 {x,y}
-  function userSwing(batter, aim, ball, e, diff, bunt, pitcherHand) {
-    const W = 0.085 * diff.win, r0 = (0.1 + batter.con * 0.0006) * diff.pci;
+  function userSwing(batter, aim, ball, e, diff, bunt, pitcherHand, ctx) {
+    const sm = skillMods(batter, ctx);
+    const W = 0.085 * diff.win * sm.win, r0 = (0.1 + batter.con * 0.0006) * diff.pci * sm.reach;
     const d = Math.hypot(aim.x - ball.x, aim.y - ball.y);
     const pullSign = batter.hand === 'R' ? -1 : 1;
     const tl = e < -W * 0.45 ? '빠름' : e > W * 0.45 ? '늦음' : '굿';
@@ -1314,10 +1322,11 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
       return { foul: true, tl: tl2, ev: 70 + q * 100, la: 25 + randn() * 25, phi: (Math.abs(phi) > 45 ? phi : Math.sign(phi || 1) * (50 + R() * 30)) };
     }
     const plat = batter.hand !== pitcherHand ? 1.03 : 1;
-    const ev = Math.min(186, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat + (m ? clamp(m[2], -0.15, 0.15) * 30 : 0));
-    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5 - (sw > rh * 0.45 ? 8 : 0), -40, 75);
+    const pulled = phi * pullSign > 5;
+    const ev = Math.min(188, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat + (m ? clamp(m[2], -0.15, 0.15) * 30 : 0) + sm.ev + (pulled ? sm.pullEv : 0));
+    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5 - (sw > rh * 0.45 ? 8 : 0) + sm.la, -40, 75);
     const cl = qs < 0.6 && sw > 0 ? '먹힌 타구' : qs < 0.6 ? '배트 끝' : q > 0.85 ? '정타!' : q > 0.6 ? '잘 맞음' : q > 0.35 ? '보통' : '빗맞음';
-    return { ev, la, phi, q, tl: tl2, cl };
+    return { ev, la, phi, q, tl: tl2, cl, sk: sm.tag || (pulled && sm.pullEv ? '🧲 당겨치기 장인' : '') };
   }
 
   /* ---------- 타자 성향: 코스 칸 ---------- */
@@ -1334,8 +1343,8 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
   }
 
   /* ---------- CPU 타자 반응 (유저 투구) ---------- */
-  function cpuSwing(batter, pitch, zi, count, diff, pitcherHand, quality) {
-    const brk = PITCHES[pitch.type].brk;
+  function cpuSwing(batter, pitch, zi, count, diff, pitcherHand, quality, ctx) {
+    const brk = PITCHES[pitch.type].brk, sm = skillMods(batter, ctx);
     // 실제 기록이 있으면 코스별 [스윙 배율, 컨택 배율, 타율 차이] (리그 평균 대비)
     const m = batter.zm && pitch.target ? batter.zm[zoneCell(batter, pitch.target)] : null;
     let ps;
@@ -1344,11 +1353,12 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
     } else {
       ps = Math.max(0, 0.4 - zi.out * 2.9) * (1.12 - batter.eye / 120) * (brk ? 1.3 : 1) + (count.s === 2 ? 0.08 : 0);
       if (count.b === 3 && count.s < 2) ps *= 0.35;
+      ps *= sm.chase; // 선구안: 유인구에 덜 속음
     }
     if (m) ps *= clamp(m[0], 0.55, 1.6); // 잘 참는 코스·잘 따라가는 코스
     if (R() > ps) return { swing: false };
     const plat = batter.hand !== pitcherHand ? 0.03 : 0;
-    let pc = 0.765 + (batter.con - 60) / 220 + plat - (quality - 0.75) * 0.45 + diff.cpuCon;
+    let pc = 0.765 + (batter.con - 60) / 220 + plat - (quality - 0.75) * 0.45 + diff.cpuCon + sm.con;
     pc -= zi.inside ? Math.max(0, zi.corner - 0.4) * 0.22 : 0.12 + zi.out * 1.4;
     if (m) pc *= clamp(m[1], 0.75, 1.25); // 헛스윙이 많은 코스
     if (R() > pc) return { swing: true, contact: false };
@@ -1356,10 +1366,10 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
     const pullSign = batter.hand === 'R' ? -1 : 1;
     if (R() < pFoul) return { swing: true, contact: true, foul: true, ev: 90 + R() * 50, la: 20 + randn() * 25, phi: (R() < 0.5 ? -1 : 1) * (48 + R() * 30) };
     const evMean = 112.5 + batter.pow * 0.36 - Math.max(0, zi.corner - 0.3) * 12 - zi.out * 45 - (quality - 0.75) * 10 + diff.cpuPow + (m ? clamp(m[2], -0.15, 0.15) * 70 : 0); // 강한 코스는 더 세게
-    const ev = clamp(evMean + randn() * 21, 45, 184);
-    const la = clamp(10.5 + (batter.pow - 60) * 0.17 + (zi.low ? -6 : 5) + (brk && zi.low ? -5 : 0) + (batter.laAdj || 0) + randn() * 25, -45, 80);
     const phi = pullSign * (batter.pullDeg != null ? batter.pullDeg : 7) + randn() * 22; // 당겨치기/밀어치기 성향
-    return { swing: true, contact: true, foul: Math.abs(phi) > 45, ev, la, phi };
+    const ev = clamp(evMean + randn() * 21 + sm.ev + (phi * pullSign > 5 ? sm.pullEv : 0), 45, 186);
+    const la = clamp(10.5 + (batter.pow - 60) * 0.17 + (zi.low ? -6 : 5) + (brk && zi.low ? -5 : 0) + (batter.laAdj || 0) + randn() * 25 + sm.la, -45, 80);
+    return { swing: true, contact: true, foul: Math.abs(phi) > 45, ev, la, phi, sk: sm.tag };
   }
 
 
@@ -1386,15 +1396,35 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
     else { tx = (R() - 0.5) * 0.5; ty = mid + (R() - 0.5) * hh * 1.8 - (brk ? hh * 0.35 : 0); }
     return { type, target: { x: tx, y: ty } };
   }
-  function fatigueOf(p, pc) { return clamp((pc - p.sta * 0.8) / (p.sta * 0.45), 0, 1); }
+  // 투수 스킬(p.skill, src/g5s_skills.js): 이닝이터·핀포인트·파이어볼러·마구
+  function fatigueOf(p, pc) { const n = p.skill === 'eater' ? pc * 0.75 : pc; return clamp((n - p.sta * 0.8) / (p.sta * 0.45), 0, 1); }
   function pitchSigma(p, fat, meter) {
-    return meter == null ? 0.045 + (100 - p.ctl) * 0.0011 + fat * 0.06 : 0.028 + (1 - meter) * 0.15 + (100 - p.ctl) * 0.0007 + fat * 0.06;
+    const s = meter == null ? 0.045 + (100 - p.ctl) * 0.0011 + fat * 0.06 : 0.028 + (1 - meter) * 0.15 + (100 - p.ctl) * 0.0007 + fat * 0.06;
+    return p.skill === 'ctrl' ? s * 0.72 : s;
   }
   function pitchSpeed(p, type, fat, meter) {
     const base = p.spd && p.spd[type] ? p.spd[type] : p.vel * PITCHES[type].ratio; // 실제 구종별 평균 구속이 있으면 그걸로
-    return base * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0);
+    return base * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0) + (p.skill === 'heat' && FASTS[type] ? 3 : 0);
   }
-  function pitchQuality(p, fat, meter) { return (p.stf / 100) * (meter == null ? 0.9 : 0.72 + 0.38 * meter) - fat * 0.15; }
+  function pitchQuality(p, fat, meter) { return (p.stf / 100) * (meter == null ? 0.9 : 0.72 + 0.38 * meter) - fat * 0.15 + (p.skill === 'heat' ? 0.03 : p.skill === 'magic' ? 0.04 : 0); }
+  // 타자·투수 스킬이 스윙에 주는 보정. ctx = { b, s, risp, late, pit } (없으면 상황 스킬은 꺼짐)
+  function skillMods(bt, ctx) {
+    const c = ctx || {}, bs = bt && bt.skill, ps = c.pit && c.pit.skill;
+    const m = { win: 1, reach: 1, ev: 0, la: 0, chase: 1, con: 0, pullEv: 0, tag: '' };
+    if (bs === 'slug') { m.ev += 7; m.la += 2; m.tag = '💣 거포'; }
+    if (bs === 'contact') { m.reach *= 1.15; m.con += 0.06; }
+    if (bs === 'eye') { m.win *= 1.15; m.chase *= 0.7; }
+    if (bs === 'clutch' && c.risp) { m.ev += 6; m.reach *= 1.1; m.con += 0.05; m.tag = '🔥 해결사'; }
+    if (bs === 'first' && c.b === 0 && c.s === 0) { m.ev += 8; m.tag = '🥊 초구 킬러'; }
+    if (bs === 'tough' && c.s === 2) { m.reach *= 1.2; m.win *= 1.15; m.con += 0.08; m.tag = '🪨 끈질김'; }
+    if (bs === 'pull') m.pullEv = 6;
+    if (ps === 'escape' && c.risp) { m.ev -= 6; m.con -= 0.05; }
+    if (ps === 'closer' && c.late) { m.ev -= 5; m.con -= 0.04; }
+    if (ps === 'gb') m.la -= 5;
+    if (ps === 'sub') { m.win *= 0.9; m.con -= 0.03; }
+    if (ps === 'magic') m.con -= 0.03;
+    return m;
+  }
 
   /* ---------- 팀 & 선수 (가상 구단) ---------- */
   const TEAMS = [
@@ -3543,9 +3573,9 @@ function updateLines() {
   const bt = batTeam(), ft = fieldTeam(), b = curBatter(), p = ft.pitcher;
   if (!b || !p) return;
   const today = b.g.pa ? `${b.g.ab}타수 ${b.g.h}안타${b.g.hr ? ` ${b.g.hr}홈런` : ''}` : '첫 타석';
-  UI.batLine.innerHTML = `${avatarHTML(b, 'xs')}<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
+  UI.batLine.innerHTML = `${avatarHTML(b, 'xs')}<span class="k">타자</span><b>${bt.order + 1}번 ${esc(b.name)}${SKILLS[b.skill] ? ` <i class="skb" title="${SKILLS[b.skill].nm}">${SKILLS[b.skill].ico}</i>` : ""}</b><span class="m">${b.posK} · ${b.hand === 'L' ? '좌' : '우'}타</span><span>${fmtAvg(b.avg)} ${b.hr}HR</span><span class="${b.g.h ? 'hot' : 'm'}">${today}</span>`;
   const fat = S.fatigueOf(p, p.g.pc);
-  UI.pitLine.innerHTML = `${avatarHTML(p, 'xs')}<span class="k">투수</span><b>${esc(p.name)}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
+  UI.pitLine.innerHTML = `${avatarHTML(p, 'xs')}<span class="k">투수</span><b>${esc(p.name)}${SKILLS[p.skill] ? ` <i class="skb" title="${SKILLS[p.skill].nm}">${SKILLS[p.skill].ico}</i>` : ""}</b><span class="m">${p.hand === 'L' ? '좌' : '우'}투 · ERA ${p.era.toFixed(2)}</span><span class="${fat > 0.5 ? 'hot' : ''}">${p.g.pc}구</span>`;
   if (UI.stam) UI.stam.style.width = Math.round((1 - fat) * 100) + '%';
   UI.stam.style.background = fat > 0.6 ? '#ff4b4b' : fat > 0.3 ? '#ffc93c' : '#37d67a';
 }
@@ -3580,7 +3610,7 @@ function playerCard(pl, tm, pit) {
   const cr = photoCredit(pl);
   el.style.setProperty('--tc', tm.t.c1);
   const mix = pit && pl.mix ? `<span class="mixl">${mixText(pl, 4)}</span>` : !pit && pl.spray ? `<span class="mixl">${tendText(pl)}</span>` : '';
-  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${mix}${today}${cr ? `<em>${cr}</em>` : ''}</div>${pit ? '' : miniHeat(pl)}`;
+  el.innerHTML = `${avatarHTML(pl, 'md')}<div class="pc-t"><small>${esc(tm.t.city)}${pl.num ? ' · #' + esc(pl.num) : ''} · ${role}</small><b>${esc(pl.name)}</b><span>${stat}</span>${SKILLS[pl.skill] ? `<span class="skl">${skillTag(pl)} · ${SKILLS[pl.skill].desc}</span>` : ""}${mix}${today}${cr ? `<em>${cr}</em>` : ''}</div>${pit ? '' : miniHeat(pl)}`;
   el.classList.remove('show'); void el.offsetWidth; flashEl(el, 'show', 2900, 'pcard');
 }
 
@@ -3907,6 +3937,7 @@ function makeTeamState(idx) {
   const sp = ros.rotation[Math.floor(GR() * ros.rotation.length)];
   const tm = { idx, t: S.TEAMS[idx], ros, lineup: ros.lineup.slice(), bench: ros.bench.slice(), out: [], order: 0, pitcher: sp, used: [sp], runs: 0, hits: 0, bb: 0, err: 0, line: [], warned: null };
   applyRoster(tm);
+  ros.lineup.concat(ros.bench).forEach((b) => { if (b.skill === 'speed') b.spd = Math.min(99, b.spd + 6); }); // 대도 스킬
   return tm;
 }
 function fieldersOf(tm) {
@@ -4215,7 +4246,7 @@ function nextPitch() {
       if (gen !== G.gen || G.phase !== 'ready') return;
       // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
       const pb = pickoffBase();
-      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1]) { pickoff(); return; }
+      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1] * (p.skill === 'pickoff' ? 1.5 : 1)) { pickoff(); return; }
       windup(plan.type, plan.target, null);
     });
   }
@@ -4258,7 +4289,7 @@ function windup(type, target, meter) {
   if (!G.prac && G.bases.some(Boolean) && (G.online ? onSeed(pi, 4)() : R()) < BALK_P) { balk(); return; }
   const p = fieldTeam().pitcher, fat = S.fatigueOf(p, p.g.pc), sig = S.pitchSigma(p, fat, meter);
   const tgt = { x: target.x + S.randn() * sig, y: target.y + S.randn() * sig };
-  const kmh = S.pitchSpeed(p, type, fat, meter) * ((G.prac && G.prac.spd) || 1), q = S.pitchQuality(p, fat, meter);
+  const kmh = S.pitchSpeed(p, type, fat, meter) * ((G.prac && G.prac.spd) || 1) + (p.skill === 'closer' && closerOn() ? 2 : 0), q = S.pitchQuality(p, fat, meter);
   G.pitch = { pt: S.makePitch(p, type, tgt, kmh), type, kmh, q, meter, aim: target, w: 0, ft: 0, released: false, swung: false, launched: false, done: false, cross: tgt, uEnd: 1.06, hand: p.hand, slot: p.slot || 0, pi };
   G.phase = 'windup';
   hideDocks(); if (userBatting()) showDocks();
@@ -4285,7 +4316,7 @@ function stealBase() {
 // 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움. 견제 받을수록·리드 짧을수록 어려움
 function stealChance(k) {
   const r = G.bases[k], P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : fieldTeam().pitcher.hand === 'L';
-  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07 + (r.skill === 'speed' ? 0.12 : 0) - (fieldTeam().pitcher.skill === 'pickoff' ? 0.08 : 0), 0.1, 0.88);
 }
 function startSteal(k) {
   const r = G.bases[k], pSucc = stealChance(k);
@@ -4306,7 +4337,7 @@ function release() {
   G.lastSpeed = P.kmh;
   ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
   if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
-  UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name; UI.speedBox.hidden = false;
+  UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name + (SKILLS[p.skill] ? ' ' + SKILLS[p.skill].ico : ''); UI.speedBox.hidden = false;
   if (userPitching() && !G.online) {
     const b = curBatter(), zi = S.zoneInfo(S.zoneOf(b.height), P.cross.x, P.cross.y);
     if (G.cpuBunt) {
@@ -4315,7 +4346,7 @@ function release() {
       else if (R() < 0.8) P.cpu = { swing: true, contact: true, bunt: true, ev: 30 + R() * 18, la: -15 + R() * 10, phi: (R() < 0.5 ? -1 : 1) * (8 + R() * 26) };
       else if (R() < 0.6) P.cpu = { swing: true, contact: true, bunt: true, foul: true, ev: 40, la: 20, phi: (R() < 0.5 ? -1 : 1) * 62 };
       else P.cpu = { swing: true, contact: false, bunt: true };
-    } else P.cpu = S.cpuSwing(b, P.pt, zi, { b: G.b, s: G.s }, G.diff, p.hand, P.q);
+    } else P.cpu = S.cpuSwing(b, P.pt, zi, { b: G.b, s: G.s }, G.diff, p.hand, P.q, skillCtx());
     if (G.prac && G.prac.kind === 'pit' && !G.prac.swing) P.cpu = { swing: false };
   }
   if (G.steal) planSteal();
@@ -4366,7 +4397,7 @@ function userSwingTap(aim) {
   P.swung = true;
   const e = P.ft - (P.pt.dur - SW_TC - 0.005);
   const b = curBatter();
-  const res = S.userSwing(b, aim, P.cross, e, G.diff, G.bunt, fieldTeam().pitcher.hand);
+  const res = S.userSwing(b, aim, P.cross, e, G.diff, G.bunt, fieldTeam().pitcher.hand, skillCtx());
   P.user = res;
   const uc = clamp((P.ft + SW_TC) / P.pt.dur, 0.88, 1.05);
   P.contactU = uc; P.contactT = uc * P.pt.dur;
@@ -4382,7 +4413,7 @@ function userSwingTap(aim) {
   }
   showRing(aim, true);
   if (res.miss) showFeedback([[G.bunt ? '번트 실패' : '헛스윙', 'bad'], [res.tl === '굿' ? '코스가 빗나감' : `타이밍 ${res.tl}`, 'm']], 1100);
-  else if (!res.foul && !res.bunt) showFeedback([[`타이밍 ${res.tl}`, res.tl === '굿' ? 'good' : 'm'], [res.cl, res.q > 0.6 ? 'good' : 'm']], 1300);
+  else if (!res.foul && !res.bunt) showFeedback([[`타이밍 ${res.tl}`, res.tl === '굿' ? 'good' : 'm'], [res.cl, res.q > 0.6 ? 'good' : 'm']].concat(res.sk ? [[`${res.sk} 발동!`, 'good']] : []), 1300);
 }
 function isHBP(cr, b) {
   const s = b.hand === 'R' ? -1 : 1;
@@ -4827,7 +4858,8 @@ function pickoff(remote) {
   let pr = going ? 0.22 + (G.leadT || 0) * 0.07 : [0.025, 0.015, 0.01][k] * lf;
   if (k === 0 && p.hand === 'L') pr += going ? 0.05 : 0.015 * lf;
   pr -= (r.spd - 60) * (going ? 0.003 : 0.0004);
-  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.005, 0.45);
+  pr *= (r.skill === 'speed' ? 0.6 : 1) * (p.skill === 'pickoff' ? 2 : 1); // 스킬: 대도는 덜 걸리고, 견제 달인은 2배
+  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.005, 0.5);
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false'); // 뛰려던 주자는 타이밍을 뺏김
   if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false;
   G.pclock = null; UI.pclock.hidden = true; G.meter = null; hideDocks();
@@ -4920,6 +4952,92 @@ function pitchClockViolation() {
     if (!PCLOCK.on) { G.pclock = null; UI.pclock.hidden = true; }
   });
 }
+/* ===================== 선수 스킬 ===================== */
+// 팀마다 타자 2명 · 투수 2명에게 스킬 하나씩. 기본값은 2026 시즌 실제 기록(LEAGUE)에서 리그 상위권인 장점으로 자동 배정,
+// 구단 탭의 '스킬'에서 바꿀 수 있음(저장 → 온라인이면 방 시작 때 상대에게도 전달돼 두 기기가 같은 스킬로 경기).
+// 효과 숫자는 sim.js의 skillMods / pitchSpeed / pitchSigma / makePitch / fatigueOf와 g5_flow·g5r_rules의 도루·견제 부분에 있음
+const SKILLS = {
+  // 타자
+  slug: { ico: '💣', nm: '거포', bat: true, desc: '타구 속도 +7km/h · 더 높이 뜸' },
+  contact: { ico: '🎯', nm: '안타 제조기', bat: true, desc: '배트 판정 범위 +15% · CPU는 컨택↑' },
+  speed: { ico: '⚡', nm: '대도', bat: true, desc: '도루 성공 +12%p · 견제에 덜 걸림 · 주력 +6' },
+  eye: { ico: '👁️', nm: '선구안', bat: true, desc: '타이밍 여유 +15% · CPU는 유인구에 덜 속음' },
+  clutch: { ico: '🔥', nm: '해결사', bat: true, desc: '득점권(2·3루 주자)에서 타구 속도 +6 · 컨택↑' },
+  first: { ico: '🥊', nm: '초구 킬러', bat: true, desc: '0-0 카운트에서 타구 속도 +8' },
+  pull: { ico: '🧲', nm: '당겨치기 장인', bat: true, desc: '당겨 친 타구 속도 +6' },
+  tough: { ico: '🪨', nm: '끈질김', bat: true, desc: '2스트라이크에서 판정 범위·타이밍 여유↑' },
+  // 투수
+  heat: { ico: '☄️', nm: '파이어볼러', bat: false, desc: '직구 계열 +3km/h · 구위↑' },
+  magic: { ico: '🌀', nm: '마구', bat: false, desc: '변화구 휘는 폭 +30%' },
+  ctrl: { ico: '📍', nm: '핀포인트', bat: false, desc: '제구 오차 −28%' },
+  gb: { ico: '🧱', nm: '땅볼 유도', bat: false, desc: '상대 타구 발사각 −5° (병살↑)' },
+  escape: { ico: '🛡️', nm: '위기관리', bat: false, desc: '득점권에서 상대 타구 속도 −6' },
+  eater: { ico: '⏱️', nm: '이닝이터', bat: false, desc: '체력 소모 −25%' },
+  closer: { ico: '🔒', nm: '끝판왕', bat: false, desc: '마지막 이닝 1~3점 리드: +2km/h · 상대 타구 −5' },
+  pickoff: { ico: '🐍', nm: '견제 달인', bat: false, desc: '견제 성공 2배 · 상대 도루 −8%p' },
+  sub: { ico: '🌊', nm: '잠수함', bat: false, desc: '낮은 팔 각도: 상대 타이밍 여유 −10%' },
+};
+const skillTag = (p) => (p && p.skill && SKILLS[p.skill] ? `${SKILLS[p.skill].ico} ${SKILLS[p.skill].nm}` : '');
+
+// 자동 배정: 리그 전체에서 각 장점이 몇 % 위치인지(백분위) → 팀 안에서 가장 두드러진 (선수, 스킬) 2쌍씩
+const AUTO_SK = (() => {
+  const bats = LEAGUE.flatMap((r) => r.lineup.concat(r.bench)).filter((b) => b.pa >= 80);
+  const pits = LEAGUE.flatMap((r) => r.rotation.concat(r.bullpen)).filter((p) => p.ip >= 15);
+  const swingRate = (b) => (b.tz ? b.tz.slice(0, 9).reduce((a, c) => a + c[0], 0) / 9 : 0);
+  const BM = {
+    slug: (b) => (b.hr >= 6 ? b.hr / b.pa * 3 + (b.slg - b.avg) : -1),
+    contact: (b) => b.avg + b.con * 0.0005,
+    speed: (b) => (b.sb >= 6 ? b.sb : -1),
+    eye: (b) => b.obp - b.avg + b.eye * 0.0005,
+    clutch: (b) => b.obp + b.slg,
+    first: (b) => swingRate(b) || -1,
+    pull: (b) => (b.spray ? b.spray[0] : -1),
+    tough: (b) => b.con - b.pow * 0.4,
+  };
+  const PM = {
+    heat: (p) => (p.spd && p.spd.FB) || p.vel,
+    magic: (p) => p.k / Math.max(1, p.ip),
+    ctrl: (p) => -p.bb / Math.max(1, p.ip),
+    gb: (p) => { const t = p.mix && p.mix.find((m) => m[0] === 'TS'); return t && t[1] >= 0.15 ? t[1] : -1; }, // 투심·싱커를 많이 던지는 투수만
+    escape: (p) => -p.whip,
+    eater: (p) => (p.role === 'SP' ? p.ip : -1),
+    closer: (p) => (p.role === 'CL' ? 1 + (p.sv || 0) : -1),
+    pickoff: (p) => (p.hand === 'L' ? p.ctl : -1),
+    sub: (p) => (p.slot >= 1.6 ? 2 : -1),
+  };
+  const pctOf = (pool, f) => { const v = pool.map(f).filter((x) => x >= 0).sort((a, b) => a - b); return (x) => (x < 0 || !v.length ? 0 : v.filter((y) => y <= x).length / v.length); };
+  const BP = {}, PP = {};
+  for (const k in BM) BP[k] = pctOf(bats, BM[k]);
+  for (const k in PM) PP[k] = pctOf(pits, PM[k]);
+  const choose = (players, M, P, fit) => {
+    const pairs = [];
+    players.forEach((p) => { for (const k in M) { const s = P[k](M[k](p)) * fit(p); if (s > 0) pairs.push([s, p.key, k]); } });
+    pairs.sort((a, b) => b[0] - a[0]);
+    const out = [], usedP = new Set(), usedS = new Set();
+    for (const [, key, k] of pairs) { if (out.length >= 2) break; if (usedP.has(key) || usedS.has(k)) continue; usedP.add(key); usedS.add(k); out.push([key, k]); }
+    return out;
+  };
+  const res = {};
+  LEAGUE.forEach((r, ti) => {
+    const bs = choose(r.lineup.concat(r.bench).filter((b) => b.pa >= 40), BM, BP, (b) => (r.lineup.includes(b) ? 1 : 0.8));
+    // 잠수함·끝판왕은 해당되는 투수가 있으면 거의 확정 (그 팀의 상징이라서)
+    const ps = choose(r.rotation.concat(r.bullpen).filter((p) => p.ip >= 10), PM, PP, (p) => (p.role === 'CL' || p.slot >= 1.6 ? 1.15 : 1));
+    res[S.TEAMS[ti].id] = bs.concat(ps);
+  });
+  return res;
+})();
+
+// 설정(cfg.sk)이 올바르면 그대로, 아니면 자동 배정. 타자 2 · 투수 2, 한 선수 한 스킬
+function skillPlan(teamId, cfg, by) {
+  const sk = cfg && Array.isArray(cfg.sk) ? cfg.sk : null;
+  const ok = sk && sk.length <= 4 && sk.every(([k, id]) => by[k] && SKILLS[id] && SKILLS[id].bat === (k[0] === 'B'))
+    && new Set(sk.map((x) => x[0])).size === sk.length && sk.filter((x) => x[0][0] === 'B').length <= 2 && sk.filter((x) => x[0][0] === 'P').length <= 2;
+  return ok ? sk : AUTO_SK[teamId] || [];
+}
+// 경기 중 끝판왕 발동 조건: 마지막 이닝(이후 연장 포함) 1~3점 리드
+function closerOn() { return G.T && G.inning >= G.maxInn && (() => { const d = fieldTeam().runs - batTeam().runs; return d >= 1 && d <= 3; })(); }
+// 스윙 판정에 넘기는 상황 정보 (sim.js skillMods)
+function skillCtx() { return { b: G.b, s: G.s, risp: !!(G.bases[1] || G.bases[2]), late: closerOn(), pit: fieldTeam().pitcher }; }
 /* ===================== 작전: 수비 위치 · 주자 리드 ===================== */
 // 수비 쪽은 투구 준비 중에 칩 한 번 탭으로 바꿈 (반 이닝 동안 유지, CPU는 상황 보고 타석마다 고름)
 //   기본 · 전진 수비(내야가 앞으로 → 3루 주자 땅볼 홈인 차단, 대신 내야를 빠지는 안타↑)
@@ -5004,6 +5122,7 @@ function contact(sw) {
   const q = sw.q != null ? sw.q : clamp((sw.ev - 60) / 110, 0.1, 1);
   if (tr.foul && sw.ev < 80) AU.foulTip(); else AU.crack(sw.bunt ? 0.2 : q);
   if (!sw.bunt) fxContact(cp, sw.ev, tr.foul);
+  if (sw.sk && !tr.foul && !userBatting()) showPlayText(`${curBatter().name} · ${sw.sk} 발동!`, 1500); // CPU 타자 스킬
   G.pitchLog.push({ x: P.cross.x, y: P.cross.y, res: tr.foul ? 'strike' : 'play' });
   if (userBatting() && sw.foul) showFeedback([['파울', 'm'], [`타이밍 ${sw.tl || ''}`, 'm']], 1000);
   startPlay(tr, sw);
@@ -5619,6 +5738,9 @@ function applyRoster(tm) {
     }
   }
   if (cfg.sp && by[cfg.sp] && tm.ros.rotation.includes(by[cfg.sp])) { tm.pitcher = by[cfg.sp]; tm.used = [tm.pitcher]; }
+  // 스킬 (g5s_skills.js): 저장한 배정이 있으면 그대로, 없으면 2026 기록으로 자동 배정
+  bats.concat(pits).forEach((p) => delete p.skill);
+  skillPlan(tm.t.id, cfg, by).forEach(([k, id]) => (by[k].skill = id));
 }
 
 /* ---------- 구단 관리 에디터 ---------- */
@@ -5634,11 +5756,46 @@ function edLoad(ti) {
   ED.pos = {}; tmp.lineup.forEach((b) => (ED.pos[b.key] = b.pos));
   ED.sp = cfg.sp || null;
   ED.base = {}; r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => (ED.base[p.key] = p));
+  ED.sk = skillPlan(S.TEAMS[ti].id, cfg, ED.base).map((x) => x.slice());
 }
+// 스킬 탭: 타자 2칸 · 투수 2칸, 칸마다 선수와 스킬을 고름
+function renderSkillTab(L) {
+  $('#rosterHint').textContent = '팀마다 타자 2명 · 투수 2명에게 스킬 하나씩. 기본값은 2026 시즌 기록에서 두드러진 장점으로 자동 배정돼요';
+  const tid = S.TEAMS[ED.team].id, auto = AUTO_SK[tid] || [];
+  const slot = (bat, i) => {
+    const list = ED.sk.filter((x) => (x[0][0] === 'B') === bat), cur = list[i] || [null, null];
+    const players = Object.keys(ED.base).filter((k) => (k[0] === 'B') === bat);
+    const skills = Object.keys(SKILLS).filter((id) => SKILLS[id].bat === bat);
+    const d = document.createElement('div'); d.className = 'skrow';
+    d.innerHTML = `<select data-skp="${bat ? 'B' : 'P'}${i}" aria-label="선수">${players.map((k) => `<option value="${k}"${k === cur[0] ? ' selected' : ''}>${esc(edName(k))}${ED.base[k].role ? ' · ' + (ED.base[k].role === 'SP' ? '선발' : ED.base[k].role === 'CL' ? '마무리' : '불펜') : ' · ' + POS_K[ED.base[k].pos]}</option>`).join('')}</select>`
+      + `<select data-sks="${bat ? 'B' : 'P'}${i}" aria-label="스킬">${skills.map((id) => `<option value="${id}"${id === cur[1] ? ' selected' : ''}>${SKILLS[id].ico} ${SKILLS[id].nm}</option>`).join('')}</select>`
+      + `<div class="skd">${cur[1] ? `<b>${SKILLS[cur[1]].ico} ${SKILLS[cur[1]].nm}</b> — ${SKILLS[cur[1]].desc}` : ''}${cur[0] ? `<br>${esc(cur[0][0] === 'B' ? batInfo(ED.base[cur[0]]) : pitInfo(ED.base[cur[0]]))}` : ''}</div>`;
+    L.appendChild(d);
+  };
+  const h = (t) => { const e = document.createElement('div'); e.className = 'rhead'; e.textContent = t; L.appendChild(e); };
+  h('타자 스킬'); slot(true, 0); slot(true, 1);
+  h('투수 스킬'); slot(false, 0); slot(false, 1);
+  const b = document.createElement('button'); b.className = 'mbtn'; b.textContent = '2026 기록으로 자동 추천'; b.dataset.skauto = '1';
+  L.appendChild(b);
+  const sameAsAuto = JSON.stringify(ED.sk) === JSON.stringify(auto);
+  const n = document.createElement('p'); n.className = 'sub'; n.style.marginTop = '8px';
+  n.textContent = sameAsAuto ? '지금은 자동 추천 그대로예요.' : '직접 고른 스킬이에요. 저장하면 다음 경기부터 적용돼요.';
+  L.appendChild(n);
+}
+$('#rosterList').addEventListener('change', (e) => {
+  const s = e.target.closest('select'); if (!s || ED.tab !== 'skill') return;
+  const key = s.dataset.skp || s.dataset.sks, bat = key[0] === 'B', i = +key.slice(1);
+  const mine = ED.sk.filter((x) => (x[0][0] === 'B') === bat), other = ED.sk.filter((x) => (x[0][0] === 'B') !== bat);
+  while (mine.length < 2) mine.push([Object.keys(ED.base).find((k) => (k[0] === 'B') === bat && !mine.some((m) => m[0] === k)), Object.keys(SKILLS).find((id) => SKILLS[id].bat === bat)]);
+  const nx = mine.map((x) => x.slice());
+  if (s.dataset.skp) nx[i][0] = s.value; else nx[i][1] = s.value;
+  if (nx[0][0] === nx[1][0]) { toast('한 선수에게는 스킬 하나만 줄 수 있어요'); renderRoster(); return; }
+  ED.sk = bat ? nx.concat(other) : other.concat(nx); ED.dirty = true; AU.click(); renderRoster();
+});
 function edName(k) { return ED.names[k] || ED.base[k].name; }
 function edBench() { return Object.keys(ED.base).filter((k) => k[0] === 'B' && !ED.order.includes(k)); }
-function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd}${p.spray ? ' · ' + tendText(p) : ''}`; }
-function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투${armSlotName(p) ? ' ' + armSlotName(p) : ''} · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · ${p.mix ? `${mixText(p)}${p.spd && p.spd.FB ? ` · 직구 평균 ${Math.round(p.spd.FB)}km/h` : ''}` : '구속·구종은 추정'}`; }
+function batInfo(p) { return `${SKILLS[p.skill] ? skillTag(p) + " · " : ""}${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd}${p.spray ? ' · ' + tendText(p) : ''}`; }
+function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${SKILLS[p.skill] ? skillTag(p) + " · " : ""}${p.hand === 'L' ? '좌' : '우'}투${armSlotName(p) ? ' ' + armSlotName(p) : ''} · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · ${p.mix ? `${mixText(p)}${p.spd && p.spd.FB ? ` · 직구 평균 ${Math.round(p.spd.FB)}km/h` : ''}` : '구속·구종은 추정'}`; }
 function openRoster(ti) {
   edLoad(ti == null ? OPTS.me : ti); ED.tab = 'bat';
   showTab('roster');
@@ -5669,6 +5826,8 @@ function renderRoster() {
     });
   } else if (ED.tab === 'paste') {
     renderPaste(L); return;
+  } else if (ED.tab === 'skill') {
+    renderSkillTab(L); return;
   } else {
     $('#rosterHint').textContent = '선발 버튼으로 다음 경기 선발투수를 정해요 (자동이면 로테이션에서 랜덤) · ✎ 이름 수정';
     head('선발 로테이션');
@@ -5696,6 +5855,7 @@ $('#rosterList').addEventListener('click', (e) => {
   const av = e.target.closest('.nm .ava');
   if (av) { ED.photo = av.closest('.nm').dataset.k; ED.sel = null; ED.posSel = null; renderRoster(); $('#panes').scrollTop = 0; AU.click(); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.skauto) { ED.sk = (AUTO_SK[S.TEAMS[ED.team].id] || []).map((x) => x.slice()); ED.dirty = true; AU.click(); renderRoster(); toast('2026 기록 기준 추천 스킬로 바꿨어요'); return; }
   if (b.dataset.ek) { ED.editing = b.dataset.ek; ED.sel = null; ED.posSel = null; renderRoster(); return; }
   if (b.dataset.sp != null && b.classList.contains('sp')) { ED.sp = b.dataset.sp || null; ED.dirty = true; AU.click(); renderRoster(); return; }
   if (b.dataset.pk) {
@@ -5752,7 +5912,7 @@ function photoCredits(L) {
 function edSave() {
   const all = rosterCfgAll(), id = S.TEAMS[ED.team].id;
   const pos = {}; ED.order.forEach((k) => (pos[k] = ED.pos[k]));
-  all[id] = { names: ED.names, hands: ED.hands, order: ED.order.slice(), pos, sp: ED.sp };
+  all[id] = { names: ED.names, hands: ED.hands, order: ED.order.slice(), pos, sp: ED.sp, sk: ED.sk.map((x) => x.slice()) };
   store.set('roster2', all); ED.dirty = false;
 }
 $$('.rtabs button').forEach((b) => b.addEventListener('click', () => { ED.tab = b.dataset.tab; ED.sel = null; ED.posSel = null; ED.editing = null; renderRoster(); }));
@@ -6546,7 +6706,7 @@ $('#overTabs').addEventListener('click', (e) => { const b = e.target.closest('bu
 const ON = { room: null, peers: [], my: {}, host: null, joinCode: null, acts: [], n: 0, seen: 0, q: [],
   cfg: Object.assign({ inn: 3, side: 1, night: 1, diff: 'pro' }, store.get('oncfg', {})) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
-const PROTO = 4; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
+const PROTO = 5; // 온라인 통신 규칙 버전: 바뀌면 올림 → 버전이 다른 두 기기는 서로 방에 못 들어가게 (배포 직후 한쪽만 새로고침한 경우)
 const LOST_WAIT = 90; // 상대 연결이 끊겼을 때 기다리는 시간(초) — 메신저 잠깐 다녀오는 정도는 버팀
 function hashSeed(a, b, c) { let h = (a ^ 0x9e3779b9) >>> 0; h = Math.imul(h ^ (b + 0x7f4a7c15), 2654435761) >>> 0; h = Math.imul(h ^ (c * 40503 + 17), 2246822519) >>> 0; return (h ^ (h >>> 15)) >>> 0; }
 function onSeed(pi, tag) { return S.mulberry32(hashSeed(G.online.seed, pi, tag)); }
@@ -7164,7 +7324,7 @@ function renderMe() {
   };
 }
 
-if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter });
+if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter, AUTO_SK, SKILLS });
 
 // 경기에서 돌아오면 보던 탭 그대로 (시즌 경기 → 시즌 탭, 온라인 경기 → 온라인 탭)
 showTab(store.get('tab', 'home'), true);

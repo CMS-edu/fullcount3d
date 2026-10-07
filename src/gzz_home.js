@@ -113,7 +113,7 @@ function renderMe() {
   };
 }
 
-if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter });
+if (window.__fc) Object.assign(window.__fc, { showTab, fxHomeRun, fxStrikeout, fxHit, fxWin, fxScore, fxContact, playerCard, pitcherPose, LEAGUE, zoneGuide, viewPA, ON, fieldTeam, nextPitch, pickoff, decisions, teamAwards, pitEnter, AUTO_SK, SKILLS });
 
 // 경기에서 돌아오면 보던 탭 그대로 (시즌 경기 → 시즌 탭, 온라인 경기 → 온라인 탭)
 showTab(store.get('tab', 'home'), true);

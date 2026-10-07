@@ -107,6 +107,7 @@ function makeTeamState(idx) {
   const sp = ros.rotation[Math.floor(GR() * ros.rotation.length)];
   const tm = { idx, t: S.TEAMS[idx], ros, lineup: ros.lineup.slice(), bench: ros.bench.slice(), out: [], order: 0, pitcher: sp, used: [sp], runs: 0, hits: 0, bb: 0, err: 0, line: [], warned: null };
   applyRoster(tm);
+  ros.lineup.concat(ros.bench).forEach((b) => { if (b.skill === 'speed') b.spd = Math.min(99, b.spd + 6); }); // 대도 스킬
   return tm;
 }
 function fieldersOf(tm) {
@@ -415,7 +416,7 @@ function nextPitch() {
       if (gen !== G.gen || G.phase !== 'ready') return;
       // CPU 투수 견제: 1·2루 주자에게 가끔, 주자가 뛰려고 하면(도루 요청) 더 자주
       const pb = pickoffBase();
-      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1]) { pickoff(); return; }
+      if (!G.prac && pb >= 0 && pb < 2 && (G.pk || 0) < 2 && R() < (G.stealReq ? 0.11 : 0.06) * [0.6, 1, 1.5][(G.leadT || 0) + 1] * (p.skill === 'pickoff' ? 1.5 : 1)) { pickoff(); return; }
       windup(plan.type, plan.target, null);
     });
   }
@@ -458,7 +459,7 @@ function windup(type, target, meter) {
   if (!G.prac && G.bases.some(Boolean) && (G.online ? onSeed(pi, 4)() : R()) < BALK_P) { balk(); return; }
   const p = fieldTeam().pitcher, fat = S.fatigueOf(p, p.g.pc), sig = S.pitchSigma(p, fat, meter);
   const tgt = { x: target.x + S.randn() * sig, y: target.y + S.randn() * sig };
-  const kmh = S.pitchSpeed(p, type, fat, meter) * ((G.prac && G.prac.spd) || 1), q = S.pitchQuality(p, fat, meter);
+  const kmh = S.pitchSpeed(p, type, fat, meter) * ((G.prac && G.prac.spd) || 1) + (p.skill === 'closer' && closerOn() ? 2 : 0), q = S.pitchQuality(p, fat, meter);
   G.pitch = { pt: S.makePitch(p, type, tgt, kmh), type, kmh, q, meter, aim: target, w: 0, ft: 0, released: false, swung: false, launched: false, done: false, cross: tgt, uEnd: 1.06, hand: p.hand, slot: p.slot || 0, pi };
   G.phase = 'windup';
   hideDocks(); if (userBatting()) showDocks();
@@ -485,7 +486,7 @@ function stealBase() {
 // 좌투수는 1루 주자를 보고 던져서 2루 도루가 어려움, 3루 도루는 더 어려움. 견제 받을수록·리드 짧을수록 어려움
 function stealChance(k) {
   const r = G.bases[k], P = G.pitch, kmh = P ? P.kmh : 140, lhp = P ? P.hand === 'L' : fieldTeam().pitcher.hand === 'L';
-  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07, 0.1, 0.85);
+  return clamp(0.3 + (r.spd - 55) * 0.011 + (140 - kmh) * 0.004 - (lhp && k === 0 ? 0.06 : 0) - (k === 1 ? 0.06 : 0) - (G.pk || 0) * 0.03 + (G.leadT || 0) * 0.07 + (r.skill === 'speed' ? 0.12 : 0) - (fieldTeam().pitcher.skill === 'pickoff' ? 0.08 : 0), 0.1, 0.88);
 }
 function startSteal(k) {
   const r = G.bases[k], pSucc = stealChance(k);
@@ -506,7 +507,7 @@ function release() {
   G.lastSpeed = P.kmh;
   ball.hot = clamp((P.kmh - 138) / 14, 0, 1);
   if (P.kmh >= 150) { UI.speedBox.classList.remove('fire'); void UI.speedBox.offsetWidth; UI.speedBox.classList.add('fire'); } else UI.speedBox.classList.remove('fire');
-  UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name; UI.speedBox.hidden = false;
+  UI.speedV.textContent = Math.round(P.kmh); UI.speedT.textContent = S.PITCHES[P.type].name + (SKILLS[p.skill] ? ' ' + SKILLS[p.skill].ico : ''); UI.speedBox.hidden = false;
   if (userPitching() && !G.online) {
     const b = curBatter(), zi = S.zoneInfo(S.zoneOf(b.height), P.cross.x, P.cross.y);
     if (G.cpuBunt) {
@@ -515,7 +516,7 @@ function release() {
       else if (R() < 0.8) P.cpu = { swing: true, contact: true, bunt: true, ev: 30 + R() * 18, la: -15 + R() * 10, phi: (R() < 0.5 ? -1 : 1) * (8 + R() * 26) };
       else if (R() < 0.6) P.cpu = { swing: true, contact: true, bunt: true, foul: true, ev: 40, la: 20, phi: (R() < 0.5 ? -1 : 1) * 62 };
       else P.cpu = { swing: true, contact: false, bunt: true };
-    } else P.cpu = S.cpuSwing(b, P.pt, zi, { b: G.b, s: G.s }, G.diff, p.hand, P.q);
+    } else P.cpu = S.cpuSwing(b, P.pt, zi, { b: G.b, s: G.s }, G.diff, p.hand, P.q, skillCtx());
     if (G.prac && G.prac.kind === 'pit' && !G.prac.swing) P.cpu = { swing: false };
   }
   if (G.steal) planSteal();
@@ -566,7 +567,7 @@ function userSwingTap(aim) {
   P.swung = true;
   const e = P.ft - (P.pt.dur - SW_TC - 0.005);
   const b = curBatter();
-  const res = S.userSwing(b, aim, P.cross, e, G.diff, G.bunt, fieldTeam().pitcher.hand);
+  const res = S.userSwing(b, aim, P.cross, e, G.diff, G.bunt, fieldTeam().pitcher.hand, skillCtx());
   P.user = res;
   const uc = clamp((P.ft + SW_TC) / P.pt.dur, 0.88, 1.05);
   P.contactU = uc; P.contactT = uc * P.pt.dur;
@@ -582,7 +583,7 @@ function userSwingTap(aim) {
   }
   showRing(aim, true);
   if (res.miss) showFeedback([[G.bunt ? '번트 실패' : '헛스윙', 'bad'], [res.tl === '굿' ? '코스가 빗나감' : `타이밍 ${res.tl}`, 'm']], 1100);
-  else if (!res.foul && !res.bunt) showFeedback([[`타이밍 ${res.tl}`, res.tl === '굿' ? 'good' : 'm'], [res.cl, res.q > 0.6 ? 'good' : 'm']], 1300);
+  else if (!res.foul && !res.bunt) showFeedback([[`타이밍 ${res.tl}`, res.tl === '굿' ? 'good' : 'm'], [res.cl, res.q > 0.6 ? 'good' : 'm']].concat(res.sk ? [[`${res.sk} 발동!`, 'good']] : []), 1300);
 }
 function isHBP(cr, b) {
   const s = b.hand === 'R' ? -1 : 1;

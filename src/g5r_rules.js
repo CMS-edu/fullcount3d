@@ -108,7 +108,8 @@ function pickoff(remote) {
   let pr = going ? 0.22 + (G.leadT || 0) * 0.07 : [0.025, 0.015, 0.01][k] * lf;
   if (k === 0 && p.hand === 'L') pr += going ? 0.05 : 0.015 * lf;
   pr -= (r.spd - 60) * (going ? 0.003 : 0.0004);
-  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.005, 0.45);
+  pr *= (r.skill === 'speed' ? 0.6 : 1) * (p.skill === 'pickoff' ? 2 : 1); // 스킬: 대도는 덜 걸리고, 견제 달인은 2배
+  const out = (G.online ? onSeed(G.online.pi, 10 + G.pk)() : R()) < clamp(pr, 0.005, 0.5);
   G.stealReq = false; UI.steal.setAttribute('aria-pressed', 'false'); // 뛰려던 주자는 타이밍을 뺏김
   if (G.online && !ON.subOut.some((s) => s.t === 'st')) ON.stealWant = false;
   G.pclock = null; UI.pclock.hidden = true; G.meter = null; hideDocks();

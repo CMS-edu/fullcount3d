@@ -68,7 +68,8 @@
     const armSign = pitcher.hand === 'R' ? -1 : 1;
     const rel = { x: 0.55 * armSign, y: 1.78, z: -16.9 };
     const mv = pitcher.mv && pitcher.mv[type]; // 투수마다 실제 무브먼트 [가로(팔 쪽 +), 떨어짐] (m)
-    const bx = (mv ? mv[0] : p.arm) * armSign, by = -(mv ? mv[1] : p.drop);
+    const mg = pitcher.skill === 'magic' && p.brk ? 1.3 : 1; // 마구 스킬: 변화구가 더 휨
+    const bx = (mv ? mv[0] : p.arm) * armSign * mg, by = -(mv ? mv[1] : p.drop) * mg;
     const dur = Math.abs(rel.z) / (kmh / 3.6);
     return { type, kmh, rel, target, bx, by, arc: p.arc * (145 / kmh), dur };
   }
@@ -449,8 +450,9 @@
 
   /* ---------- 스윙 판정 (유저 타격) ---------- */
   // e: 타이밍 오차(초, 음수=빠름), aim/ball: 홈플레이트 평면 좌표 {x,y}
-  function userSwing(batter, aim, ball, e, diff, bunt, pitcherHand) {
-    const W = 0.085 * diff.win, r0 = (0.1 + batter.con * 0.0006) * diff.pci;
+  function userSwing(batter, aim, ball, e, diff, bunt, pitcherHand, ctx) {
+    const sm = skillMods(batter, ctx);
+    const W = 0.085 * diff.win * sm.win, r0 = (0.1 + batter.con * 0.0006) * diff.pci * sm.reach;
     const d = Math.hypot(aim.x - ball.x, aim.y - ball.y);
     const pullSign = batter.hand === 'R' ? -1 : 1;
     const tl = e < -W * 0.45 ? '빠름' : e > W * 0.45 ? '늦음' : '굿';
@@ -482,10 +484,11 @@
       return { foul: true, tl: tl2, ev: 70 + q * 100, la: 25 + randn() * 25, phi: (Math.abs(phi) > 45 ? phi : Math.sign(phi || 1) * (50 + R() * 30)) };
     }
     const plat = batter.hand !== pitcherHand ? 1.03 : 1;
-    const ev = Math.min(186, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat + (m ? clamp(m[2], -0.15, 0.15) * 30 : 0));
-    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5 - (sw > rh * 0.45 ? 8 : 0), -40, 75);
+    const pulled = phi * pullSign > 5;
+    const ev = Math.min(188, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat + (m ? clamp(m[2], -0.15, 0.15) * 30 : 0) + sm.ev + (pulled ? sm.pullEv : 0));
+    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5 - (sw > rh * 0.45 ? 8 : 0) + sm.la, -40, 75);
     const cl = qs < 0.6 && sw > 0 ? '먹힌 타구' : qs < 0.6 ? '배트 끝' : q > 0.85 ? '정타!' : q > 0.6 ? '잘 맞음' : q > 0.35 ? '보통' : '빗맞음';
-    return { ev, la, phi, q, tl: tl2, cl };
+    return { ev, la, phi, q, tl: tl2, cl, sk: sm.tag || (pulled && sm.pullEv ? '🧲 당겨치기 장인' : '') };
   }
 
   /* ---------- 타자 성향: 코스 칸 ---------- */
@@ -502,8 +505,8 @@
   }
 
   /* ---------- CPU 타자 반응 (유저 투구) ---------- */
-  function cpuSwing(batter, pitch, zi, count, diff, pitcherHand, quality) {
-    const brk = PITCHES[pitch.type].brk;
+  function cpuSwing(batter, pitch, zi, count, diff, pitcherHand, quality, ctx) {
+    const brk = PITCHES[pitch.type].brk, sm = skillMods(batter, ctx);
     // 실제 기록이 있으면 코스별 [스윙 배율, 컨택 배율, 타율 차이] (리그 평균 대비)
     const m = batter.zm && pitch.target ? batter.zm[zoneCell(batter, pitch.target)] : null;
     let ps;
@@ -512,11 +515,12 @@
     } else {
       ps = Math.max(0, 0.4 - zi.out * 2.9) * (1.12 - batter.eye / 120) * (brk ? 1.3 : 1) + (count.s === 2 ? 0.08 : 0);
       if (count.b === 3 && count.s < 2) ps *= 0.35;
+      ps *= sm.chase; // 선구안: 유인구에 덜 속음
     }
     if (m) ps *= clamp(m[0], 0.55, 1.6); // 잘 참는 코스·잘 따라가는 코스
     if (R() > ps) return { swing: false };
     const plat = batter.hand !== pitcherHand ? 0.03 : 0;
-    let pc = 0.765 + (batter.con - 60) / 220 + plat - (quality - 0.75) * 0.45 + diff.cpuCon;
+    let pc = 0.765 + (batter.con - 60) / 220 + plat - (quality - 0.75) * 0.45 + diff.cpuCon + sm.con;
     pc -= zi.inside ? Math.max(0, zi.corner - 0.4) * 0.22 : 0.12 + zi.out * 1.4;
     if (m) pc *= clamp(m[1], 0.75, 1.25); // 헛스윙이 많은 코스
     if (R() > pc) return { swing: true, contact: false };
@@ -524,10 +528,10 @@
     const pullSign = batter.hand === 'R' ? -1 : 1;
     if (R() < pFoul) return { swing: true, contact: true, foul: true, ev: 90 + R() * 50, la: 20 + randn() * 25, phi: (R() < 0.5 ? -1 : 1) * (48 + R() * 30) };
     const evMean = 112.5 + batter.pow * 0.36 - Math.max(0, zi.corner - 0.3) * 12 - zi.out * 45 - (quality - 0.75) * 10 + diff.cpuPow + (m ? clamp(m[2], -0.15, 0.15) * 70 : 0); // 강한 코스는 더 세게
-    const ev = clamp(evMean + randn() * 21, 45, 184);
-    const la = clamp(10.5 + (batter.pow - 60) * 0.17 + (zi.low ? -6 : 5) + (brk && zi.low ? -5 : 0) + (batter.laAdj || 0) + randn() * 25, -45, 80);
     const phi = pullSign * (batter.pullDeg != null ? batter.pullDeg : 7) + randn() * 22; // 당겨치기/밀어치기 성향
-    return { swing: true, contact: true, foul: Math.abs(phi) > 45, ev, la, phi };
+    const ev = clamp(evMean + randn() * 21 + sm.ev + (phi * pullSign > 5 ? sm.pullEv : 0), 45, 186);
+    const la = clamp(10.5 + (batter.pow - 60) * 0.17 + (zi.low ? -6 : 5) + (brk && zi.low ? -5 : 0) + (batter.laAdj || 0) + randn() * 25 + sm.la, -45, 80);
+    return { swing: true, contact: true, foul: Math.abs(phi) > 45, ev, la, phi, sk: sm.tag };
   }
 
 
@@ -554,15 +558,35 @@
     else { tx = (R() - 0.5) * 0.5; ty = mid + (R() - 0.5) * hh * 1.8 - (brk ? hh * 0.35 : 0); }
     return { type, target: { x: tx, y: ty } };
   }
-  function fatigueOf(p, pc) { return clamp((pc - p.sta * 0.8) / (p.sta * 0.45), 0, 1); }
+  // 투수 스킬(p.skill, src/g5s_skills.js): 이닝이터·핀포인트·파이어볼러·마구
+  function fatigueOf(p, pc) { const n = p.skill === 'eater' ? pc * 0.75 : pc; return clamp((n - p.sta * 0.8) / (p.sta * 0.45), 0, 1); }
   function pitchSigma(p, fat, meter) {
-    return meter == null ? 0.045 + (100 - p.ctl) * 0.0011 + fat * 0.06 : 0.028 + (1 - meter) * 0.15 + (100 - p.ctl) * 0.0007 + fat * 0.06;
+    const s = meter == null ? 0.045 + (100 - p.ctl) * 0.0011 + fat * 0.06 : 0.028 + (1 - meter) * 0.15 + (100 - p.ctl) * 0.0007 + fat * 0.06;
+    return p.skill === 'ctrl' ? s * 0.72 : s;
   }
   function pitchSpeed(p, type, fat, meter) {
     const base = p.spd && p.spd[type] ? p.spd[type] : p.vel * PITCHES[type].ratio; // 실제 구종별 평균 구속이 있으면 그걸로
-    return base * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0);
+    return base * (1 - fat * 0.035) + randn() * 1.1 + (meter != null ? (meter - 0.6) * 2.5 : 0) + (p.skill === 'heat' && FASTS[type] ? 3 : 0);
   }
-  function pitchQuality(p, fat, meter) { return (p.stf / 100) * (meter == null ? 0.9 : 0.72 + 0.38 * meter) - fat * 0.15; }
+  function pitchQuality(p, fat, meter) { return (p.stf / 100) * (meter == null ? 0.9 : 0.72 + 0.38 * meter) - fat * 0.15 + (p.skill === 'heat' ? 0.03 : p.skill === 'magic' ? 0.04 : 0); }
+  // 타자·투수 스킬이 스윙에 주는 보정. ctx = { b, s, risp, late, pit } (없으면 상황 스킬은 꺼짐)
+  function skillMods(bt, ctx) {
+    const c = ctx || {}, bs = bt && bt.skill, ps = c.pit && c.pit.skill;
+    const m = { win: 1, reach: 1, ev: 0, la: 0, chase: 1, con: 0, pullEv: 0, tag: '' };
+    if (bs === 'slug') { m.ev += 7; m.la += 2; m.tag = '💣 거포'; }
+    if (bs === 'contact') { m.reach *= 1.15; m.con += 0.06; }
+    if (bs === 'eye') { m.win *= 1.15; m.chase *= 0.7; }
+    if (bs === 'clutch' && c.risp) { m.ev += 6; m.reach *= 1.1; m.con += 0.05; m.tag = '🔥 해결사'; }
+    if (bs === 'first' && c.b === 0 && c.s === 0) { m.ev += 8; m.tag = '🥊 초구 킬러'; }
+    if (bs === 'tough' && c.s === 2) { m.reach *= 1.2; m.win *= 1.15; m.con += 0.08; m.tag = '🪨 끈질김'; }
+    if (bs === 'pull') m.pullEv = 6;
+    if (ps === 'escape' && c.risp) { m.ev -= 6; m.con -= 0.05; }
+    if (ps === 'closer' && c.late) { m.ev -= 5; m.con -= 0.04; }
+    if (ps === 'gb') m.la -= 5;
+    if (ps === 'sub') { m.win *= 0.9; m.con -= 0.03; }
+    if (ps === 'magic') m.con -= 0.03;
+    return m;
+  }
 
   /* ---------- 팀 & 선수 (가상 구단) ---------- */
   const TEAMS = [

@@ -17,6 +17,9 @@ function applyRoster(tm) {
     }
   }
   if (cfg.sp && by[cfg.sp] && tm.ros.rotation.includes(by[cfg.sp])) { tm.pitcher = by[cfg.sp]; tm.used = [tm.pitcher]; }
+  // 스킬 (g5s_skills.js): 저장한 배정이 있으면 그대로, 없으면 2026 기록으로 자동 배정
+  bats.concat(pits).forEach((p) => delete p.skill);
+  skillPlan(tm.t.id, cfg, by).forEach(([k, id]) => (by[k].skill = id));
 }
 
 /* ---------- 구단 관리 에디터 ---------- */
@@ -32,11 +35,46 @@ function edLoad(ti) {
   ED.pos = {}; tmp.lineup.forEach((b) => (ED.pos[b.key] = b.pos));
   ED.sp = cfg.sp || null;
   ED.base = {}; r.lineup.concat(r.bench, r.rotation, r.bullpen).forEach((p) => (ED.base[p.key] = p));
+  ED.sk = skillPlan(S.TEAMS[ti].id, cfg, ED.base).map((x) => x.slice());
 }
+// 스킬 탭: 타자 2칸 · 투수 2칸, 칸마다 선수와 스킬을 고름
+function renderSkillTab(L) {
+  $('#rosterHint').textContent = '팀마다 타자 2명 · 투수 2명에게 스킬 하나씩. 기본값은 2026 시즌 기록에서 두드러진 장점으로 자동 배정돼요';
+  const tid = S.TEAMS[ED.team].id, auto = AUTO_SK[tid] || [];
+  const slot = (bat, i) => {
+    const list = ED.sk.filter((x) => (x[0][0] === 'B') === bat), cur = list[i] || [null, null];
+    const players = Object.keys(ED.base).filter((k) => (k[0] === 'B') === bat);
+    const skills = Object.keys(SKILLS).filter((id) => SKILLS[id].bat === bat);
+    const d = document.createElement('div'); d.className = 'skrow';
+    d.innerHTML = `<select data-skp="${bat ? 'B' : 'P'}${i}" aria-label="선수">${players.map((k) => `<option value="${k}"${k === cur[0] ? ' selected' : ''}>${esc(edName(k))}${ED.base[k].role ? ' · ' + (ED.base[k].role === 'SP' ? '선발' : ED.base[k].role === 'CL' ? '마무리' : '불펜') : ' · ' + POS_K[ED.base[k].pos]}</option>`).join('')}</select>`
+      + `<select data-sks="${bat ? 'B' : 'P'}${i}" aria-label="스킬">${skills.map((id) => `<option value="${id}"${id === cur[1] ? ' selected' : ''}>${SKILLS[id].ico} ${SKILLS[id].nm}</option>`).join('')}</select>`
+      + `<div class="skd">${cur[1] ? `<b>${SKILLS[cur[1]].ico} ${SKILLS[cur[1]].nm}</b> — ${SKILLS[cur[1]].desc}` : ''}${cur[0] ? `<br>${esc(cur[0][0] === 'B' ? batInfo(ED.base[cur[0]]) : pitInfo(ED.base[cur[0]]))}` : ''}</div>`;
+    L.appendChild(d);
+  };
+  const h = (t) => { const e = document.createElement('div'); e.className = 'rhead'; e.textContent = t; L.appendChild(e); };
+  h('타자 스킬'); slot(true, 0); slot(true, 1);
+  h('투수 스킬'); slot(false, 0); slot(false, 1);
+  const b = document.createElement('button'); b.className = 'mbtn'; b.textContent = '2026 기록으로 자동 추천'; b.dataset.skauto = '1';
+  L.appendChild(b);
+  const sameAsAuto = JSON.stringify(ED.sk) === JSON.stringify(auto);
+  const n = document.createElement('p'); n.className = 'sub'; n.style.marginTop = '8px';
+  n.textContent = sameAsAuto ? '지금은 자동 추천 그대로예요.' : '직접 고른 스킬이에요. 저장하면 다음 경기부터 적용돼요.';
+  L.appendChild(n);
+}
+$('#rosterList').addEventListener('change', (e) => {
+  const s = e.target.closest('select'); if (!s || ED.tab !== 'skill') return;
+  const key = s.dataset.skp || s.dataset.sks, bat = key[0] === 'B', i = +key.slice(1);
+  const mine = ED.sk.filter((x) => (x[0][0] === 'B') === bat), other = ED.sk.filter((x) => (x[0][0] === 'B') !== bat);
+  while (mine.length < 2) mine.push([Object.keys(ED.base).find((k) => (k[0] === 'B') === bat && !mine.some((m) => m[0] === k)), Object.keys(SKILLS).find((id) => SKILLS[id].bat === bat)]);
+  const nx = mine.map((x) => x.slice());
+  if (s.dataset.skp) nx[i][0] = s.value; else nx[i][1] = s.value;
+  if (nx[0][0] === nx[1][0]) { toast('한 선수에게는 스킬 하나만 줄 수 있어요'); renderRoster(); return; }
+  ED.sk = bat ? nx.concat(other) : other.concat(nx); ED.dirty = true; AU.click(); renderRoster();
+});
 function edName(k) { return ED.names[k] || ED.base[k].name; }
 function edBench() { return Object.keys(ED.base).filter((k) => k[0] === 'B' && !ED.order.includes(k)); }
-function batInfo(p) { return `${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd}${p.spray ? ' · ' + tendText(p) : ''}`; }
-function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${p.hand === 'L' ? '좌' : '우'}투${armSlotName(p) ? ' ' + armSlotName(p) : ''} · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · ${p.mix ? `${mixText(p)}${p.spd && p.spd.FB ? ` · 직구 평균 ${Math.round(p.spd.FB)}km/h` : ''}` : '구속·구종은 추정'}`; }
+function batInfo(p) { return `${SKILLS[p.skill] ? skillTag(p) + " · " : ""}${p.sw ? '양' : p.hand === 'L' ? '좌' : '우'}타 · ${fmtAvg(p.avg)} ${p.hr}HR ${p.sb}도루 · OPS ${(p.obp + p.slg).toFixed(3)} (${p.pa}타석) · 컨${p.con} 파${p.pow} 선${p.eye} 주${p.spd}${p.spray ? ' · ' + tendText(p) : ''}`; }
+function pitInfo(p) { const ipS = `${Math.floor(p.ip)}${Math.round((p.ip % 1) * 3) ? '.' + Math.round((p.ip % 1) * 3) : ''}`; return `${SKILLS[p.skill] ? skillTag(p) + " · " : ""}${p.hand === 'L' ? '좌' : '우'}투${armSlotName(p) ? ' ' + armSlotName(p) : ''} · ERA ${p.era.toFixed(2)} · ${ipS}이닝 ${p.k}K ${p.bb}BB${p.sv ? ' ' + p.sv + 'SV' : ''} · 제구${p.ctl} 구위${p.stf} · ${p.mix ? `${mixText(p)}${p.spd && p.spd.FB ? ` · 직구 평균 ${Math.round(p.spd.FB)}km/h` : ''}` : '구속·구종은 추정'}`; }
 function openRoster(ti) {
   edLoad(ti == null ? OPTS.me : ti); ED.tab = 'bat';
   showTab('roster');
@@ -67,6 +105,8 @@ function renderRoster() {
     });
   } else if (ED.tab === 'paste') {
     renderPaste(L); return;
+  } else if (ED.tab === 'skill') {
+    renderSkillTab(L); return;
   } else {
     $('#rosterHint').textContent = '선발 버튼으로 다음 경기 선발투수를 정해요 (자동이면 로테이션에서 랜덤) · ✎ 이름 수정';
     head('선발 로테이션');
@@ -94,6 +134,7 @@ $('#rosterList').addEventListener('click', (e) => {
   const av = e.target.closest('.nm .ava');
   if (av) { ED.photo = av.closest('.nm').dataset.k; ED.sel = null; ED.posSel = null; renderRoster(); $('#panes').scrollTop = 0; AU.click(); return; }
   const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.skauto) { ED.sk = (AUTO_SK[S.TEAMS[ED.team].id] || []).map((x) => x.slice()); ED.dirty = true; AU.click(); renderRoster(); toast('2026 기록 기준 추천 스킬로 바꿨어요'); return; }
   if (b.dataset.ek) { ED.editing = b.dataset.ek; ED.sel = null; ED.posSel = null; renderRoster(); return; }
   if (b.dataset.sp != null && b.classList.contains('sp')) { ED.sp = b.dataset.sp || null; ED.dirty = true; AU.click(); renderRoster(); return; }
   if (b.dataset.pk) {
@@ -150,7 +191,7 @@ function photoCredits(L) {
 function edSave() {
   const all = rosterCfgAll(), id = S.TEAMS[ED.team].id;
   const pos = {}; ED.order.forEach((k) => (pos[k] = ED.pos[k]));
-  all[id] = { names: ED.names, hands: ED.hands, order: ED.order.slice(), pos, sp: ED.sp };
+  all[id] = { names: ED.names, hands: ED.hands, order: ED.order.slice(), pos, sp: ED.sp, sk: ED.sk.map((x) => x.slice()) };
   store.set('roster2', all); ED.dirty = false;
 }
 $$('.rtabs button').forEach((b) => b.addEventListener('click', () => { ED.tab = b.dataset.tab; ED.sel = null; ED.posSel = null; ED.editing = null; renderRoster(); }));
