@@ -1293,21 +1293,31 @@ setTimeout(function(){if(!window.__done)window.__err('로딩 시간 초과');},2
       const side = aim.x < ball.x ? -1 : 1;
       return { ev: 28 + R() * 22, la: -16 + R() * 12, phi: side * (10 + R() * 24), q, tl, bunt: true };
     }
-    const Wf = e < 0 ? W * 1.6 : W * 0.78, rf = r0 * 1.8;
-    if (Math.abs(e) > Wf || d > rf) return { miss: true, tl };
-    const qa = 1 - d / rf, qt = 1 - Math.abs(e) / Wf;
-    const q = Math.pow(qa, 0.8) * Math.pow(qt, 0.8);
-    const phi = -pullSign * (e / Wf) * 44 + randn() * 6 + pullSign * ((batter.pullDeg != null ? batter.pullDeg : 7) - 7) * 0.6;
+    /* 배트 = 가로로 긴 선. 판정은 세 가지로 나눔
+       ① 위아래: 배트 굵기만큼만 허용(좁음) → 빗나가면 헛스윙, 조금 빗나가면 공 밑/위를 쳐서 뜬공/땅볼
+       ② 타이밍: 이상적인 순간이 코스를 따라 움직임 — 몸쪽 공은 앞에서 일찍, 바깥쪽 공은 끌어들여 늦게
+       ③ 배트의 어디에 맞았나(스윗스팟): 좌우 오차 + 타이밍이 합쳐짐. 공이 손잡이 쪽이면 먹힌 타구, 끝 쪽이면 힘없는 타구 */
+    const sg = batter.hand === 'R' ? -1 : 1, xi = ball.x * sg; // + = 몸쪽
+    const eT = e + xi * 0.15; // 몸쪽(xi>0)은 이상 타이밍이 빨라짐 → 같은 탭이라도 덜 빠른 셈
+    const tl2 = eT < -W * 0.45 ? '빠름' : eT > W * 0.45 ? '늦음' : '굿';
+    const Wf = eT < 0 ? W * 1.6 : W * 0.78;
+    const dy = aim.y - ball.y, rv = r0 * 1.45, rh = r0 * 3.1;
+    const sw = (ball.x - aim.x) * sg + eT * 3.2; // + = 손잡이 쪽(먹힘): 공이 몸쪽으로 비켜 왔거나 늦게 쳐서 공이 깊이 들어옴
+    if (Math.abs(eT) > Wf || Math.abs(dy) > rv || Math.abs(sw) > rh) return { miss: true, tl: tl2 };
+    const qv = 1 - Math.abs(dy) / rv, qt = 1 - Math.abs(eT) / Wf;
+    const qs = clamp(1 - Math.pow(Math.abs(sw) / (sw > 0 ? rh * 0.8 : rh), 1.8), 0, 1); // 먹히는 쪽이 조금 더 아픔
+    const q = Math.pow(qv, 0.75) * Math.pow(qt, 0.8) * Math.pow(qs, 0.7);
+    // 방향: 빨리 칠수록·몸쪽 공일수록 당기고, 늦을수록·바깥쪽일수록 밀어 침
+    const phi = -pullSign * (e / Wf) * 40 + pullSign * xi * 30 + randn() * 6 + pullSign * ((batter.pullDeg != null ? batter.pullDeg : 7) - 7) * 0.6;
     const m = batter.zm ? batter.zm[zoneCell(batter, ball)] : null;
     if (q < 0.16 || (q < 0.3 && R() < 0.55)) {
-      return { foul: true, tl, ev: 70 + q * 100, la: 25 + randn() * 25, phi: (Math.abs(phi) > 45 ? phi : Math.sign(phi || 1) * (50 + R() * 30)) };
+      return { foul: true, tl: tl2, ev: 70 + q * 100, la: 25 + randn() * 25, phi: (Math.abs(phi) > 45 ? phi : Math.sign(phi || 1) * (50 + R() * 30)) };
     }
     const plat = batter.hand !== pitcherHand ? 1.03 : 1;
     const ev = Math.min(186, US.e0 + US.e1 * Math.pow(q, US.ep) * (0.85 + batter.pow * 0.004) * plat + (m ? clamp(m[2], -0.15, 0.15) * 30 : 0));
-    const dy = aim.y - ball.y;
-    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5, -40, 75);
-    const cl = q > 0.85 ? '정타!' : q > 0.6 ? '잘 맞음' : q > 0.35 ? '보통' : '빗맞음';
-    return { ev, la, phi, q, tl, cl };
+    const la = clamp(US.la0 - (dy / r0) * US.laK + randn() * US.laN + (batter.pow - 60) * 0.12 + (batter.laAdj || 0) * 0.5 - (sw > rh * 0.45 ? 8 : 0), -40, 75);
+    const cl = qs < 0.6 && sw > 0 ? '먹힌 타구' : qs < 0.6 ? '배트 끝' : q > 0.85 ? '정타!' : q > 0.6 ? '잘 맞음' : q > 0.35 ? '보통' : '빗맞음';
+    return { ev, la, phi, q, tl: tl2, cl };
   }
 
   /* ---------- 타자 성향: 코스 칸 ---------- */
